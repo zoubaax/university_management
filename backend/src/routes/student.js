@@ -10,18 +10,24 @@ const {
 const router = express.Router();
 
 const { protect, authorize } = require('../middlewares/auth');
+const { checkResourcePermission, checkRoleCreationPermission } = require('../middlewares/rbac');
 
 router.use(protect); // All routes protected
 
 router
     .route('/')
     .get(getStudents)
-    .post(authorize('SUPER_ADMIN', 'RH', 'SECRETARY'), createStudent);
+    .post(
+        authorize('RESPONSABLE_DEPARTMENT'),
+        checkResourcePermission('students'),
+        checkRoleCreationPermission,
+        createStudent
+    );
 
 router
     .route('/:id')
     .get(getStudent)
-    .put(authorize('SUPER_ADMIN', 'RH', 'SECRETARY'), updateStudent)
-    .delete(authorize('SUPER_ADMIN', 'RH', 'SECRETARY'), deleteStudent);
+    .put(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('students'), updateStudent)
+    .delete(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('students'), deleteStudent);
 
 module.exports = router;

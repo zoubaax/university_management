@@ -10,18 +10,19 @@ const {
 const router = express.Router();
 
 const { protect, authorize } = require('../middlewares/auth');
+const { checkResourcePermission } = require('../middlewares/rbac');
 
 router.use(protect); // All routes protected
 
 router
     .route('/')
     .get(getSpecialities)
-    .post(authorize('SUPER_ADMIN', 'RH'), createSpeciality);
+    .post(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('specialities'), createSpeciality);
 
 router
     .route('/:id')
     .get(getSpeciality)
-    .put(authorize('SUPER_ADMIN', 'RH'), updateSpeciality)
-    .delete(authorize('SUPER_ADMIN', 'RH'), deleteSpeciality);
+    .put(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('specialities'), updateSpeciality)
+    .delete(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('specialities'), deleteSpeciality);
 
 module.exports = router;
