@@ -19,8 +19,8 @@ class AuthService {
         // Remove password from output
         delete user.password_hash;
 
-        const accessToken = User.getSignedJwtToken(user.id);
-        const refreshToken = User.getSignedRefreshToken(user.id);
+        const accessToken = User.getSignedJwtToken(user);
+        const refreshToken = User.getSignedRefreshToken(user);
 
         return { user, accessToken, refreshToken };
     }
@@ -38,7 +38,7 @@ class AuthService {
                 throw new ErrorResponse('User not found', 404);
             }
 
-            const accessToken = User.getSignedJwtToken(user.id);
+            const accessToken = User.getSignedJwtToken(user);
             return { accessToken };
         } catch (err) {
             throw new ErrorResponse('Invalid refresh token', 401);

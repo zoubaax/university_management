@@ -53,16 +53,28 @@ class User {
         return await bcrypt.compare(enteredPassword, hashedPassword);
     }
 
-    static getSignedJwtToken(userId) {
-        return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRE,
-        });
+    static getSignedJwtToken(user) {
+        return jwt.sign(
+            {
+                id: user.id,
+                role: user.role_name,
+                dept: user.department_id
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRE }
+        );
     }
 
-    static getSignedRefreshToken(userId) {
-        return jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
-            expiresIn: process.env.JWT_REFRESH_EXPIRE,
-        });
+    static getSignedRefreshToken(user) {
+        return jwt.sign(
+            {
+                id: user.id,
+                role: user.role_name,
+                dept: user.department_id
+            },
+            process.env.JWT_REFRESH_SECRET,
+            { expiresIn: process.env.JWT_REFRESH_EXPIRE }
+        );
     }
 }
 

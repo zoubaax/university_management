@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion } from 'framer-motion';
 import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
-import useAuthStore from '../store/useAuthStore';
+import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 
 const loginSchema = z.object({
@@ -15,7 +15,7 @@ const loginSchema = z.object({
 
 const LoginPage = () => {
     const navigate = useNavigate();
-    const { login, error: authError, loading } = useAuthStore();
+    const { login, error: authError, loading } = useAuth();
 
     const {
         register,
@@ -28,6 +28,9 @@ const LoginPage = () => {
     const onSubmit = async (data) => {
         const success = await login(data.email, data.password);
         if (success) {
+            // Role-based redirection logic
+            // We take the user from the login response (or it will be updated in context)
+            // For now, simple redirect to dashboard is fine as the layout handles menu visibility
             navigate('/dashboard');
         }
     };

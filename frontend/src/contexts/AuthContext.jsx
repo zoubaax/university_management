@@ -1,26 +1,42 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import api from '../api/axios';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                // Map decoded token fields back to user object structure
+                return { id: decoded.id, role_name: decoded.role, department_id: decoded.dept };
+            } catch (err) {
+                return null;
+            }
+        }
+        return null;
+    });
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const getMe = useCallback(async () => {
-        if (!localStorage.getItem('token')) {
+        const token = localStorage.getItem('token');
+        if (!token) {
             setLoading(false);
             return;
         }
 
         try {
+            // Still fetch full profile for robustness and to ensure token is valid
             const response = await api.get('/auth/me');
             setUser(response.data.data);
             setIsAuthenticated(true);
         } catch (error) {
             localStorage.removeItem('token');
+            setUser(null);
             setIsAuthenticated(false);
         } finally {
             setLoading(false);

@@ -14,12 +14,12 @@ import {
     ShieldCheck,
     UserCircle
 } from 'lucide-react';
-import useAuthStore from '../store/useAuthStore';
+import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 
 const DashboardLayout = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
-    const { user, logout } = useAuthStore();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
