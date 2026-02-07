@@ -1,7 +1,6 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/Guard';
+import { Toaster } from 'react-hot-toast';
 import LoginPage from './pages/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardOverview from './pages/DashboardOverview';
@@ -13,6 +12,7 @@ import StudentsPage from './pages/StudentsPage';
 const App = () => {
   return (
     <AuthProvider>
+      <Toaster position="top-right" reverseOrder={false} />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -58,6 +58,24 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'SECRETARY']}>
                   <StudentsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="rh-management"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                  <div className="p-8"><h1 className="text-2xl font-bold">RH Management</h1><p>Control panel for HR administrators.</p></div>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="profile"
+              element={
+                <ProtectedRoute allowedRoles={['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT']}>
+                  <div className="p-8"><h1 className="text-2xl font-bold">My Profile</h1><p>Manage your personal and academic information.</p></div>
                 </ProtectedRoute>
               }
             />

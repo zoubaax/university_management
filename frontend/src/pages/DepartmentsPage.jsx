@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'react-hot-toast';
 import {
     Plus,
     Search,
-    MoreVertical,
     Edit2,
     Trash2,
     BookOpen,
@@ -12,15 +15,30 @@ import {
     AlertCircle
 } from 'lucide-react';
 import api from '../api/axios';
-import { cn } from '../utils/cn';
+import Input from '../components/forms/Input';
+import Textarea from '../components/forms/Textarea';
+
+const departmentSchema = z.object({
+    name: z.string().min(2, 'Department name must be at least 2 characters'),
+    description: z.string().optional(),
+});
 
 const DepartmentsPage = () => {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
-    const [currentDept, setCurrentDept] = useState({ name: '', description: '' });
-    const [isSubmitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        setValue,
+        formState: { errors, isSubmitting },
+        setError
+    } = useForm({
+        resolver: zodResolver(departmentSchema),
+    });
 
     useEffect(() => {
         fetchDepartments();
@@ -31,39 +49,67 @@ const DepartmentsPage = () => {
             const response = await api.get('/departments');
             setDepartments(response.data.data);
         } catch (err) {
-            setError('Failed to fetch departments');
+            toast.error('Failed to load departments');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateOrUpdate = async (e) => {
-        e.preventDefault();
-        setSubmitting(true);
+    const onSubmit = async (data) => {
         try {
-            if (currentDept.id) {
-                await api.put(`/departments/${currentDept.id}`, currentDept);
+            if (editingId) {
+                await api.put(`/departments/${editingId}`, data);
+                toast.success('Department updated successfully');
             } else {
-                await api.post('/departments', currentDept);
+                await api.post('/departments', data);
+                toast.success('Department created successfully');
             }
             setModalOpen(false);
+            reset();
+            setEditingId(null);
             fetchDepartments();
-            setCurrentDept({ name: '', description: '' });
         } catch (err) {
-            setError(err.response?.data?.error || 'Operation failed');
-        } finally {
-            setSubmitting(false);
+            const backendError = err.response?.data?.error;
+            if (backendError && typeof backendError === 'string') {
+                if (backendError.includes('name')) {
+                    setError('name', { message: backendError });
+                } else {
+                    toast.error(backendError);
+                }
+            } else {
+                toast.error('Something went wrong. Please try again.');
+            }
         }
     };
 
+    const handleEdit = (dept) => {
+        setEditingId(dept.id);
+        setValue('name', dept.name);
+        setValue('description', dept.description || '');
+        setModalOpen(true);
+    };
+
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this department?')) return;
-        try {
-            await api.delete(`/departments/${id}`);
-            fetchDepartments();
-        } catch (err) {
-            setError('Failed to delete department');
-        }
+        toast((t) => (
+            <span className="flex items-center gap-3">
+                Are you sure?
+                <button
+                    onClick={async () => {
+                        toast.dismiss(t.id);
+                        try {
+                            await api.delete(`/departments/${id}`);
+                            toast.success('Department deleted');
+                            fetchDepartments();
+                        } catch (err) {
+                            toast.error('Failed to delete department');
+                        }
+                    }}
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold"
+                >
+                    Delete
+                </button>
+            </span>
+        ));
     };
 
     return (
@@ -75,7 +121,8 @@ const DepartmentsPage = () => {
                 </div>
                 <button
                     onClick={() => {
-                        setCurrentDept({ name: '', description: '' });
+                        reset();
+                        setEditingId(null);
                         setModalOpen(true);
                     }}
                     className="btn-primary flex items-center gap-2 self-start"
@@ -118,10 +165,7 @@ const DepartmentsPage = () => {
                                     </div>
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
-                                            onClick={() => {
-                                                setCurrentDept(dept);
-                                                setModalOpen(true);
-                                            }}
+                                            onClick={() => handleEdit(dept)}
                                             className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
                                         >
                                             <Edit2 size={16} />
@@ -137,7 +181,7 @@ const DepartmentsPage = () => {
                                 <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary-700 transition-colors uppercase tracking-tight">
                                     {dept.name}
                                 </h3>
-                                <p className="text-slate-500 mt-2 text-sm line-clamp-2 leading-relaxed">
+                                <p className="text-slate-500 mt-2 text-sm line-clamp-2 leading-relaxed h-10">
                                     {dept.description || 'No description provided.'}
                                 </p>
                                 <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between">
@@ -173,7 +217,7 @@ const DepartmentsPage = () => {
                         >
                             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                                 <h2 className="text-xl font-bold text-slate-900">
-                                    {currentDept.id ? 'Update Department' : 'Create New Department'}
+                                    {editingId ? 'Update Department' : 'Create New Department'}
                                 </h2>
                                 <button
                                     onClick={() => setModalOpen(false)}
@@ -183,28 +227,20 @@ const DepartmentsPage = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleCreateOrUpdate} className="p-6 space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Department Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={currentDept.name}
-                                        onChange={(e) => setCurrentDept({ ...currentDept, name: e.target.value })}
-                                        placeholder="e.g. Computer Science"
-                                        className="input-field"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Description</label>
-                                    <textarea
-                                        rows={4}
-                                        value={currentDept.description || ''}
-                                        onChange={(e) => setCurrentDept({ ...currentDept, description: e.target.value })}
-                                        placeholder="Describe the department's focus..."
-                                        className="input-field resize-none"
-                                    />
-                                </div>
+                            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+                                <Input
+                                    label="Department Name"
+                                    placeholder="e.g. Computer Science"
+                                    {...register('name')}
+                                    error={errors.name?.message}
+                                />
+
+                                <Textarea
+                                    label="Description"
+                                    placeholder="Describe the department's focus..."
+                                    {...register('description')}
+                                    error={errors.description?.message}
+                                />
 
                                 <div className="flex gap-4 pt-4">
                                     <button
@@ -219,7 +255,11 @@ const DepartmentsPage = () => {
                                         disabled={isSubmitting}
                                         className="flex-1 btn-primary flex items-center justify-center gap-2"
                                     >
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : currentDept.id ? 'Save Changes' : 'Create'}
+                                        {isSubmitting ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            editingId ? 'Save Changes' : 'Create'
+                                        )}
                                     </button>
                                 </div>
                             </form>

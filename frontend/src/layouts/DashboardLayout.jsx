@@ -29,11 +29,13 @@ const DashboardLayout = () => {
     };
 
     const navItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'] },
-        { name: 'Departments', icon: BookOpen, path: '/departments', roles: ['SUPER_ADMIN', 'RH'] },
-        { name: 'Specialities', icon: ShieldCheck, path: '/specialities', roles: ['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT'] },
-        { name: 'Staff', icon: Users, path: '/staff', roles: ['SUPER_ADMIN', 'RH'] },
-        { name: 'Students', icon: GraduationCap, path: '/students', roles: ['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'SECRETARY'] },
+        { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT'] },
+        { name: 'RH Management', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'] },
+        { name: 'Departments', icon: BookOpen, path: '/departments', roles: ['RH'] },
+        { name: 'Staff', icon: Users, path: '/staff', roles: ['RH'] },
+        { name: 'Specialities', icon: ShieldCheck, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH'] },
+        { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY'] },
+        { name: 'My Profile', icon: UserCircle, path: '/profile', roles: ['STUDENT'] },
     ];
 
     const filteredNavItems = navItems.filter(item => item.roles.includes(user?.role_name));
