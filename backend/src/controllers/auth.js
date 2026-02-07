@@ -3,8 +3,21 @@ const AuthService = require('../services/authService');
 exports.login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        const { user, token } = await AuthService.login(email, password);
-        sendTokenResponse(token, 200, res);
+        const { user, accessToken, refreshToken } = await AuthService.login(email, password);
+        sendTokenResponse(accessToken, refreshToken, 200, res);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Refresh token
+// @route   POST /api/v1/auth/refresh
+// @access  Public
+exports.refreshToken = async (req, res, next) => {
+    try {
+        const token = req.cookies.refreshToken;
+        const { accessToken } = await AuthService.refreshToken(token);
+        res.status(200).json({ success: true, accessToken });
     } catch (err) {
         next(err);
     }
@@ -24,14 +37,23 @@ exports.logout = (req, res, next) => {
         expires: new Date(Date.now() + 10 * 1000),
         httpOnly: true,
     });
+    res.cookie('refreshToken', 'none', {
+        expires: new Date(Date.now() + 10 * 1000),
+        httpOnly: true,
+    });
     res.status(200).json({ success: true, data: {} });
 };
 
-const sendTokenResponse = (token, statusCode, res) => {
+const sendTokenResponse = (accessToken, refreshToken, statusCode, res) => {
     const options = {
         expires: new Date(Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
         httpOnly: true,
     };
     if (process.env.NODE_ENV === 'production') options.secure = true;
-    res.status(statusCode).cookie('token', token, options).json({ success: true, token });
+
+    res
+        .status(statusCode)
+        .cookie('token', accessToken, options)
+        .cookie('refreshToken', refreshToken, options)
+        .json({ success: true, accessToken, refreshToken });
 };

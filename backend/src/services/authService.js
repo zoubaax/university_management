@@ -15,8 +15,30 @@ class AuthService {
             throw new ErrorResponse('Invalid credentials', 401);
         }
 
-        const token = User.getSignedJwtToken(user.id);
-        return { user, token };
+        const accessToken = User.getSignedJwtToken(user.id);
+        const refreshToken = User.getSignedRefreshToken(user.id);
+
+        return { user, accessToken, refreshToken };
+    }
+
+    static async refreshToken(token) {
+        if (!token) {
+            throw new ErrorResponse('No refresh token provided', 401);
+        }
+
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+            const user = await User.findById(decoded.id);
+
+            if (!user) {
+                throw new ErrorResponse('User not found', 404);
+            }
+
+            const accessToken = User.getSignedJwtToken(user.id);
+            return { accessToken };
+        } catch (err) {
+            throw new ErrorResponse('Invalid refresh token', 401);
+        }
     }
 
     static async getMe(userId) {
