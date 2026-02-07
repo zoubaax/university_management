@@ -41,9 +41,17 @@ app.use('/api', limiter);
 
 // Route files
 const auth = require('./routes/auth');
+const departments = require('./routes/department');
+const specialities = require('./routes/speciality');
+const employees = require('./routes/employee');
+const students = require('./routes/student');
 
 // Mount routes
 app.use('/api/v1/auth', auth);
+app.use('/api/v1/departments', departments);
+app.use('/api/v1/specialities', specialities);
+app.use('/api/v1/employees', employees);
+app.use('/api/v1/students', students);
 
 // Health check
 app.get('/health', (req, res) => {
