@@ -18,8 +18,11 @@ class EmployeeService {
     static async createEmployee(employeeData, userData = null) {
         let user_id = null;
 
+        const NO_LOGIN_TYPES = ['CLEANER', 'SECURITY', 'MAINTENANCE'];
+
         // If account details provided (email/password), create user account first
-        if (userData && userData.email && userData.password) {
+        // BUT ONLY IF they are not in the NO_LOGIN_TYPES
+        if (userData && userData.email && userData.password && !NO_LOGIN_TYPES.includes(employeeData.type)) {
             const existingUser = await User.findByEmail(userData.email);
             if (existingUser) {
                 throw new ErrorResponse('User with this email already exists', 400);

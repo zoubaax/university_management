@@ -11,6 +11,8 @@ const router = express.Router();
 
 const { protect, authorize } = require('../middlewares/auth');
 const { checkResourcePermission, checkRoleCreationPermission } = require('../middlewares/rbac');
+const validate = require('../middlewares/validate');
+const { studentSchema } = require('../utils/validationSchemas');
 
 router.use(protect); // All routes protected
 
@@ -20,6 +22,7 @@ router
     .post(
         authorize('RESPONSABLE_DEPARTMENT'),
         checkResourcePermission('students'),
+        validate(studentSchema),
         checkRoleCreationPermission,
         createStudent
     );

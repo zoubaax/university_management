@@ -15,6 +15,8 @@ const {
     checkEmployeeTypePermission,
     checkResourcePermission
 } = require('../middlewares/rbac');
+const validate = require('../middlewares/validate');
+const { employeeSchema } = require('../utils/validationSchemas');
 
 router.use(protect);
 
@@ -23,6 +25,7 @@ router
     .get(authorize('SUPER_ADMIN', 'RH'), getEmployees)
     .post(
         authorize('SUPER_ADMIN', 'RH'),
+        validate(employeeSchema),
         (req, res, next) => {
             // If no role_id is provided, it must be a non-login employee (Cleaner/Security)
             // This is handled by checkEmployeeTypePermission
