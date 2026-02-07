@@ -1,9 +1,10 @@
 const User = require('../models/User');
 const ErrorResponse = require('../utils/ErrorResponse');
+const jwt = require('jsonwebtoken');
 
 class AuthService {
     static async login(email, password) {
-        const user = await User.findByEmail(email);
+        const user = await User.findWithPassword(email);
 
         if (!user) {
             throw new ErrorResponse('Invalid credentials', 401);
@@ -14,6 +15,9 @@ class AuthService {
         if (!isMatch) {
             throw new ErrorResponse('Invalid credentials', 401);
         }
+
+        // Remove password from output
+        delete user.password_hash;
 
         const accessToken = User.getSignedJwtToken(user.id);
         const refreshToken = User.getSignedRefreshToken(user.id);

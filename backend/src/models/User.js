@@ -5,7 +5,18 @@ const jwt = require('jsonwebtoken');
 class User {
     static async findByEmail(email) {
         const result = await query(
-            `SELECT u.*, r.name as role_name 
+            `SELECT u.id, u.email, u.role_id, u.department_id, u.is_active, u.created_at, r.name as role_name 
+       FROM users u 
+       JOIN roles r ON u.role_id = r.id 
+       WHERE u.email = $1 AND u.deleted_at IS NULL`,
+            [email]
+        );
+        return result.rows[0];
+    }
+
+    static async findWithPassword(email) {
+        const result = await query(
+            `SELECT u.id, u.email, u.password_hash, r.name as role_name 
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
        WHERE u.email = $1 AND u.deleted_at IS NULL`,
@@ -16,7 +27,7 @@ class User {
 
     static async findById(id) {
         const result = await query(
-            `SELECT u.*, r.name as role_name 
+            `SELECT u.id, u.email, u.role_id, u.department_id, u.is_active, u.created_at, r.name as role_name 
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
        WHERE u.id = $1 AND u.deleted_at IS NULL`,
