@@ -6,6 +6,8 @@ const {
     updateSpeciality,
     deleteSpeciality,
 } = require('../controllers/speciality');
+const validate = require('../middlewares/validate');
+const { specialitySchema } = require('../utils/validationSchemas');
 
 const router = express.Router();
 
@@ -17,12 +19,26 @@ router.use(protect); // All routes protected
 router
     .route('/')
     .get(getSpecialities)
-    .post(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('specialities'), createSpeciality);
+    .post(
+        authorize('RESPONSABLE_DEPARTMENT'),
+        checkResourcePermission('specialities'),
+        validate(specialitySchema),
+        createSpeciality
+    );
 
 router
     .route('/:id')
     .get(getSpeciality)
-    .put(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('specialities'), updateSpeciality)
-    .delete(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('specialities'), deleteSpeciality);
+    .put(
+        authorize('RESPONSABLE_DEPARTMENT'),
+        checkResourcePermission('specialities'),
+        validate(specialitySchema),
+        updateSpeciality
+    )
+    .delete(
+        authorize('RESPONSABLE_DEPARTMENT'),
+        checkResourcePermission('specialities'),
+        deleteSpeciality
+    );
 
 module.exports = router;
