@@ -4,7 +4,7 @@ exports.login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
         const { user, accessToken, refreshToken } = await AuthService.login(email, password);
-        sendTokenResponse(accessToken, refreshToken, 200, res);
+        sendTokenResponse(user, accessToken, refreshToken, 200, res);
     } catch (err) {
         next(err);
     }
@@ -44,7 +44,7 @@ exports.logout = (req, res, next) => {
     res.status(200).json({ success: true, data: {} });
 };
 
-const sendTokenResponse = (accessToken, refreshToken, statusCode, res) => {
+const sendTokenResponse = (user, accessToken, refreshToken, statusCode, res) => {
     const options = {
         expires: new Date(Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
         httpOnly: true,
@@ -55,5 +55,5 @@ const sendTokenResponse = (accessToken, refreshToken, statusCode, res) => {
         .status(statusCode)
         .cookie('token', accessToken, options)
         .cookie('refreshToken', refreshToken, options)
-        .json({ success: true, accessToken, refreshToken });
+        .json({ success: true, accessToken, refreshToken, user });
 };

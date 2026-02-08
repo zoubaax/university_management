@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'react-hot-toast';
 import {
     Plus,
     Search,
@@ -9,21 +13,40 @@ import {
     Loader2,
     X,
     Filter,
-    Building2
+    Building2,
+    BookOpen
 } from 'lucide-react';
-import api from '../api/axios';
 import { cn } from '../utils/cn';
-import useAuthStore from '../store/useAuthStore';
+import { useAuth } from '../contexts/AuthContext';
+import specialityService from '../api/services/specialityService';
+import departmentService from '../api/services/departmentService';
+import Input from '../components/forms/Input';
+import Select from '../components/forms/Select';
+
+const specialitySchema = z.object({
+    name: z.string().min(2, 'Speciality name must be at least 2 characters'),
+    department_id: z.string().min(36, 'Please select a department'),
+});
 
 const SpecialitiesPage = () => {
     const [specialities, setSpecialities] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
-    const [currentSpec, setCurrentSpec] = useState({ name: '', department_id: '' });
-    const [isSubmitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
-    const { user } = useAuthStore();
+    const [editingId, setEditingId] = useState(null);
+    const [filterQuery, setFilterQuery] = useState('');
+
+    const { user } = useAuth();
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        setValue,
+        formState: { errors, isSubmitting }
+    } = useForm({
+        resolver: zodResolver(specialitySchema),
+    });
 
     useEffect(() => {
         fetchData();
@@ -32,157 +55,162 @@ const SpecialitiesPage = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [specRes, deptRes] = await Promise.all([
-                api.get('/specialities'),
-                api.get('/departments')
+            const [specData, deptData] = await Promise.all([
+                specialityService.getAll(),
+                departmentService.getAll()
             ]);
-            setSpecialities(specRes.data.data);
-            setDepartments(deptRes.data.data);
+            setSpecialities(specData || []);
+            setDepartments(deptData || []);
         } catch (err) {
-            setError('Failed to fetch data');
+            toast.error('Failed to load academic programs');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateOrUpdate = async (e) => {
-        e.preventDefault();
-        setSubmitting(true);
+    const onSubmit = async (data) => {
         try {
-            if (currentSpec.id) {
-                await api.put(`/specialities/${currentSpec.id}`, currentSpec);
+            if (editingId) {
+                await specialityService.update(editingId, data);
+                toast.success('Program updated');
             } else {
-                await api.post('/specialities', currentSpec);
+                await specialityService.create(data);
+                toast.success('New program created');
             }
             setModalOpen(false);
+            reset();
+            setEditingId(null);
             fetchData();
         } catch (err) {
-            setError(err.response?.data?.error || 'Operation failed');
-        } finally {
-            setSubmitting(false);
+            toast.error(err.response?.data?.error || 'Operation failed');
         }
+    };
+
+    const handleEdit = (spec) => {
+        setEditingId(spec.id);
+        setValue('name', spec.name);
+        setValue('department_id', spec.department_id);
+        setModalOpen(true);
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this speciality?')) return;
+        if (!window.confirm('Delete this speciality? This might affect enrolled students.')) return;
         try {
-            await api.delete(`/specialities/${id}`);
+            await specialityService.delete(id);
+            toast.success('Program removed');
             fetchData();
         } catch (err) {
-            setError('Failed to delete speciality');
+            toast.error('Cannot delete: This program may have active enrollments.');
         }
     };
 
-    // Check if user is Responsable and can only see their department
     const isResponsable = user?.role_name === 'RESPONSABLE_DEPARTMENT';
-    const filteredSpecs = isResponsable
-        ? specialities.filter(s => s.department_id === user?.department_id)
-        : specialities;
+
+    const filteredSpecs = specialities.filter(s => {
+        const matchesRole = isResponsable ? s.department_id === user?.department_id : true;
+        const matchesSearch = s.name.toLowerCase().includes(filterQuery.toLowerCase());
+        return matchesRole && matchesSearch;
+    });
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 leading-tight">Specialities</h1>
-                    <p className="text-slate-500 mt-1">Manage academic programs and specializations.</p>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Specialities</h1>
+                    <p className="text-slate-500 mt-3 font-medium text-lg italic">Curriculum management and academic pathways.</p>
                 </div>
-                {(isResponsable || user?.role_name === 'RH' || user?.role_name === 'SUPER_ADMIN') && (
+                {(isResponsable || ['RH', 'SUPER_ADMIN'].includes(user?.role_name)) && (
                     <button
                         onClick={() => {
-                            setCurrentSpec({
-                                name: '',
-                                department_id: isResponsable ? user.department_id : ''
-                            });
+                            reset();
+                            setEditingId(null);
+                            if (isResponsable) setValue('department_id', user.department_id);
                             setModalOpen(true);
                         }}
-                        className="btn-primary flex items-center gap-2 self-start"
+                        className="btn-primary flex items-center gap-3 px-8 py-4 shadow-2xl shadow-primary-600/20 rounded-2xl"
                     >
-                        <Plus size={20} />
-                        Add Speciality
+                        <Plus size={24} />
+                        <span className="font-black uppercase tracking-widest text-sm">Add Program</span>
                     </button>
                 )}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <div className="flex gap-4">
+                <div className="relative flex-1 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-500 transition-colors" size={20} />
                     <input
                         type="text"
-                        placeholder="Search specialities..."
-                        className="input-field pl-10"
+                        placeholder="Search academic programs..."
+                        className="input-field pl-12 h-14 bg-white border-slate-200 shadow-sm"
+                        value={filterQuery}
+                        onChange={(e) => setFilterQuery(e.target.value)}
                     />
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">
-                    <Filter size={18} />
-                    <span>Filters</span>
-                </button>
             </div>
 
             {loading ? (
                 <div className="h-64 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+                    <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <AnimatePresence>
                         {filteredSpecs.map((spec, index) => (
                             <motion.div
                                 key={spec.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
                                 transition={{ duration: 0.2, delay: index * 0.05 }}
-                                className="glass-card rounded-2xl p-6 relative overflow-hidden group"
+                                className="glass-card rounded-[2rem] p-8 relative overflow-hidden group hover:border-primary-400 hover:shadow-2xl hover:shadow-primary-600/10 transition-all border-2 border-transparent"
                             >
                                 <div className="flex justify-between items-start relative z-10">
-                                    <div className="p-3 bg-secondary-900 text-white rounded-xl shadow-lg ring-4 ring-slate-50">
-                                        <ShieldCheck size={24} />
+                                    <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl transition-all duration-500 group-hover:bg-primary-600 group-hover:scale-110">
+                                        <BookOpen size={28} />
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                         <button
-                                            onClick={() => {
-                                                setCurrentSpec(spec);
-                                                setModalOpen(true);
-                                            }}
-                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-all opacity-0 group-hover:opacity-100"
+                                            onClick={() => handleEdit(spec)}
+                                            className="p-3 bg-white hover:shadow-lg rounded-xl text-slate-400 hover:text-primary-600 transition-all border border-slate-100"
                                         >
-                                            <Edit2 size={16} />
+                                            <Edit2 size={18} />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(spec.id)}
-                                            className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-all opacity-0 group-hover:opacity-100"
+                                            className="p-3 bg-white hover:shadow-lg rounded-xl text-slate-400 hover:text-red-600 transition-all border border-slate-100"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={18} />
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="mt-4 relative z-10">
-                                    <h3 className="text-xl font-bold text-slate-900 line-clamp-1">{spec.name}</h3>
-                                    <div className="flex items-center gap-2 mt-2 text-slate-500">
-                                        <Building2 size={14} className="text-primary-500" />
-                                        <span className="text-sm font-medium">
-                                            {departments.find(d => d.id === spec.department_id)?.name || 'Loading Dept...'}
+                                <div className="mt-8 relative z-10">
+                                    <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-primary-700 transition-colors uppercase">
+                                        {spec.name}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-4 text-slate-400">
+                                        <Building2 size={16} />
+                                        <span className="text-xs font-black uppercase tracking-widest leading-none">
+                                            {departments.find(d => d.id === spec.department_id)?.name || 'General Faculty'}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="mt-6 flex items-center gap-4 relative z-10">
-                                    <div className="flex -space-x-2">
+                                <div className="mt-10 pt-8 border-t border-slate-50 flex items-center justify-between relative z-10">
+                                    <div className="flex -space-x-3">
                                         {[1, 2, 3].map(i => (
-                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-600">
-                                                {i}
+                                            <div key={i} className="w-10 h-10 rounded-full bg-slate-100 border-4 border-white flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:border-primary-50 transition-all">
+                                                U
                                             </div>
                                         ))}
                                     </div>
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                    <span className="text-[10px] font-black text-primary-500 uppercase tracking-[0.2em] bg-primary-50 px-3 py-1.5 rounded-full">
                                         240 Students
                                     </span>
                                 </div>
 
-                                {/* Decorative background element */}
-                                <div className="absolute top-0 right-0 p-8 text-slate-50/50 group-hover:text-primary-500/10 transition-colors">
-                                    <ShieldCheck size={120} />
+                                <div className="absolute -bottom-12 -right-12 text-slate-50 opacity-20 group-hover:text-primary-100 group-hover:opacity-40 transition-all duration-700 pointer-events-none">
+                                    <ShieldCheck size={200} />
                                 </div>
                             </motion.div>
                         ))}
@@ -195,68 +223,55 @@ const SpecialitiesPage = () => {
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setModalOpen(false)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                         />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, rotateX: -10 }}
-                            animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
+                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden border-4 border-white"
                         >
-                            <div className="p-8 border-b border-slate-100">
-                                <h2 className="text-2xl font-bold text-slate-900">
-                                    {currentSpec.id ? 'Edit Speciality' : 'New Speciality'}
+                            <div className="p-10 border-b border-slate-50 bg-slate-50/50">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                                    {editingId ? 'Modify Program' : 'New Program'}
                                 </h2>
-                                <p className="text-slate-500 text-sm mt-1">Define properties for the academic specialization.</p>
+                                <p className="text-slate-500 font-medium text-sm mt-3 italic">Configure institutional academic specialization.</p>
                             </div>
 
-                            <form onSubmit={handleCreateOrUpdate} className="p-8 space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1">Speciality Title</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={currentSpec.name}
-                                        onChange={(e) => setCurrentSpec({ ...currentSpec, name: e.target.value })}
-                                        placeholder="e.g. Software Engineering"
-                                        className="input-field"
-                                    />
-                                </div>
+                            <form onSubmit={handleSubmit(onSubmit)} className="p-10 space-y-8">
+                                <Input
+                                    label="Title of Speciality"
+                                    placeholder="e.g. Artificial Intelligence & Data Science"
+                                    {...register('name')}
+                                    error={errors.name?.message}
+                                />
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1">Assigned Department</label>
-                                    <select
-                                        required
-                                        disabled={isResponsable}
-                                        value={currentSpec.department_id}
-                                        onChange={(e) => setCurrentSpec({ ...currentSpec, department_id: e.target.value })}
-                                        className="input-field appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236b7280%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-no-repeat bg-[right_0.75rem_center]"
-                                    >
-                                        <option value="">Select a department</option>
-                                        {departments.map((dept) => (
-                                            <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <Select
+                                    label="Assigned Faculty/Dept"
+                                    placeholder="Select institutional parent..."
+                                    disabled={isResponsable}
+                                    options={departments.map(d => ({ value: d.id, label: d.name }))}
+                                    {...register('department_id')}
+                                    error={errors.department_id?.message}
+                                />
 
-                                <div className="flex gap-4 pt-6">
+                                <div className="flex gap-4 pt-4">
                                     <button
                                         type="button"
                                         onClick={() => setModalOpen(false)}
-                                        className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all"
+                                        className="flex-1 px-4 py-4 border-2 border-slate-100 text-slate-400 font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-50 transition-all"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="flex-1 btn-primary h-12 flex items-center justify-center gap-2 shadow-primary-600/20 shadow-lg"
+                                        className="flex-[2] btn-primary h-16 flex items-center justify-center gap-3 shadow-2xl shadow-primary-600/30 text-xs font-black uppercase tracking-widest"
                                     >
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : currentSpec.id ? 'Save Changes' : 'Create Speciality'}
+                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck size={20} />}
+                                        {isSubmitting ? 'Finalizing...' : editingId ? 'Update Program' : 'Launch Program'}
                                     </button>
                                 </div>
                             </form>

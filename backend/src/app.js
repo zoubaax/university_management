@@ -6,7 +6,6 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
-const xss = require('xss-clean');
 const errorHandler = require('./middlewares/error');
 const logger = require('./utils/logger');
 
@@ -15,16 +14,39 @@ dotenv.config();
 
 const app = express();
 
-// Body parser
-app.use(express.json());
+// Diagnostic log
+console.log('Backend starting...');
+console.log('Configured CLIENT_URL:', process.env.CLIENT_URL || 'http://localhost:5173');
 
-// Prevent HTTP parameter pollution
+// 1. Enable CORS - MUST BE FIRST to handle preflights
+const corsOptions = {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+// app.use(cors(corsOptions)) handles preflight OPTIONS requests automatically
+
+// 2. Set security headers
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: false
+}));
+
+// 3. Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 4. Cookie parser
+app.use(cookieParser());
+
+// 5. Prevent HTTP parameter pollution
 app.use(hpp());
 
-// Prevent XSS attacks
-app.use(xss());
-
-// Request logging middleware
+// 7. Request logging (Custom)
 app.use((req, res, next) => {
     logger.info(`${req.method} ${req.originalUrl}`, {
         ip: req.ip,
@@ -33,31 +55,19 @@ app.use((req, res, next) => {
     next();
 });
 
-// Cookie parser
-app.use(cookieParser());
-
-// Dev logging middleware
+// 8. Dev logging (Morgan)
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-// Set security headers
-app.use(helmet());
-
-// Enable CORS
-app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    credentials: true
-}));
-
-// Rate limiting
+// 9. Rate limiting
 const limiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 mins
-    max: 100 // limit each IP to 100 requests per windowMs
+    max: 100
 });
 app.use('/api', limiter);
 
-// Route files
+// 10. Route files
 const auth = require('./routes/auth');
 const departments = require('./routes/department');
 const specialities = require('./routes/speciality');
@@ -76,7 +86,7 @@ app.get('/health', (req, res) => {
     res.status(200).json({ success: true, message: 'Server is healthy' });
 });
 
-// Error handler
+// 11. Error handler
 app.use(errorHandler);
 
 module.exports = app;

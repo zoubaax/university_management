@@ -133,9 +133,10 @@ CREATE TRIGGER update_employees_modtime BEFORE UPDATE ON employees FOR EACH ROW 
 CREATE TRIGGER update_students_modtime BEFORE UPDATE ON students FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
 -- ########################################################
--- 6. SAMPLE DATA FOR ROLES
+-- 6. SEED DATA (ROLES & SUPER ADMIN)
 -- ########################################################
 
+-- Seed Roles
 INSERT INTO roles (name, description) VALUES 
 ('SUPER_ADMIN', 'Global system administrator with unrestricted access.'),
 ('RH', 'Human Resources - Management of all employees.'),
@@ -144,3 +145,12 @@ INSERT INTO roles (name, description) VALUES
 ('SECRETARY', 'Departmental administrative support.'),
 ('PROFESSOR', 'Academic staff with access to courses and grades.'),
 ('STUDENT', 'Enrolled student with limited personal view access.');
+
+-- Seed INITIAL SUPER ADMIN
+-- Password is: Admin@123 (bcrypt hash: $2a$10$PkVqpkP6cHz9k/D4mNInA.S7gE/d7Dk0A3X1oX6HqY19i3v/4s/Oq)
+INSERT INTO users (email, password_hash, role_id)
+VALUES (
+    'admin@smartupf.com', 
+    '$2a$10$PkVqpkP6cHz9k/D4mNInA.S7gE/d7Dk0A3X1oX6HqY19i3v/4s/Oq', 
+    (SELECT id FROM roles WHERE name = 'SUPER_ADMIN')
+);
