@@ -12,7 +12,7 @@ const ROLES = {
 const PERMISSIONS = {
     [ROLES.SUPER_ADMIN]: {
         canCreateRoles: [ROLES.RH],
-        canManageResources: [],
+        canManageResources: ['departments'],
     },
     [ROLES.RH]: {
         canCreateRoles: [

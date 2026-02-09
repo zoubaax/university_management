@@ -80,6 +80,7 @@ app.use('/api/v1/departments', departments);
 app.use('/api/v1/specialities', specialities);
 app.use('/api/v1/employees', employees);
 app.use('/api/v1/students', students);
+app.use('/api/v1/roles', require('./routes/role'));
 
 // Health check
 app.get('/health', (req, res) => {

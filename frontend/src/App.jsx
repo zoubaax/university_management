@@ -68,7 +68,11 @@ const App = () => {
               path="rh-management"
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
-                  <div className="p-8"><h1 className="text-2xl font-bold">RH Management</h1><p>Control panel for HR administrators.</p></div>
+                  <StaffPage
+                    pageTitle="RH Management"
+                    pageDescription="Manage Human Resources administrators and their access."
+                    filterRoleName="RH"
+                  />
                 </ProtectedRoute>
               }
             />

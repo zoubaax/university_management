@@ -60,6 +60,11 @@ exports.checkRoleCreationPermission = async (req, res, next) => {
 exports.checkEmployeeTypePermission = (req, res, next) => {
     const { type } = req.body;
 
+    // SUPER_ADMIN can create any type of employee (specifically for RH creation)
+    if (req.user.role_name === ROLES.SUPER_ADMIN) {
+        return next();
+    }
+
     if (req.user.role_name === ROLES.RH) {
         const allowedTypes = ['CLEANER', 'SECURITY', 'PROFESSOR', 'ADMINISTRATIVE'];
         if (!allowedTypes.includes(type)) {

@@ -11,14 +11,14 @@ const specialitySchema = z.object({
 });
 
 const employeeSchema = z.object({
-    department_id: z.string().uuid(),
+    department_id: z.string().uuid().nullable().optional(),
     first_name: z.string().min(2).max(100),
     last_name: z.string().min(2).max(100),
     type: z.enum(['ADMINISTRATIVE', 'PROFESSOR', 'CLEANER', 'SECURITY', 'MAINTENANCE']),
     // These are optional if the employee has no login
     email: z.string().email().optional(),
     password: z.string().min(6).optional(),
-    role_id: z.string().uuid().optional(),
+    role_id: z.string().uuid().nullable().optional(),
 });
 
 const studentSchema = z.object({

@@ -22,6 +22,7 @@ import {
 import { cn } from '../utils/cn';
 import staffService from '../api/services/staffService';
 import departmentService from '../api/services/departmentService';
+import roleService from '../api/services/roleService';
 import Input from '../components/forms/Input';
 import Select from '../components/forms/Select';
 
@@ -29,14 +30,30 @@ const staffSchema = z.object({
     first_name: z.string().min(2, 'First name is required'),
     last_name: z.string().min(2, 'Last name is required'),
     type: z.enum(['ADMINISTRATIVE', 'PROFESSOR', 'CLEANER', 'SECURITY', 'MAINTENANCE']),
-    department_id: z.string().min(36, 'Please select a department'),
+    department_id: z.string().optional(),
     email: z.string().email('Invalid email').optional().or(z.literal('')),
     password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
+    role_id: z.string().min(36, 'Please select a role').optional(),
+}).refine((data) => {
+    const NO_LOGIN_TYPES = ['CLEANER', 'SECURITY', 'MAINTENANCE'];
+    const requiresLogin = !NO_LOGIN_TYPES.includes(data.type);
+    if (requiresLogin) {
+        return !!data.email && !!data.password && !!data.role_id;
+    }
+    return true;
+}, {
+    message: "Email, Password, and Role are required for this employee type",
+    path: ["role_id"], // Attach error to role_id (or others)
 });
 
-const StaffPage = () => {
+const StaffPage = ({
+    pageTitle = "Staff Management",
+    pageDescription = "Manage faculty, administration, and support services.",
+    filterRoleName = null // If set, only show employees with this role (e.g., 'RH')
+}) => {
     const [staff, setStaff] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [filter, setFilter] = useState('');
@@ -47,7 +64,8 @@ const StaffPage = () => {
         reset,
         watch,
         formState: { errors, isSubmitting },
-        setError
+        setError,
+        setValue
     } = useForm({
         resolver: zodResolver(staffSchema),
         defaultValues: {
@@ -66,12 +84,22 @@ const StaffPage = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [staffData, deptData] = await Promise.all([
+            const [staffData, deptData, rolesData] = await Promise.all([
                 staffService.getAll(),
-                departmentService.getAll()
+                departmentService.getAll(),
+                roleService.getAll()
             ]);
-            setStaff(staffData);
-            setDepartments(deptData);
+            setStaff(staffData || []);
+            setDepartments(deptData || []);
+            setRoles(rolesData || []);
+
+            // If we are on a filtered page (e.g. RH Management), pre-select that role
+            if (filterRoleName && rolesData) {
+                const targetRole = rolesData.find(r => r.name === filterRoleName);
+                if (targetRole) {
+                    setValue('role_id', targetRole.id);
+                }
+            }
         } catch (err) {
             toast.error('Failed to load institution data');
         } finally {
@@ -87,7 +115,11 @@ const StaffPage = () => {
                 return;
             }
 
-            await staffService.create(data);
+            const payload = { ...data };
+            // Ensure department_id is null if empty string or undefined (for UUID compatibility)
+            if (!payload.department_id) payload.department_id = null;
+
+            await staffService.create(payload);
             toast.success('Staff member registered successfully');
             setModalOpen(false);
             reset();
@@ -109,22 +141,36 @@ const StaffPage = () => {
         }
     };
 
-    const filteredStaff = staff.filter(s =>
-        `${s.first_name} ${s.last_name}`.toLowerCase().includes(filter.toLowerCase()) ||
-        s.email?.toLowerCase().includes(filter.toLowerCase()) ||
-        s.type.toLowerCase().includes(filter.toLowerCase())
-    );
+    const filteredStaff = staff.filter(s => {
+        // Role Filtering (for specialized pages like RH Management)
+        if (filterRoleName && s.role_name !== filterRoleName) return false;
+
+        // Search Filtering
+        return (
+            `${s.first_name} ${s.last_name}`.toLowerCase().includes(filter.toLowerCase()) ||
+            s.email?.toLowerCase().includes(filter.toLowerCase()) ||
+            s.type.toLowerCase().includes(filter.toLowerCase()) ||
+            (s.role_name && s.role_name.toLowerCase().includes(filter.toLowerCase()))
+        );
+    });
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 leading-tight">Staff Management</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Manage faculty, administration, and support services.</p>
+                    <h1 className="text-3xl font-black text-slate-900 leading-tight">{pageTitle}</h1>
+                    <p className="text-slate-500 mt-1 font-medium">{pageDescription}</p>
                 </div>
                 <button
                     onClick={() => {
                         reset();
+                        // Pre-select role if context dictates (e.g., RH Management page)
+                        if (filterRoleName && roles.length > 0) {
+                            const targetRole = roles.find(r => r.name === filterRoleName);
+                            if (targetRole) {
+                                setValue('role_id', targetRole.id);
+                            }
+                        }
                         setModalOpen(true);
                     }}
                     className="btn-primary flex items-center gap-2 self-start shadow-xl shadow-primary-600/20"
@@ -184,6 +230,11 @@ const StaffPage = () => {
                                         )}>
                                             {member.type}
                                         </span>
+                                        {member.role_name && (
+                                            <span className="ml-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm bg-amber-50 text-amber-600 border-amber-100">
+                                                {member.role_name}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-2">
@@ -288,6 +339,18 @@ const StaffPage = () => {
                                         error={errors.department_id?.message}
                                     />
                                 </div>
+
+                                {requiresLogin && (
+                                    <div className="space-y-4">
+                                        <Select
+                                            label="System Role"
+                                            placeholder="Select Access Role"
+                                            options={roles.map(r => ({ value: r.id, label: r.name }))}
+                                            {...register('role_id')}
+                                            error={errors.role_id?.message}
+                                        />
+                                    </div>
+                                )}
 
                                 {requiresLogin && (
                                     <motion.div
