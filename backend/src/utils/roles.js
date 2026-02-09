@@ -11,14 +11,15 @@ const ROLES = {
 // Map of which role can create which other role/resource
 const PERMISSIONS = {
     [ROLES.SUPER_ADMIN]: {
-        canCreateRoles: [ROLES.RH],
-        canManageResources: ['departments'],
+        canCreateRoles: Object.values(ROLES).filter(r => r !== ROLES.SUPER_ADMIN),
+        canManageResources: ['departments', 'employees', 'specialities', 'students'],
     },
     [ROLES.RH]: {
         canCreateRoles: [
             ROLES.PROFESSOR,
             ROLES.DIRECTOR_DEPARTMENT,
             ROLES.SECRETARY,
+            ROLES.RESPONSABLE_DEPARTMENT,
         ],
         canManageResources: ['departments', 'employees'], // Employees includes cleaners/security
         canCreateEmployeeTypes: ['CLEANER', 'SECURITY', 'PROFESSOR', 'ADMINISTRATIVE'],

@@ -9,22 +9,29 @@ import {
     Search,
     Edit2,
     Trash2,
-    ShieldCheck,
-    Loader2,
-    X,
-    Filter,
+    BookOpen,
     Building2,
-    BookOpen
+    Users,
+    GraduationCap,
+    Filter,
+    MoreVertical,
+    X,
+    CheckCircle,
+    AlertCircle
 } from 'lucide-react';
-import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import specialityService from '../api/services/specialityService';
 import departmentService from '../api/services/departmentService';
 import Input from '../components/forms/Input';
 import Select from '../components/forms/Select';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import Badge from '../components/ui/Badge';
 
 const specialitySchema = z.object({
-    name: z.string().min(2, 'Speciality name must be at least 2 characters'),
+    name: z.string()
+        .min(2, 'Speciality name must be at least 2 characters')
+        .max(100, 'Name is too long'),
     department_id: z.string().min(36, 'Please select a department'),
 });
 
@@ -35,6 +42,8 @@ const SpecialitiesPage = () => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [filterQuery, setFilterQuery] = useState('');
+    const [menuOpen, setMenuOpen] = useState(null);
+    const [selectedDepartment, setSelectedDepartment] = useState('all');
 
     const { user } = useAuth();
 
@@ -63,6 +72,7 @@ const SpecialitiesPage = () => {
             setDepartments(deptData || []);
         } catch (err) {
             toast.error('Failed to load academic programs');
+            console.error('Fetch error:', err);
         } finally {
             setLoading(false);
         }
@@ -72,7 +82,7 @@ const SpecialitiesPage = () => {
         try {
             if (editingId) {
                 await specialityService.update(editingId, data);
-                toast.success('Program updated');
+                toast.success('Program updated successfully');
             } else {
                 await specialityService.create(data);
                 toast.success('New program created');
@@ -82,7 +92,8 @@ const SpecialitiesPage = () => {
             setEditingId(null);
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.error || 'Operation failed');
+            const errorMessage = err.response?.data?.error || 'Operation failed. Please try again.';
+            toast.error(errorMessage);
         }
     };
 
@@ -91,194 +102,307 @@ const SpecialitiesPage = () => {
         setValue('name', spec.name);
         setValue('department_id', spec.department_id);
         setModalOpen(true);
+        setMenuOpen(null);
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Delete this speciality? This might affect enrolled students.')) return;
+        if (!window.confirm('Are you sure you want to delete this program? This action cannot be undone.')) return;
         try {
             await specialityService.delete(id);
-            toast.success('Program removed');
+            toast.success('Program deleted');
             fetchData();
         } catch (err) {
             toast.error('Cannot delete: This program may have active enrollments.');
         }
+        setMenuOpen(null);
     };
 
     const isResponsable = user?.role_name === 'RESPONSABLE_DEPARTMENT';
 
+    // Filter specialities
     const filteredSpecs = specialities.filter(s => {
         const matchesRole = isResponsable ? s.department_id === user?.department_id : true;
         const matchesSearch = s.name.toLowerCase().includes(filterQuery.toLowerCase());
-        return matchesRole && matchesSearch;
+        const matchesDept = selectedDepartment === 'all' || s.department_id === selectedDepartment;
+        return matchesRole && matchesSearch && matchesDept;
     });
 
+    const getDepartmentName = (departmentId) => {
+        return departments.find(d => d.id === departmentId)?.name || 'Unknown Department';
+    };
+
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Specialities</h1>
-                    <p className="text-slate-500 mt-3 font-medium text-lg italic">Curriculum management and academic pathways.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Academic Programs</h1>
+                    <p className="text-sm text-gray-500 mt-1">Manage specialities and academic pathways across departments</p>
                 </div>
                 {(isResponsable || ['RH', 'SUPER_ADMIN'].includes(user?.role_name)) && (
-                    <button
+                    <Button
                         onClick={() => {
                             reset();
                             setEditingId(null);
                             if (isResponsable) setValue('department_id', user.department_id);
                             setModalOpen(true);
                         }}
-                        className="btn-primary flex items-center gap-3 px-8 py-4 shadow-2xl shadow-primary-600/20 rounded-2xl"
+                        icon={Plus}
+                        className="bg-gray-900 hover:bg-gray-800 text-white"
                     >
-                        <Plus size={24} />
-                        <span className="font-black uppercase tracking-widest text-sm">Add Program</span>
-                    </button>
+                        New Program
+                    </Button>
                 )}
             </div>
 
-            <div className="flex gap-4">
-                <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search academic programs..."
-                        className="input-field pl-12 h-14 bg-white border-slate-200 shadow-sm"
-                        value={filterQuery}
-                        onChange={(e) => setFilterQuery(e.target.value)}
-                    />
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Total Programs</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">{specialities.length}</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                            <BookOpen className="w-6 h-6 text-blue-600" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Departments</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">{departments.length}</p>
+                        </div>
+                        <div className="p-3 bg-purple-50 rounded-lg">
+                            <Building2 className="w-6 h-6 text-purple-600" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Active Students</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">1,240</p>
+                        </div>
+                        <div className="p-3 bg-green-50 rounded-lg">
+                            <Users className="w-6 h-6 text-green-600" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Faculty</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">68</p>
+                        </div>
+                        <div className="p-3 bg-amber-50 rounded-lg">
+                            <GraduationCap className="w-6 h-6 text-amber-600" />
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            {/* Filters */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search programs..."
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                                value={filterQuery}
+                                onChange={(e) => setFilterQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Filter className="w-4 h-4 text-gray-400" />
+                        <select
+                            value={selectedDepartment}
+                            onChange={(e) => setSelectedDepartment(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                        >
+                            <option value="all">All Departments</option>
+                            {departments.map(dept => (
+                                <option key={dept.id} value={dept.id}>{dept.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Programs Grid */}
             {loading ? (
-                <div className="h-64 flex items-center justify-center">
-                    <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
+                <div className="h-96 flex flex-col items-center justify-center bg-white rounded-xl border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+                    <p className="text-sm text-gray-500">Loading programs...</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <AnimatePresence>
-                        {filteredSpecs.map((spec, index) => (
-                            <motion.div
-                                key={spec.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ duration: 0.2, delay: index * 0.05 }}
-                                className="glass-card rounded-[2rem] p-8 relative overflow-hidden group hover:border-primary-400 hover:shadow-2xl hover:shadow-primary-600/10 transition-all border-2 border-transparent"
-                            >
-                                <div className="flex justify-between items-start relative z-10">
-                                    <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl transition-all duration-500 group-hover:bg-primary-600 group-hover:scale-110">
-                                        <BookOpen size={28} />
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <AnimatePresence>
+                            {filteredSpecs.map((spec, index) => (
+                                <motion.div
+                                    key={spec.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow group"
+                                >
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <BookOpen className="w-6 h-6 text-gray-600" />
+                                        </div>
+                                        
+                                        {/* Dropdown Menu */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setMenuOpen(menuOpen === spec.id ? null : spec.id)}
+                                                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                            >
+                                                <MoreVertical size={18} />
+                                            </button>
+                                            
+                                            {menuOpen === spec.id && (
+                                                <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                    <button
+                                                        onClick={() => handleEdit(spec)}
+                                                        className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                        Edit Program
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(spec.id)}
+                                                        className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                        <button
-                                            onClick={() => handleEdit(spec)}
-                                            className="p-3 bg-white hover:shadow-lg rounded-xl text-slate-400 hover:text-primary-600 transition-all border border-slate-100"
-                                        >
-                                            <Edit2 size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(spec.id)}
-                                            className="p-3 bg-white hover:shadow-lg rounded-xl text-slate-400 hover:text-red-600 transition-all border border-slate-100"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <div className="mt-8 relative z-10">
-                                    <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-primary-700 transition-colors uppercase">
-                                        {spec.name}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-4 text-slate-400">
-                                        <Building2 size={16} />
-                                        <span className="text-xs font-black uppercase tracking-widest leading-none">
-                                            {departments.find(d => d.id === spec.department_id)?.name || 'General Faculty'}
-                                        </span>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{spec.name}</h3>
+                                    
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                                        <Building2 size={14} className="text-gray-400" />
+                                        <span>{getDepartmentName(spec.department_id)}</span>
                                     </div>
-                                </div>
 
-                                <div className="mt-10 pt-8 border-t border-slate-50 flex items-center justify-between relative z-10">
-                                    <div className="flex -space-x-3">
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="w-10 h-10 rounded-full bg-slate-100 border-4 border-white flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:border-primary-50 transition-all">
-                                                U
-                                            </div>
-                                        ))}
+                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <Users size={14} className="text-gray-400" />
+                                            <span className="text-xs font-medium text-gray-500">
+                                                120 students enrolled
+                                            </span>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                            Active
+                                        </Badge>
                                     </div>
-                                    <span className="text-[10px] font-black text-primary-500 uppercase tracking-[0.2em] bg-primary-50 px-3 py-1.5 rounded-full">
-                                        240 Students
-                                    </span>
-                                </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
 
-                                <div className="absolute -bottom-12 -right-12 text-slate-50 opacity-20 group-hover:text-primary-100 group-hover:opacity-40 transition-all duration-700 pointer-events-none">
-                                    <ShieldCheck size={200} />
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
+                    {/* Empty State */}
+                    {filteredSpecs.length === 0 && (
+                        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                                <BookOpen className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No programs found</h3>
+                            <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                                {filterQuery || selectedDepartment !== 'all' 
+                                    ? 'Try adjusting your filters' 
+                                    : 'Get started by creating your first academic program'}
+                            </p>
+                            {!filterQuery && selectedDepartment === 'all' && (isResponsable || ['RH', 'SUPER_ADMIN'].includes(user?.role_name)) && (
+                                <Button
+                                    onClick={() => {
+                                        reset();
+                                        setEditingId(null);
+                                        if (isResponsable) setValue('department_id', user.department_id);
+                                        setModalOpen(true);
+                                    }}
+                                    icon={Plus}
+                                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                                >
+                                    Create First Program
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Modal */}
-            <AnimatePresence>
-                {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setModalOpen(false)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden border-4 border-white"
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setModalOpen(false);
+                    setEditingId(null);
+                    reset();
+                }}
+                title={editingId ? 'Edit Program' : 'Create New Program'}
+                subtitle={editingId ? 'Update academic program details' : 'Add a new academic program to your institution'}
+                size="md"
+            >
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    <Input
+                        label="Program Name"
+                        placeholder="Enter program name (e.g., Computer Science)"
+                        leftIcon={<BookOpen className="w-4 h-4 text-gray-400" />}
+                        {...register('name')}
+                        error={errors.name?.message}
+                        autoFocus
+                    />
+
+                    <Select
+                        label="Department"
+                        placeholder="Select department"
+                        leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
+                        disabled={isResponsable}
+                        options={departments.map(d => ({ 
+                            value: d.id, 
+                            label: d.name 
+                        }))}
+                        {...register('department_id')}
+                        error={errors.department_id?.message}
+                    />
+
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setModalOpen(false);
+                                setEditingId(null);
+                                reset();
+                            }}
+                            className="flex-1"
+                            disabled={isSubmitting}
                         >
-                            <div className="p-10 border-b border-slate-50 bg-slate-50/50">
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-                                    {editingId ? 'Modify Program' : 'New Program'}
-                                </h2>
-                                <p className="text-slate-500 font-medium text-sm mt-3 italic">Configure institutional academic specialization.</p>
-                            </div>
-
-                            <form onSubmit={handleSubmit(onSubmit)} className="p-10 space-y-8">
-                                <Input
-                                    label="Title of Speciality"
-                                    placeholder="e.g. Artificial Intelligence & Data Science"
-                                    {...register('name')}
-                                    error={errors.name?.message}
-                                />
-
-                                <Select
-                                    label="Assigned Faculty/Dept"
-                                    placeholder="Select institutional parent..."
-                                    disabled={isResponsable}
-                                    options={departments.map(d => ({ value: d.id, label: d.name }))}
-                                    {...register('department_id')}
-                                    error={errors.department_id?.message}
-                                />
-
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setModalOpen(false)}
-                                        className="flex-1 px-4 py-4 border-2 border-slate-100 text-slate-400 font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-50 transition-all"
-                                    >
-                                        Discard
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="flex-[2] btn-primary h-16 flex items-center justify-center gap-3 shadow-2xl shadow-primary-600/30 text-xs font-black uppercase tracking-widest"
-                                    >
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck size={20} />}
-                                        {isSubmitting ? 'Finalizing...' : editingId ? 'Update Program' : 'Launch Program'}
-                                    </button>
-                                </div>
-                            </form>
-                        </motion.div>
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            isLoading={isSubmitting}
+                            className="flex-1 bg-gray-900 hover:bg-gray-800"
+                            icon={editingId ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        >
+                            {editingId ? 'Update Program' : 'Create Program'}
+                        </Button>
                     </div>
-                )}
-            </AnimatePresence>
+                </form>
+            </Modal>
         </div>
     );
 };

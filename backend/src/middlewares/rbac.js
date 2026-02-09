@@ -24,6 +24,11 @@ exports.checkResourcePermission = (resource) => {
  * The target role ID must be in req.body.role_id
  */
 exports.checkRoleCreationPermission = async (req, res, next) => {
+    // SUPER_ADMIN can create any role (except maybe themselves, but we allow it for now)
+    if (req.user.role_name === ROLES.SUPER_ADMIN) {
+        return next();
+    }
+
     const { role_id } = req.body;
 
     if (!role_id) {

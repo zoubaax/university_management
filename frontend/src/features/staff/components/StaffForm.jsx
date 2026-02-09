@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { BadgeCheck, UserPlus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { BadgeCheck, UserPlus, Shield, Mail, Lock, User, Briefcase } from 'lucide-react';
 
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -35,7 +34,8 @@ const StaffForm = ({ onSubmit, departments, roles, onCancel, initialValues }) =>
         handleSubmit,
         watch,
         formState: { errors, isSubmitting },
-        setValue
+        setValue,
+        trigger
     } = useForm({
         resolver: zodResolver(staffSchema),
         defaultValues: initialValues || {
@@ -47,7 +47,16 @@ const StaffForm = ({ onSubmit, departments, roles, onCancel, initialValues }) =>
     const NO_LOGIN_TYPES = ['CLEANER', 'SECURITY', 'MAINTENANCE'];
     const requiresLogin = !NO_LOGIN_TYPES.includes(selectedType);
 
-    // Effect to pre-select role if needed is handled by passing initialValues
+    // Effect to handle type changes
+    useEffect(() => {
+        if (!requiresLogin) {
+            setValue('email', '');
+            setValue('password', '');
+            setValue('role_id', '');
+        }
+        // Re-trigger validation
+        trigger(['email', 'password', 'role_id']);
+    }, [selectedType, requiresLogin, setValue, trigger]);
 
     const handleFormSubmit = (data) => {
         const payload = { ...data };
@@ -55,105 +64,168 @@ const StaffForm = ({ onSubmit, departments, roles, onCancel, initialValues }) =>
         onSubmit(payload);
     };
 
+    const typeOptions = [
+        { value: 'PROFESSOR', label: 'Professor', description: 'Teaching staff with system access' },
+        { value: 'ADMINISTRATIVE', label: 'Administrative', description: 'Office staff with system access' },
+        { value: 'CLEANER', label: 'Cleaner', description: 'Maintenance staff without system access' },
+        { value: 'SECURITY', label: 'Security', description: 'Security staff without system access' },
+        { value: 'MAINTENANCE', label: 'Maintenance', description: 'Technical staff without system access' },
+    ];
+
     return (
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
-            <div className="grid grid-cols-2 gap-8">
-                <Input
-                    label="First Name"
-                    placeholder="e.g. Jean"
-                    {...register('first_name')}
-                    error={errors.first_name?.message}
-                />
-                <Input
-                    label="Last Name"
-                    placeholder="e.g. Dupont"
-                    {...register('last_name')}
-                    error={errors.last_name?.message}
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-8">
-                <Select
-                    label="Function"
-                    options={[
-                        { value: 'PROFESSOR', label: 'Professor' },
-                        { value: 'ADMINISTRATIVE', label: 'Administrative' },
-                        { value: 'CLEANER', label: 'Cleaner' },
-                        { value: 'SECURITY', label: 'Security' },
-                        { value: 'MAINTENANCE', label: 'Maintenance' },
-                    ]}
-                    {...register('type')}
-                    error={errors.type?.message}
-                />
-                <Select
-                    label="Department Assignment"
-                    placeholder="General Institution"
-                    options={departments.map(d => ({ value: d.id, label: d.name }))}
-                    {...register('department_id')}
-                    error={errors.department_id?.message}
-                />
-            </div>
-
-            {requiresLogin && (
-                <div className="space-y-4">
-                    <Select
-                        label="System Role"
-                        placeholder="Select Access Role"
-                        options={roles.map(r => ({ value: r.id, label: r.name }))}
-                        {...register('role_id')}
-                        error={errors.role_id?.message}
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+            {/* Personal Information */}
+            <div className="space-y-5">
+                <div className="flex items-center gap-2 mb-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Personal Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                        label="First Name"
+                        placeholder="Enter first name"
+                        leftIcon={<User className="w-4 h-4 text-gray-400" />}
+                        {...register('first_name')}
+                        error={errors.first_name?.message}
                     />
+                    <Input
+                        label="Last Name"
+                        placeholder="Enter last name"
+                        leftIcon={<User className="w-4 h-4 text-gray-400" />}
+                        {...register('last_name')}
+                        error={errors.last_name?.message}
+                    />
+                </div>
+            </div>
+
+            {/* Employment Details */}
+            <div className="space-y-5">
+                <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="w-4 h-4 text-gray-500" />
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Employment Details</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Select
+                        label="Employee Type"
+                        placeholder="Select employee type"
+                        options={typeOptions.map(opt => ({
+                            value: opt.value,
+                            label: opt.label,
+                            description: opt.description
+                        }))}
+                        {...register('type')}
+                        error={errors.type?.message}
+                    />
+                    <Select
+                        label="Department"
+                        placeholder="Select department"
+                        leftIcon={<Briefcase className="w-4 h-4 text-gray-400" />}
+                        options={departments.map(d => ({ 
+                            value: d.id, 
+                            label: d.name 
+                        }))}
+                        {...register('department_id')}
+                        error={errors.department_id?.message}
+                    />
+                </div>
+            </div>
+
+            {/* System Access - Conditional */}
+            {requiresLogin && (
+                <div className="space-y-5">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Shield className="w-4 h-4 text-blue-500" />
+                        <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide">System Access</h3>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <BadgeCheck className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-blue-800">System Access Required</p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                    This role requires access to the institution's systems. Please provide credentials.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <Select
+                                label="Access Role"
+                                placeholder="Select system role"
+                                leftIcon={<Shield className="w-4 h-4 text-gray-400" />}
+                                options={roles.map(r => ({ 
+                                    value: r.id, 
+                                    label: r.name 
+                                }))}
+                                {...register('role_id')}
+                                error={errors.role_id?.message}
+                            />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="Institutional Email"
+                                    type="email"
+                                    placeholder="name@institution.edu"
+                                    leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
+                                    {...register('email')}
+                                    error={errors.email?.message}
+                                />
+                                <Input
+                                    label="Temporary Password"
+                                    type="password"
+                                    placeholder="Enter temporary password"
+                                    leftIcon={<Lock className="w-4 h-4 text-gray-400" />}
+                                    helperText="Minimum 6 characters"
+                                    {...register('password')}
+                                    error={errors.password?.message}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {requiresLogin && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-8 bg-primary-50/50 rounded-[2rem] border border-primary-100 space-y-6"
-                >
-                    <div className="flex items-center gap-3 text-primary-700">
-                        <div className="p-2 bg-white rounded-xl shadow-sm">
-                            <BadgeCheck size={20} />
+            {/* No Access Notice */}
+            {!requiresLogin && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-gray-100 rounded-lg">
+                            <Shield className="w-5 h-5 text-gray-500" />
                         </div>
-                        <h3 className="font-black uppercase tracking-widest text-xs">Digital Access Setup</h3>
+                        <div>
+                            <p className="text-sm font-medium text-gray-700">No System Access Required</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                This employee type does not require access to the institution's systems.
+                            </p>
+                        </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-8">
-                        <Input
-                            label="Work Email"
-                            type="email"
-                            placeholder="staff@upf.edu.ma"
-                            {...register('email')}
-                            error={errors.email?.message}
-                        />
-                        <Input
-                            label="Temporary Password"
-                            type="password"
-                            placeholder="••••••••"
-                            {...register('password')}
-                            error={errors.password?.message}
-                        />
-                    </div>
-                </motion.div>
+                </div>
             )}
 
-            <div className="flex gap-4 pt-6">
+            {/* Form Actions */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <Button
                     type="button"
-                    variant="secondary"
+                    variant="outline"
                     onClick={onCancel}
-                    className="flex-1 h-14"
+                    className="flex-1"
+                    disabled={isSubmitting}
                 >
-                    Discard
+                    Cancel
                 </Button>
                 <Button
                     type="submit"
+                    variant="primary"
                     isLoading={isSubmitting}
                     icon={UserPlus}
-                    className="flex-[2] h-14"
+                    className="flex-1 bg-gray-900 hover:bg-gray-800"
                 >
-                    Register Employee
+                    Create Staff
                 </Button>
             </div>
         </form>
