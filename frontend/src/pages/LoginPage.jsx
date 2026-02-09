@@ -4,150 +4,232 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Loader2, Eye, EyeOff, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 
 const loginSchema = z.object({
-    email: z.string().email('Invalid email address'),
+    email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const { login, error: authError, loading } = useAuth();
+    const [showPassword, setShowPassword] = useState(false);
 
     const {
         register,
         handleSubmit,
         formState: { errors },
+        watch
     } = useForm({
         resolver: zodResolver(loginSchema),
     });
 
+    const emailValue = watch('email');
+    const passwordValue = watch('password');
+
     const onSubmit = async (data) => {
         const success = await login(data.email, data.password);
         if (success) {
-            // Role-based redirection logic
-            // We take the user from the login response (or it will be updated in context)
-            // For now, simple redirect to dashboard is fine as the layout handles menu visibility
             navigate('/dashboard');
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-100 p-4">
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-200/30 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-300/20 rounded-full blur-3xl animate-pulse delay-700" />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 relative overflow-hidden">
+            {/* Background Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full opacity-20 blur-3xl" />
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gray-200 rounded-full opacity-20 blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full opacity-40 blur-3xl" />
             </div>
 
+            {/* Login Card */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="glass-card w-full max-w-md p-8 rounded-2xl relative z-10"
+                transition={{ duration: 0.4 }}
+                className="bg-white rounded-xl shadow-lg w-full max-w-md relative z-10 overflow-hidden border border-gray-100"
             >
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl shadow-lg mb-4">
-                        <LogIn className="w-8 h-8 text-white" />
+                {/* Header Section */}
+                <div className="p-8 pb-6">
+                    <div className="flex items-center justify-center gap-3 mb-6">
+                        <div className="p-3 bg-gray-900 rounded-lg">
+                            <Shield className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">University Portal</h1>
+                            <p className="text-sm text-gray-500">Secure Administration System</p>
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome Back</h1>
-                    <p className="text-slate-500 mt-2">Sign in to manage your institution</p>
+
+                    <div className="text-center mb-2">
+                        <h2 className="text-lg font-semibold text-gray-900">Sign in to your account</h2>
+                        <p className="text-sm text-gray-500 mt-1">Enter your credentials to continue</p>
+                    </div>
                 </div>
 
+                {/* Error Message */}
                 {authError && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mx-8 mb-6 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3"
                     >
-                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        <p className="text-sm font-medium">{authError}</p>
+                        <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-red-700">{authError}</p>
                     </motion.div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700 ml-1">Email Address</label>
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
-                            </div>
+                {/* Login Form */}
+                <form onSubmit={handleSubmit(onSubmit)} className="px-8 pb-8 space-y-4">
+                    {/* Email Field */}
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                            <Mail className="w-3.5 h-3.5" />
+                            Email Address
+                        </label>
+                        <div className="relative">
                             <input
                                 {...register('email')}
                                 type="email"
-                                placeholder="admin@school.com"
+                                placeholder="you@university.edu"
                                 className={cn(
-                                    "input-field pl-10",
-                                    errors.email && "border-red-300 focus:ring-red-500"
+                                    "w-full px-4 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all",
+                                    "placeholder:text-gray-400",
+                                    errors.email
+                                        ? "border-red-300 bg-red-50 focus:ring-red-500 focus:ring-opacity-20"
+                                        : "border-gray-300 bg-white focus:ring-gray-900 focus:ring-opacity-20"
                                 )}
                             />
                         </div>
                         {errors.email && (
-                            <p className="text-xs text-red-500 font-medium ml-1">{errors.email.message}</p>
+                            <p className="text-xs text-red-600 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                {errors.email.message}
+                            </p>
+                        )}
+                        {emailValue && !errors.email && (
+                            <p className="text-xs text-green-600 flex items-center gap-1">
+                                ✓ Valid email format
+                            </p>
                         )}
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700 ml-1">Password</label>
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
-                            </div>
+                    {/* Password Field */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                <Lock className="w-3.5 h-3.5" />
+                                Password
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-xs text-gray-500 hover:text-gray-700"
+                            >
+                                {showPassword ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                        <div className="relative">
                             <input
                                 {...register('password')}
-                                type="password"
-                                placeholder="••••••••"
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Enter your password"
                                 className={cn(
-                                    "input-field pl-10",
-                                    errors.password && "border-red-300 focus:ring-red-500"
+                                    "w-full px-4 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all",
+                                    "placeholder:text-gray-400",
+                                    errors.password
+                                        ? "border-red-300 bg-red-50 focus:ring-red-500 focus:ring-opacity-20"
+                                        : "border-gray-300 bg-white focus:ring-gray-900 focus:ring-opacity-20",
+                                    passwordValue && "pr-10"
                                 )}
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                         </div>
                         {errors.password && (
-                            <p className="text-xs text-red-500 font-medium ml-1">{errors.password.message}</p>
+                            <p className="text-xs text-red-600 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                {errors.password.message}
+                            </p>
+                        )}
+                        {passwordValue && !errors.password && (
+                            <p className="text-xs text-green-600 flex items-center gap-1">
+                                ✓ Password meets requirements
+                            </p>
                         )}
                     </div>
 
+                    {/* Remember Me & Forgot Password */}
                     <div className="flex items-center justify-between py-1">
                         <div className="flex items-center">
                             <input
                                 id="remember-me"
                                 type="checkbox"
-                                className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
+                                className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900 focus:ring-offset-0"
                             />
-                            <label htmlFor="remember-me" className="ml-2 text-sm text-slate-600 cursor-pointer">
-                                Remember me
+                            <label htmlFor="remember-me" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
+                                Remember this device
                             </label>
                         </div>
-                        <button type="button" className="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+                        <button
+                            type="button"
+                            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                        >
                             Forgot password?
                         </button>
                     </div>
 
+                    {/* Submit Button */}
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn-primary w-full h-11 flex items-center justify-center gap-2"
+                        className={cn(
+                            "w-full py-3 text-sm font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2",
+                            loading
+                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                : "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-900"
+                        )}
                     >
                         {loading ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                            <span className="flex items-center justify-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
                                 Signing in...
-                            </>
+                            </span>
                         ) : (
-                            'Sign In'
+                            <span className="flex items-center justify-center gap-2">
+                                <LogIn className="w-4 h-4" />
+                                Sign In
+                            </span>
                         )}
                     </button>
                 </form>
 
-                <div className="mt-8 text-center">
-                    <p className="text-sm text-slate-500">
-                        Don't have access? <span className="font-semibold text-primary-600 cursor-help">Contact your administrator</span>
-                    </p>
+                {/* Footer */}
+                <div className="border-t border-gray-100 p-6 bg-gray-50">
+                    <div className="text-center">
+                        <p className="text-sm text-gray-600">
+                            Need help accessing your account?{' '}
+                            <button className="font-medium text-gray-900 hover:text-gray-700 transition-colors">
+                                Contact IT Support
+                            </button>
+                        </p>
+                    </div>
                 </div>
             </motion.div>
+
+            {/* Version Info */}
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center">
+                <p className="text-xs text-gray-400">University Portal v2.1 • Secure Authentication</p>
+            </div>
         </div>
     );
 };

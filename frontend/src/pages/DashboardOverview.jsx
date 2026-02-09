@@ -10,179 +10,303 @@ import {
     ShieldCheck,
     UserCircle,
     Building2,
-    Briefcase
+    Briefcase,
+    Clock,
+    BarChart3,
+    Bell,
+    CheckCircle,
+    AlertCircle,
+    FileText,
+    Activity
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import Badge from '../components/ui/Badge';
 
-const StatCard = ({ title, value, icon: Icon, color, delay }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay }}
-        className="glass-card p-6 rounded-2xl flex items-center gap-6"
-    >
-        <div className={`p-4 rounded-xl ${color} bg-opacity-10 shadow-inner`}>
-            <Icon className={`w-8 h-8 ${color.replace('bg-', 'text-')}`} />
-        </div>
-        <div>
-            <p className="text-sm font-semibold text-slate-500">{title}</p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{value}</h3>
-        </div>
-    </motion.div>
-);
+const StatCard = ({ title, value, icon: Icon, trend, subtitle, delay }) => {
+    const getTrendColor = () => {
+        if (trend?.includes('+')) return 'text-green-600 bg-green-50 border-green-100';
+        if (trend?.includes('-')) return 'text-red-600 bg-red-50 border-red-100';
+        return 'text-gray-600 bg-gray-50 border-gray-100';
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay }}
+            className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"
+        >
+            <div className="flex items-start justify-between mb-4">
+                <div className="p-2.5 bg-gray-50 rounded-lg">
+                    <Icon className="w-5 h-5 text-gray-600" />
+                </div>
+                {trend && (
+                    <Badge className={`text-xs ${getTrendColor()}`}>
+                        {trend}
+                    </Badge>
+                )}
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">{value}</h3>
+            <p className="text-sm font-medium text-gray-700">{title}</p>
+            {subtitle && (
+                <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            )}
+        </motion.div>
+    );
+};
+
+const ActivityItem = ({ title, description, time, status, index }) => {
+    const getStatusColor = () => {
+        switch (status) {
+            case 'completed': return 'bg-green-100 text-green-700 border-green-200';
+            case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'failed': return 'bg-red-100 text-red-700 border-red-200';
+            default: return 'bg-gray-100 text-gray-700 border-gray-200';
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className="flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all group"
+        >
+            <div className="flex-shrink-0">
+                <div className={`p-2 rounded-lg ${getStatusColor()}`}>
+                    {status === 'completed' && <CheckCircle className="w-4 h-4" />}
+                    {status === 'pending' && <Clock className="w-4 h-4" />}
+                    {status === 'failed' && <AlertCircle className="w-4 h-4" />}
+                </div>
+            </div>
+            <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-gray-900 truncate">{title}</h4>
+                <p className="text-sm text-gray-500 mt-0.5 truncate">{description}</p>
+            </div>
+            <div className="flex-shrink-0">
+                <span className="text-xs text-gray-400 whitespace-nowrap">{time}</span>
+            </div>
+        </motion.div>
+    );
+};
 
 const DashboardOverview = () => {
     const { user } = useAuth();
 
-    // Role-specific stats and content mapping
     const getRoleContent = () => {
-        switch (user?.role_name) {
-            case 'SUPER_ADMIN':
-                return {
-                    title: 'System Administration',
-                    stats: [
-                        { title: 'Total RH Users', value: '12', icon: ShieldCheck, color: 'bg-primary-600' },
-                        { title: 'System Uptime', value: '99.9%', icon: TrendingUp, color: 'bg-emerald-600' },
-                        { title: 'Pending Logs', value: '42', icon: Briefcase, color: 'bg-orange-600' },
-                        { title: 'Database Size', value: '1.2 GB', icon: BookOpen, color: 'bg-blue-600' }
-                    ],
-                    activity: 'Recent System Audits'
-                };
-            case 'RH':
-                return {
-                    title: 'Human Resources Dashboard',
-                    stats: [
-                        { title: 'Total Staff', value: '84', icon: Users, color: 'bg-purple-600' },
-                        { title: 'Departments', value: '12', icon: Building2, color: 'bg-blue-600' },
-                        { title: 'New Hires', value: '5', icon: UserCircle, color: 'bg-emerald-600' },
-                        { title: 'Payroll Status', value: '98%', icon: TrendingUp, color: 'bg-primary-600' }
-                    ],
-                    activity: 'Recent Staff Registrations'
-                };
-            case 'RESPONSABLE_DEPARTMENT':
-                return {
-                    title: 'Department Overview',
-                    stats: [
-                        { title: 'Dept Students', value: '420', icon: GraduationCap, color: 'bg-blue-600' },
-                        { title: 'Specialities', value: '4', icon: BookOpen, color: 'bg-orange-600' },
-                        { title: 'Avg. Grade', value: '14.5', icon: TrendingUp, color: 'bg-emerald-600' },
-                        { title: 'Faculty', value: '15', icon: Users, color: 'bg-purple-600' }
-                    ],
-                    activity: 'Departmental Requests'
-                };
-            case 'PROFESSOR':
-                return {
-                    title: 'Academic Portal',
-                    stats: [
-                        { title: 'My Students', value: '120', icon: GraduationCap, color: 'bg-blue-600' },
-                        { title: 'Courses', value: '3', icon: BookOpen, color: 'bg-orange-600' },
-                        { title: 'Pending Grades', value: '85', icon: TrendingUp, color: 'bg-primary-600' },
-                        { title: 'Messages', value: '12', icon: UserCircle, color: 'bg-purple-600' }
-                    ],
-                    activity: 'Recent Student Submissions'
-                };
-            case 'STUDENT':
-                return {
-                    title: 'Student Dashboard',
-                    stats: [
-                        { title: 'GPA', value: '3.8', icon: TrendingUp, color: 'bg-emerald-600' },
-                        { title: 'Credits', value: '120/180', icon: BookOpen, color: 'bg-blue-600' },
-                        { title: 'Rank', value: '#12', icon: GraduationCap, color: 'bg-primary-600' },
-                        { title: 'Attendance', value: '94%', icon: Calendar, color: 'bg-purple-600' }
-                    ],
-                    activity: 'Academic Progress'
-                };
-            default:
-                return null;
-        }
+        const baseContent = {
+            SUPER_ADMIN: {
+                title: 'System Administration',
+                subtitle: 'Monitor and manage institutional systems',
+                stats: [
+                    { title: 'Active Administrators', value: '12', icon: ShieldCheck, trend: '+2' },
+                    { title: 'System Uptime', value: '99.9%', icon: TrendingUp, subtitle: 'Last 30 days' },
+                    { title: 'Active Sessions', value: '42', icon: Activity, trend: '+5' },
+                    { title: 'Pending Audits', value: '8', icon: FileText, trend: '-3' }
+                ],
+                activity: 'System Activity',
+                activities: [
+                    { title: 'Security audit completed', description: 'System security scan', time: '10:30 AM', status: 'completed' },
+                    { title: 'Database backup', description: 'Scheduled backup completed', time: '09:15 AM', status: 'completed' },
+                    { title: 'User role updated', description: 'Professor → Department Head', time: 'Yesterday', status: 'completed' },
+                    { title: 'System maintenance', description: 'Planned for tonight', time: 'Scheduled', status: 'pending' }
+                ]
+            },
+            RH: {
+                title: 'Human Resources',
+                subtitle: 'Manage staff, departments, and payroll',
+                stats: [
+                    { title: 'Total Staff', value: '84', icon: Users, trend: '+5' },
+                    { title: 'Departments', value: '12', icon: Building2 },
+                    { title: 'Pending Requests', value: '8', icon: Briefcase, trend: '-2' },
+                    { title: 'Payroll Processed', value: '98%', icon: TrendingUp, subtitle: 'This month' }
+                ],
+                activity: 'Recent Staff Activity',
+                activities: [
+                    { title: 'New staff registered', description: 'Dr. Sarah Johnson', time: 'Today, 11:30', status: 'completed' },
+                    { title: 'Department transfer', description: 'CS → Engineering', time: 'Today, 10:15', status: 'pending' },
+                    { title: 'Contract renewal', description: '3 staff members', time: 'Yesterday', status: 'completed' },
+                    { title: 'Training session', description: 'All new hires', time: 'Tomorrow', status: 'pending' }
+                ]
+            },
+            RESPONSABLE_DEPARTMENT: {
+                title: 'Department Overview',
+                subtitle: 'Monitor academic programs and faculty',
+                stats: [
+                    { title: 'Total Students', value: '420', icon: GraduationCap, trend: '+15' },
+                    { title: 'Faculty Members', value: '15', icon: Users },
+                    { title: 'Active Courses', value: '24', icon: BookOpen },
+                    { title: 'Avg. GPA', value: '14.5', icon: TrendingUp, subtitle: 'This semester' }
+                ],
+                activity: 'Department Updates',
+                activities: [
+                    { title: 'New course approved', description: 'Advanced Algorithms', time: 'Today, 09:45', status: 'completed' },
+                    { title: 'Faculty meeting', description: 'Monthly review', time: 'Tomorrow', status: 'pending' },
+                    { title: 'Research grant', description: 'Submitted for review', time: 'Yesterday', status: 'pending' },
+                    { title: 'Student petitions', description: '5 pending review', time: 'This week', status: 'pending' }
+                ]
+            },
+            PROFESSOR: {
+                title: 'Academic Portal',
+                subtitle: 'Manage courses and student progress',
+                stats: [
+                    { title: 'My Students', value: '120', icon: GraduationCap },
+                    { title: 'Active Courses', value: '3', icon: BookOpen },
+                    { title: 'Assignments Due', value: '5', icon: FileText, trend: '-2' },
+                    { title: 'Avg. Grade', value: 'B+', icon: TrendingUp, subtitle: 'Current term' }
+                ],
+                activity: 'Course Updates',
+                activities: [
+                    { title: 'Assignment graded', description: 'Data Structures', time: 'Today, 14:20', status: 'completed' },
+                    { title: 'Office hours', description: 'Scheduled for Friday', time: 'Upcoming', status: 'pending' },
+                    { title: 'Course material', description: 'Updated slides', time: 'Yesterday', status: 'completed' },
+                    { title: 'Student consultation', description: '3 requests', time: 'Pending', status: 'pending' }
+                ]
+            },
+            STUDENT: {
+                title: 'Student Dashboard',
+                subtitle: 'Track your academic progress',
+                stats: [
+                    { title: 'Current GPA', value: '3.8', icon: TrendingUp },
+                    { title: 'Credits Earned', value: '120/180', icon: GraduationCap, subtitle: '66% complete' },
+                    { title: 'Active Courses', value: '5', icon: BookOpen },
+                    { title: 'Assignments Due', value: '3', icon: FileText, trend: '+1' }
+                ],
+                activity: 'Academic Activity',
+                activities: [
+                    { title: 'Assignment submitted', description: 'Calculus III', time: 'Today, 11:45', status: 'completed' },
+                    { title: 'Grade updated', description: 'Physics B+ → A-', time: 'Today, 10:30', status: 'completed' },
+                    { title: 'Exam scheduled', description: 'Next week', time: 'Upcoming', status: 'pending' },
+                    { title: 'Library book', description: 'Due tomorrow', time: 'Reminder', status: 'pending' }
+                ]
+            }
+        };
+
+        return baseContent[user?.role_name] || baseContent.STUDENT;
     };
 
     const content = getRoleContent();
-
-    if (!content) return null;
+    const roleName = user?.role_name?.replace(/_/g, ' ') || 'User';
+    const userName = user?.first_name || user?.email?.split('@')[0] || user?.email;
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{content.title}</h1>
-                    <p className="text-slate-500 mt-2 font-medium">
-                        Welcome back, <span className="text-primary-600 font-bold">{user?.email}</span>. Here's your personalized overview.
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{content.title}</h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Welcome back, <span className="font-medium text-gray-700">{userName}</span>. {content.subtitle}
                     </p>
                 </div>
-                <div className="px-4 py-2 bg-white rounded-2xl shadow-sm border border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Role: <span className="text-primary-600 ml-1">{user?.role_name?.replace('_', ' ')}</span>
+                <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-gray-600">
+                        {roleName}
+                    </Badge>
+                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <Bell className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {content.stats.map((stat, index) => (
                     <StatCard
                         key={stat.title}
-                        title={stat.title}
-                        value={stat.value}
-                        icon={stat.icon}
-                        color={stat.color}
-                        delay={0.1 * (index + 1)}
+                        {...stat}
+                        delay={index * 0.05}
                     />
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Recent Activity */}
-                <div className="lg:col-span-2 glass-card rounded-3xl overflow-hidden p-8">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-xl font-bold text-slate-900">{content.activity}</h2>
-                        <button className="text-primary-600 text-sm font-black uppercase tracking-wider flex items-center gap-2 hover:gap-3 transition-all">
-                            View Deep Report <ArrowRight size={16} />
-                        </button>
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">{content.activity}</h2>
+                                <p className="text-sm text-gray-500 mt-1">Latest updates and notifications</p>
+                            </div>
+                            <button className="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1">
+                                View all
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            {content.activities.map((activity, index) => (
+                                <ActivityItem key={index} {...activity} index={index} />
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="flex items-center gap-5 p-5 rounded-[1.25rem] bg-slate-50 border border-slate-100 hover:border-primary-100 hover:bg-white hover:shadow-xl hover:shadow-primary-600/5 transition-all cursor-pointer group">
-                                <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-lg font-black text-slate-400 group-hover:bg-primary-600 group-hover:text-white group-hover:border-primary-600 transition-all">
-                                    {i}
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-slate-900">Process Transaction #{1024 + i}</h4>
-                                    <p className="text-sm text-slate-500 font-medium">Automatic system verification triggered at 10:45 AM</p>
-                                </div>
-                                <div className="hidden sm:block text-right">
-                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Completed</span>
-                                    <div className="mt-1 h-1.5 w-16 bg-emerald-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 w-full" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                    {/* Quick Actions */}
+                    <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button className="bg-white/10 hover:bg-white/20 text-white p-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                <BarChart3 className="w-4 h-4" />
+                                Generate Report
+                            </button>
+                            <button className="bg-white/10 hover:bg-white/20 text-white p-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                View Documents
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Upcoming Events */}
-                <div className="glass-card rounded-3xl p-8 border-primary-100 border-2">
-                    <h2 className="text-xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                        <Calendar className="text-primary-600" size={26} />
-                        Calendar
-                    </h2>
-                    <div className="space-y-6">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex gap-5 group cursor-pointer">
-                                <div className="flex flex-col items-center justify-center w-14 h-14 bg-primary-50 rounded-2xl flex-shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-all">
-                                    <span className="text-[10px] font-black uppercase tracking-tighter opacity-60">Feb</span>
-                                    <span className="text-xl font-black leading-none">1{i}</span>
+                {/* Calendar & Upcoming */}
+                <div className="space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-gray-500" />
+                            Upcoming Events
+                        </h2>
+                        <div className="space-y-4">
+                            {[
+                                { title: 'Faculty Meeting', date: 'Feb 15', time: '09:30 AM', location: 'Conference Room A' },
+                                { title: 'System Maintenance', date: 'Feb 16', time: '10:00 PM', location: 'All Systems' },
+                                { title: 'Student Orientation', date: 'Feb 18', time: '02:00 PM', location: 'Main Hall' },
+                            ].map((event, index) => (
+                                <div key={index} className="flex gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center">
+                                            <span className="text-xs font-medium text-gray-500">FEB</span>
+                                            <span className="text-lg font-bold text-gray-900">{event.date.split(' ')[1]}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-medium text-gray-900">{event.title}</h4>
+                                        <p className="text-sm text-gray-500 mt-1">{event.time} • {event.location}</p>
+                                    </div>
                                 </div>
-                                <div className="flex-1 border-b border-dashed border-slate-100 pb-5 group-last:border-none">
-                                    <h4 className="font-bold text-slate-800 leading-tight">Institutional Briefing</h4>
-                                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Main Hall • 09:30 AM</p>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                        <button className="w-full mt-6 py-2.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                            View Full Calendar
+                        </button>
                     </div>
-                    <button className="w-full mt-10 py-4 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-primary-600 shadow-xl shadow-slate-900/10 transition-all">
-                        Full Schedule
-                    </button>
+
+                    {/* System Status */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">System Status</h2>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">All Systems</span>
+                                <Badge className="bg-green-100 text-green-700 border-green-200">Operational</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Database</span>
+                                <Badge className="bg-green-100 text-green-700 border-green-200">Normal</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">API Services</span>
+                                <Badge className="bg-green-100 text-green-700 border-green-200">Stable</Badge>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
