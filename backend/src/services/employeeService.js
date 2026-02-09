@@ -41,10 +41,23 @@ class EmployeeService {
     }
 
     static async updateEmployee(id, data) {
-        const employee = await Employee.update(id, data);
+        const { email, password, role_id, ...employeeData } = data;
+
+        const employee = await Employee.update(id, employeeData);
         if (!employee) {
             throw new ErrorResponse('Employee not found', 404);
         }
+
+        // If employee has an associated user account, update it too if relevant fields changed
+        if (employee.user_id && (email || password || role_id || employeeData.department_id)) {
+            await User.update(employee.user_id, {
+                email,
+                password,
+                role_id,
+                department_id: employeeData.department_id
+            });
+        }
+
         return employee;
     }
 

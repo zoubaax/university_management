@@ -48,14 +48,35 @@ export const useStaff = (filterRoleName = null) => {
         }
     };
 
-    const deleteStaff = async (id) => {
-        if (!window.confirm('Terminate this employment record?')) return;
+    const updateStaff = async (id, data) => {
+        try {
+            await staffService.update(id, data);
+            toast.success('Staff details updated');
+            fetchData();
+            return true;
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Update failed';
+            toast.error(msg);
+            return false;
+        }
+    };
+
+    const deleteStaff = async (id, name = 'this employee') => {
         try {
             await staffService.delete(id);
-            toast.success('Employment record terminated');
+            toast.success(
+                (t) => (
+                    <span>
+                        <b>{name}</b> has been successfully removed.
+                    </span>
+                ),
+                { icon: '🗑️', duration: 4000 }
+            );
             fetchData();
+            return true;
         } catch (err) {
-            toast.error('Action failed');
+            toast.error('Action failed: ' + (err.response?.data?.error || 'Unknown error'));
+            return false;
         }
     };
 
@@ -84,6 +105,7 @@ export const useStaff = (filterRoleName = null) => {
         roles,
         loading,
         createStaff,
+        updateStaff,
         deleteStaff,
         getFilteredStaff
     };

@@ -41,7 +41,7 @@ router
 router
     .route('/:id')
     .get(authorize('SUPER_ADMIN', 'RH'), getEmployee)
-    .put(authorize('RH'), updateEmployee)
-    .delete(authorize('RH'), deleteEmployee);
+    .put(authorize('SUPER_ADMIN', 'RH'), checkResourcePermission('employees'), updateEmployee)
+    .delete(authorize('SUPER_ADMIN', 'RH'), checkResourcePermission('employees'), deleteEmployee);
 
 module.exports = router;

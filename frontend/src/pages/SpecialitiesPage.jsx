@@ -26,6 +26,7 @@ import Input from '../components/forms/Input';
 import Select from '../components/forms/Select';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import Badge from '../components/ui/Badge';
 
 const specialitySchema = z.object({
@@ -41,6 +42,8 @@ const SpecialitiesPage = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [programToDelete, setProgramToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [filterQuery, setFilterQuery] = useState('');
     const [menuOpen, setMenuOpen] = useState(null);
     const [selectedDepartment, setSelectedDepartment] = useState('all');
@@ -105,16 +108,24 @@ const SpecialitiesPage = () => {
         setMenuOpen(null);
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this program? This action cannot be undone.')) return;
+    const handleDeleteClick = (spec) => {
+        setProgramToDelete(spec);
+        setMenuOpen(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!programToDelete) return;
+        setIsDeleting(true);
         try {
-            await specialityService.delete(id);
+            await specialityService.delete(programToDelete.id);
             toast.success('Program deleted');
             fetchData();
         } catch (err) {
             toast.error('Cannot delete: This program may have active enrollments.');
+        } finally {
+            setIsDeleting(false);
+            setProgramToDelete(null);
         }
-        setMenuOpen(null);
     };
 
     const isResponsable = user?.role_name === 'RESPONSABLE_DEPARTMENT';
@@ -257,7 +268,7 @@ const SpecialitiesPage = () => {
                                         <div className="p-3 bg-gray-50 rounded-lg">
                                             <BookOpen className="w-6 h-6 text-gray-600" />
                                         </div>
-                                        
+
                                         {/* Dropdown Menu */}
                                         <div className="relative">
                                             <button
@@ -266,7 +277,7 @@ const SpecialitiesPage = () => {
                                             >
                                                 <MoreVertical size={18} />
                                             </button>
-                                            
+
                                             {menuOpen === spec.id && (
                                                 <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                                                     <button
@@ -277,7 +288,7 @@ const SpecialitiesPage = () => {
                                                         Edit Program
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(spec.id)}
+                                                        onClick={() => handleDeleteClick(spec)}
                                                         className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
                                                     >
                                                         <Trash2 size={14} />
@@ -289,7 +300,7 @@ const SpecialitiesPage = () => {
                                     </div>
 
                                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{spec.name}</h3>
-                                    
+
                                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                                         <Building2 size={14} className="text-gray-400" />
                                         <span>{getDepartmentName(spec.department_id)}</span>
@@ -319,8 +330,8 @@ const SpecialitiesPage = () => {
                             </div>
                             <h3 className="text-lg font-medium text-gray-900 mb-2">No programs found</h3>
                             <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-                                {filterQuery || selectedDepartment !== 'all' 
-                                    ? 'Try adjusting your filters' 
+                                {filterQuery || selectedDepartment !== 'all'
+                                    ? 'Try adjusting your filters'
                                     : 'Get started by creating your first academic program'}
                             </p>
                             {!filterQuery && selectedDepartment === 'all' && (isResponsable || ['RH', 'SUPER_ADMIN'].includes(user?.role_name)) && (
@@ -369,9 +380,9 @@ const SpecialitiesPage = () => {
                         placeholder="Select department"
                         leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
                         disabled={isResponsable}
-                        options={departments.map(d => ({ 
-                            value: d.id, 
-                            label: d.name 
+                        options={departments.map(d => ({
+                            value: d.id,
+                            label: d.name
                         }))}
                         {...register('department_id')}
                         error={errors.department_id?.message}
@@ -403,6 +414,17 @@ const SpecialitiesPage = () => {
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!programToDelete}
+                onClose={() => setProgramToDelete(null)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Program"
+                message={`Are you sure you want to delete the ${programToDelete?.name} program? This action will remove it from all course listings.`}
+                confirmText="Delete Program"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

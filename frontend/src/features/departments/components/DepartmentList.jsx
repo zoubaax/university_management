@@ -4,6 +4,7 @@ import { Plus, Search, Edit2, Trash2, Building2, Users, MoreVertical } from 'luc
 import { useDepartments } from '../hooks/useDepartments';
 import DepartmentForm from './DepartmentForm';
 import Modal from '../../../components/ui/Modal';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 
@@ -11,6 +12,8 @@ const DepartmentList = () => {
     const { departments, loading, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingDepartment, setEditingDepartment] = useState(null);
+    const [departmentToDelete, setDepartmentToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [filter, setFilter] = useState('');
     const [menuOpen, setMenuOpen] = useState(null);
 
@@ -20,11 +23,17 @@ const DepartmentList = () => {
         setMenuOpen(null);
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this department? This action cannot be undone.")) {
-            await deleteDepartment(id);
-        }
+    const handleDeleteClick = (dept) => {
+        setDepartmentToDelete(dept);
         setMenuOpen(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!departmentToDelete) return;
+        setIsDeleting(true);
+        await deleteDepartment(departmentToDelete.id);
+        setIsDeleting(false);
+        setDepartmentToDelete(null);
     };
 
     const handleSubmit = async (data) => {
@@ -145,7 +154,7 @@ const DepartmentList = () => {
                                         <div className="p-3 bg-gray-50 rounded-lg">
                                             <Building2 className="w-6 h-6 text-gray-600" />
                                         </div>
-                                        
+
                                         {/* Dropdown Menu */}
                                         <div className="relative">
                                             <button
@@ -154,7 +163,7 @@ const DepartmentList = () => {
                                             >
                                                 <MoreVertical size={18} />
                                             </button>
-                                            
+
                                             {menuOpen === dept.id && (
                                                 <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                                                     <button
@@ -165,7 +174,7 @@ const DepartmentList = () => {
                                                         Edit Department
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(dept.id)}
+                                                        onClick={() => handleDeleteClick(dept)}
                                                         className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
                                                     >
                                                         <Trash2 size={14} />
@@ -177,7 +186,7 @@ const DepartmentList = () => {
                                     </div>
 
                                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{dept.name}</h3>
-                                    
+
                                     <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
                                         {dept.description || 'No description available'}
                                     </p>
@@ -239,6 +248,17 @@ const DepartmentList = () => {
                     onCancel={handleCloseModal}
                 />
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!departmentToDelete}
+                onClose={() => setDepartmentToDelete(null)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Department"
+                message={`Are you sure you want to delete the ${departmentToDelete?.name} department? This will affect all associated faculty and programs.`}
+                confirmText="Delete Department"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

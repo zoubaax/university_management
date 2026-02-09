@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Search, UserPlus, Users, Edit2, Trash2, Briefcase, BadgeCheck, ShieldAlert, Filter } from 'lucide-react';
 import StaffForm from './StaffForm';
-import { useStaff } from '../hooks/useStaff';
+import { useStaff } from '../hooks/useStaff.jsx';
 import Modal from '../../../components/ui/Modal';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../utils/cn';
@@ -15,21 +16,70 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
         roles,
         loading,
         createStaff,
+        updateStaff,
         deleteStaff,
         getFilteredStaff
     } = useStaff(filterRoleName);
 
     const [isModalOpen, setModalOpen] = useState(false);
+    const [editingMember, setEditingMember] = useState(null);
+    const [memberToDelete, setMemberToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [filter, setFilter] = useState('');
 
     const filteredStaff = getFilteredStaff(filter);
 
-    const handleCreate = async (data) => {
-        const success = await createStaff(data);
-        if (success) setModalOpen(false);
+    const handleFormSubmit = async (data) => {
+        let success;
+        if (editingMember) {
+            success = await updateStaff(editingMember.id, data);
+        } else {
+            success = await createStaff(data);
+        }
+
+        if (success) {
+            setModalOpen(false);
+            setEditingMember(null);
+        }
+    };
+
+    const handleOpenCreate = () => {
+        setEditingMember(null);
+        setModalOpen(true);
+    };
+
+    const handleOpenEdit = (member) => {
+        setEditingMember(member);
+        setModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setModalOpen(false);
+        setEditingMember(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!memberToDelete) return;
+        setIsDeleting(true);
+        const success = await deleteStaff(memberToDelete.id, `${memberToDelete.first_name} ${memberToDelete.last_name}`);
+        setIsDeleting(false);
+        if (success) {
+            setMemberToDelete(null);
+        }
     };
 
     const getInitialValues = () => {
+        if (editingMember) {
+            return {
+                first_name: editingMember.first_name,
+                last_name: editingMember.last_name,
+                type: editingMember.type,
+                department_id: editingMember.department_id,
+                email: editingMember.user_email || '',
+                role_id: editingMember.role_id || '',
+            };
+        }
+
         const defaults = { type: 'PROFESSOR' };
         if (filterRoleName && roles.length > 0) {
             const targetRole = roles.find(r => r.name === filterRoleName);
@@ -50,7 +100,7 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
                     <p className="text-sm text-gray-500 mt-1">{pageDescription}</p>
                 </div>
                 <Button
-                    onClick={() => setModalOpen(true)}
+                    onClick={handleOpenCreate}
                     icon={UserPlus}
                     className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
@@ -74,7 +124,7 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
                             </p>
                         </div>
                     </div>
-                    
+
                     <div className="relative w-full sm:w-96">
                         <div className="relative flex items-center">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -172,15 +222,16 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-1">
-                                                <button 
+                                                <button
                                                     className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                                     title="Edit"
+                                                    onClick={() => handleOpenEdit(member)}
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button 
+                                                <button
                                                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    onClick={() => deleteStaff(member.id)}
+                                                    onClick={() => setMemberToDelete(member)}
                                                     title="Delete"
                                                 >
                                                     <Trash2 size={16} />
@@ -192,7 +243,7 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
                             </tbody>
                         </table>
                     </div>
-                    
+
                     {filteredStaff.length === 0 && (
                         <div className="text-center py-12">
                             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
@@ -209,19 +260,31 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
 
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setModalOpen(false)}
-                title="Add New Staff"
-                subtitle="Register a new staff member to the institution"
+                onClose={handleCloseModal}
+                title={editingMember ? "Edit Staff Member" : "Add New Staff"}
+                subtitle={editingMember ? "Update employment details" : "Register a new staff member to the institution"}
                 size="lg"
             >
                 <StaffForm
-                    onSubmit={handleCreate}
+                    onSubmit={handleFormSubmit}
                     departments={departments}
                     roles={roles}
-                    onCancel={() => setModalOpen(false)}
+                    onCancel={handleCloseModal}
                     initialValues={getInitialValues()}
+                    isEditing={!!editingMember}
                 />
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!memberToDelete}
+                onClose={() => setMemberToDelete(null)}
+                onConfirm={handleConfirmDelete}
+                title="Confirm Deletion"
+                message={`Are you sure you want to remove ${memberToDelete?.first_name} ${memberToDelete?.last_name}? This will revoke all institutional access immediately.`}
+                confirmText="Delete Member"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

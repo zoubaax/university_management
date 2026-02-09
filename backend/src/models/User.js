@@ -53,6 +53,28 @@ class User {
         return await bcrypt.compare(enteredPassword, hashedPassword);
     }
 
+    static async update(id, { email, password, role_id, department_id, is_active }) {
+        let hashedPassword = null;
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            hashedPassword = await bcrypt.hash(password, salt);
+        }
+
+        const result = await query(
+            `UPDATE users 
+       SET email = COALESCE($1, email), 
+           password_hash = COALESCE($2, password_hash),
+           role_id = COALESCE($3, role_id), 
+           department_id = COALESCE($4, department_id),
+           is_active = COALESCE($5, is_active),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $6 AND deleted_at IS NULL
+       RETURNING id, email, role_id, department_id, is_active`,
+            [email, hashedPassword, role_id, department_id, is_active, id]
+        );
+        return result.rows[0];
+    }
+
     static getSignedJwtToken(user) {
         return jwt.sign(
             {
