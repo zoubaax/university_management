@@ -64,10 +64,11 @@ const DashboardLayout = () => {
             category: 'Administration',
             items: [
                 { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'] },
-                { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH'] },
-                { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH'] },
-                { name: 'Academic Programs', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH'] },
-                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY'] },
+                { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'] },
+                { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'] },
+                { name: 'Academic Programs', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN'] },
+                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY', 'SUPER_ADMIN'] },
+                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'] },
             ]
         },
         {
@@ -105,7 +106,7 @@ const DashboardLayout = () => {
         <div className="flex h-screen bg-gray-50 overflow-hidden">
             {/* Backdrop for mobile */}
             {isMobile && isSidebarOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
@@ -176,8 +177,8 @@ const DashboardLayout = () => {
                                 </div>
                             )}
                             {category.items.map((item) => {
-                                const isActive = location.pathname === item.path || 
-                                                location.pathname.startsWith(item.path + '/');
+                                const isActive = location.pathname === item.path ||
+                                    location.pathname.startsWith(item.path + '/');
                                 return (
                                     <Link
                                         key={item.path}
@@ -260,8 +261,8 @@ const DashboardLayout = () => {
                         {/* Page title */}
                         <div className="hidden md:block">
                             <h1 className="text-lg font-semibold text-gray-900">
-                                {filteredNavItems.flatMap(c => c.items).find(item => 
-                                    location.pathname === item.path || 
+                                {filteredNavItems.flatMap(c => c.items).find(item =>
+                                    location.pathname === item.path ||
                                     location.pathname.startsWith(item.path + '/')
                                 )?.name || 'Dashboard'}
                             </h1>

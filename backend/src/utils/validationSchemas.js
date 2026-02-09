@@ -30,9 +30,19 @@ const studentSchema = z.object({
     birth_date: z.string().optional(),
 });
 
+const absenceSchema = z.object({
+    employee_id: z.string().uuid(),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+    type: z.enum(['SICK', 'VACATION', 'UNEXCUSED', 'PAID_LEAVE', 'OTHER']),
+    reason: z.string().max(500).optional().nullable(),
+    status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'JUSTIFIED']).optional(),
+});
+
 module.exports = {
     departmentSchema,
     specialitySchema,
     employeeSchema,
     studentSchema,
+    absenceSchema,
 };

@@ -12,7 +12,7 @@ const ROLES = {
 const PERMISSIONS = {
     [ROLES.SUPER_ADMIN]: {
         canCreateRoles: Object.values(ROLES).filter(r => r !== ROLES.SUPER_ADMIN),
-        canManageResources: ['departments', 'employees', 'specialities', 'students'],
+        canManageResources: ['departments', 'employees', 'specialities', 'students', 'absences'],
     },
     [ROLES.RH]: {
         canCreateRoles: [
@@ -21,7 +21,7 @@ const PERMISSIONS = {
             ROLES.SECRETARY,
             ROLES.RESPONSABLE_DEPARTMENT,
         ],
-        canManageResources: ['departments', 'employees', 'specialities'], // Employees includes cleaners/security
+        canManageResources: ['departments', 'employees', 'specialities', 'absences'], // Employees includes cleaners/security
         canCreateEmployeeTypes: ['CLEANER', 'SECURITY', 'PROFESSOR', 'ADMINISTRATIVE'],
     },
     [ROLES.RESPONSABLE_DEPARTMENT]: {

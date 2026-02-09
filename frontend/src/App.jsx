@@ -10,6 +10,7 @@ import DepartmentsPage from './pages/DepartmentsPage';
 import SpecialitiesPage from './pages/SpecialitiesPage';
 import StaffPage from './pages/StaffPage';
 import StudentsPage from './pages/StudentsPage';
+import AbsencesPage from './pages/AbsencesPage';
 
 const App = () => {
   return (
@@ -58,8 +59,17 @@ const App = () => {
             <Route
               path="students"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'SECRETARY']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'SECRETARY']}>
                   <StudentsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="absences"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
+                  <AbsencesPage />
                 </ProtectedRoute>
               }
             />

@@ -14,6 +14,9 @@ dotenv.config();
 
 const app = express();
 
+// Serve static files
+app.use(express.static('public'));
+
 // Diagnostic log
 console.log('Backend starting...');
 console.log('Configured CLIENT_URL:', process.env.CLIENT_URL || 'http://localhost:5173');
@@ -80,6 +83,7 @@ app.use('/api/v1/departments', departments);
 app.use('/api/v1/specialities', specialities);
 app.use('/api/v1/employees', employees);
 app.use('/api/v1/students', students);
+app.use('/api/v1/absences', require('./routes/absence'));
 app.use('/api/v1/roles', require('./routes/role'));
 
 // Health check

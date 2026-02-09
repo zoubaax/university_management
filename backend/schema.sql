@@ -131,6 +131,43 @@ CREATE TRIGGER update_specialities_modtime BEFORE UPDATE ON specialities FOR EAC
 CREATE TRIGGER update_users_modtime BEFORE UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_employees_modtime BEFORE UPDATE ON employees FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_students_modtime BEFORE UPDATE ON students FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_absences_modtime BEFORE UPDATE ON absences FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- ########################################################
+-- 6. ABSENCES MANAGEMENT
+-- ########################################################
+
+CREATE TYPE absence_type AS ENUM (
+    'SICK',
+    'VACATION',
+    'UNEXCUSED',
+    'PAID_LEAVE',
+    'OTHER'
+);
+
+CREATE TYPE absence_status AS ENUM (
+    'PENDING',
+    'APPROVED',
+    'REJECTED',
+    'JUSTIFIED'
+);
+
+CREATE TABLE absences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    type absence_type NOT NULL DEFAULT 'UNEXCUSED',
+    reason TEXT,
+    status absence_status NOT NULL DEFAULT 'PENDING',
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE -- Soft Delete
+);
+
+CREATE INDEX idx_absences_employee_id ON absences(employee_id);
+CREATE INDEX idx_absences_dates ON absences(start_date, end_date);
 
 -- ########################################################
 -- 6. SEED DATA (ROLES & SUPER ADMIN)
