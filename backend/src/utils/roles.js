@@ -21,7 +21,7 @@ const PERMISSIONS = {
             ROLES.SECRETARY,
             ROLES.RESPONSABLE_DEPARTMENT,
         ],
-        canManageResources: ['departments', 'employees'], // Employees includes cleaners/security
+        canManageResources: ['departments', 'employees', 'specialities'], // Employees includes cleaners/security
         canCreateEmployeeTypes: ['CLEANER', 'SECURITY', 'PROFESSOR', 'ADMINISTRATIVE'],
     },
     [ROLES.RESPONSABLE_DEPARTMENT]: {

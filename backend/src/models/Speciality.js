@@ -3,17 +3,26 @@ const { query } = require('../config/db');
 class Speciality {
     static async findAll() {
         const result = await query(
-            `SELECT s.*, d.name as department_name 
+            `SELECT s.*, d.name as department_name, COUNT(st.id) as student_count
        FROM specialities s 
        JOIN departments d ON s.department_id = d.id 
-       WHERE s.deleted_at IS NULL ORDER BY s.name ASC`
+       LEFT JOIN students st ON s.id = st.speciality_id AND st.deleted_at IS NULL
+       WHERE s.deleted_at IS NULL 
+       GROUP BY s.id, d.name
+       ORDER BY s.name ASC`
         );
         return result.rows;
     }
 
     static async findByDepartment(departmentId) {
         const result = await query(
-            'SELECT * FROM specialities WHERE department_id = $1 AND deleted_at IS NULL',
+            `SELECT s.*, d.name as department_name, COUNT(st.id) as student_count
+       FROM specialities s 
+       JOIN departments d ON s.department_id = d.id 
+       LEFT JOIN students st ON s.id = st.speciality_id AND st.deleted_at IS NULL
+       WHERE s.department_id = $1 AND s.deleted_at IS NULL 
+       GROUP BY s.id, d.name
+       ORDER BY s.name ASC`,
             [departmentId]
         );
         return result.rows;
@@ -35,10 +44,10 @@ class Speciality {
         return result.rows[0];
     }
 
-    static async update(id, { name }) {
+    static async update(id, { name, department_id }) {
         const result = await query(
-            'UPDATE specialities SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL RETURNING *',
-            [name, id]
+            'UPDATE specialities SET name = $1, department_id = COALESCE($2, department_id), updated_at = CURRENT_TIMESTAMP WHERE id = $3 AND deleted_at IS NULL RETURNING *',
+            [name, department_id, id]
         );
         return result.rows[0];
     }

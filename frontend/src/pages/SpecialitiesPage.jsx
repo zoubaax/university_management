@@ -133,7 +133,9 @@ const SpecialitiesPage = () => {
     // Filter specialities
     const filteredSpecs = specialities.filter(s => {
         const matchesRole = isResponsable ? s.department_id === user?.department_id : true;
-        const matchesSearch = s.name.toLowerCase().includes(filterQuery.toLowerCase());
+        const search = filterQuery.toLowerCase();
+        const matchesSearch = s.name.toLowerCase().includes(search) ||
+            s.department_name?.toLowerCase().includes(search);
         const matchesDept = selectedDepartment === 'all' || s.department_id === selectedDepartment;
         return matchesRole && matchesSearch && matchesDept;
     });
@@ -310,7 +312,7 @@ const SpecialitiesPage = () => {
                                         <div className="flex items-center gap-2">
                                             <Users size={14} className="text-gray-400" />
                                             <span className="text-xs font-medium text-gray-500">
-                                                120 students enrolled
+                                                {spec.student_count || 0} students enrolled
                                             </span>
                                         </div>
                                         <Badge variant="outline" className="text-xs">
@@ -407,7 +409,7 @@ const SpecialitiesPage = () => {
                             variant="primary"
                             isLoading={isSubmitting}
                             className="flex-1 bg-gray-900 hover:bg-gray-800"
-                            icon={editingId ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                            icon={editingId ? CheckCircle : Plus}
                         >
                             {editingId ? 'Update Program' : 'Create Program'}
                         </Button>
