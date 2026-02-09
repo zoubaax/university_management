@@ -29,8 +29,24 @@ exports.getStudent = async (req, res, next) => {
 // @access  Private/Admin
 exports.createStudent = async (req, res, next) => {
     try {
-        const { email, password, role_id, ...studentData } = req.body;
-        const student = await StudentService.createStudent(studentData, { email, password, role_id });
+        const studentData = { ...req.body };
+        const userData = {
+            email: req.body.email,
+            password: req.body.password,
+            role_id: req.body.role_id
+        };
+
+        // Handle file uploads
+        if (req.files) {
+            if (req.files.bac_document) {
+                studentData.bac_document_url = `/uploads/students/${req.files.bac_document[0].filename}`;
+            }
+            if (req.files.cin_document) {
+                studentData.cin_document_url = `/uploads/students/${req.files.cin_document[0].filename}`;
+            }
+        }
+
+        const student = await StudentService.createStudent(studentData, userData);
         res.status(201).json({ success: true, data: student });
     } catch (err) {
         next(err);
@@ -42,7 +58,19 @@ exports.createStudent = async (req, res, next) => {
 // @access  Private/Admin
 exports.updateStudent = async (req, res, next) => {
     try {
-        const student = await StudentService.updateStudent(req.params.id, req.body);
+        const studentData = { ...req.body };
+
+        // Handle file uploads
+        if (req.files) {
+            if (req.files.bac_document) {
+                studentData.bac_document_url = `/uploads/students/${req.files.bac_document[0].filename}`;
+            }
+            if (req.files.cin_document) {
+                studentData.cin_document_url = `/uploads/students/${req.files.cin_document[0].filename}`;
+            }
+        }
+
+        const student = await StudentService.updateStudent(req.params.id, studentData);
         res.status(200).json({ success: true, data: student });
     } catch (err) {
         next(err);

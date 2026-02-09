@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { toast } from 'react-hot-toast';
 import {
     Plus,
@@ -13,43 +10,47 @@ import {
     Loader2,
     X,
     UserPlus,
-    Mail,
-    Lock,
-    Calendar,
-    Layers,
-    Fingerprint,
+    Filter,
+    School,
+    Building2,
     BookOpen,
-    Filter
+    CreditCard,
+    FileCheck,
+    Download,
+    Users,
+    Calendar,
+    Award,
+    MoreVertical,
+    Eye,
+    Mail
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import studentService from '../api/services/studentService';
 import specialityService from '../api/services/specialityService';
-import Input from '../components/forms/Input';
-import Select from '../components/forms/Select';
-
-const studentSchema = z.object({
-    registration_num: z.string().min(5, 'Registration number is required'),
-    speciality_id: z.string().min(36, 'Please select a speciality'),
-    birth_date: z.string().min(1, 'Date of birth is required'),
-    email: z.string().email('Valid institutional email is required'),
-    password: z.string().min(6, 'Temporary password is required'),
-});
+import departmentService from '../api/services/departmentService';
+import classService from '../api/services/classService';
+import roleService from '../api/services/roleService';
+import StudentForm from '../features/students/components/StudentForm';
+import Modal from '../components/ui/Modal';
+import Button from '../components/ui/Button';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import Badge from '../components/ui/Badge';
 
 const StudentsPage = () => {
     const [students, setStudents] = useState([]);
+    const [departments, setDepartments] = useState([]);
     const [specialities, setSpecialities] = useState([]);
+    const [classes, setClasses] = useState([]);
+    const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
+    const [editingStudent, setEditingStudent] = useState(null);
+    const [studentToDelete, setStudentToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
-    const {
-        register,
-        handleSubmit,
-        reset,
-        formState: { errors, isSubmitting }
-    } = useForm({
-        resolver: zodResolver(studentSchema),
-    });
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [selectedProgram, setSelectedProgram] = useState('all');
+    const [menuOpen, setMenuOpen] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -58,286 +59,412 @@ const StudentsPage = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [studentData, specData] = await Promise.all([
+            const [studentData, deptData, specData, classData, roleData] = await Promise.all([
                 studentService.getAll(),
-                specialityService.getAll()
+                departmentService.getAll(),
+                specialityService.getAll(),
+                classService.getAll(),
+                roleService.getAll()
             ]);
             setStudents(studentData || []);
+            setDepartments(deptData || []);
             setSpecialities(specData || []);
+            setClasses(classData || []);
+            setRoles(roleData || []);
         } catch (err) {
-            toast.error('Failed to load student dashboard');
+            toast.error('Failed to load student data');
+            console.error('Fetch error:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const onSubmit = async (data) => {
+    const handleSubmit = async (formData) => {
         try {
-            await studentService.create(data);
-            toast.success('Student enrolled successfully');
+            if (editingStudent) {
+                await studentService.update(editingStudent.id, formData);
+                toast.success('Student record updated successfully');
+            } else {
+                await studentService.create(formData);
+                toast.success('Student enrolled successfully');
+            }
             setModalOpen(false);
-            reset();
+            setEditingStudent(null);
             fetchData();
         } catch (err) {
-            const msg = err.response?.data?.error || 'Enrollment failed';
+            const msg = err.response?.data?.error || 'Operation failed. Please try again.';
             toast.error(msg);
         }
     };
 
-    const filteredStudents = (students || []).filter(s =>
-        s.registration_num.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleDeleteClick = (student) => {
+        setStudentToDelete(student);
+        setMenuOpen(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!studentToDelete) return;
+        setIsDeleting(true);
+        try {
+            await studentService.delete(studentToDelete.id);
+            toast.success('Student record removed');
+            fetchData();
+        } catch (err) {
+            toast.error('Failed to remove student record');
+        } finally {
+            setIsDeleting(false);
+            setStudentToDelete(null);
+        }
+    };
+
+    // Get unique programs for filter
+    const uniquePrograms = [...new Set(students.map(s => s.speciality_name).filter(Boolean))];
+
+    const filteredStudents = students.filter(student => {
+        const matchesSearch = !searchQuery ||
+            student.registration_num.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (student.cin && student.cin.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        const matchesProgram = selectedProgram === 'all' || student.speciality_name === selectedProgram;
+        const matchesStatus = selectedStatus === 'all' || student.status === selectedStatus;
+
+        return matchesSearch && matchesProgram && matchesStatus;
+    });
+
+    const getStudentInitials = (firstName, lastName) => {
+        return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+    };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
-                        Student Enrollment
-                    </h1>
-                    <p className="text-slate-500 mt-3 font-medium text-lg">
-                        Manage academic records and institutional admissions.
-                    </p>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Student Management</h1>
+                    <p className="text-sm text-gray-500 mt-1">Enroll and manage student records across academic programs</p>
                 </div>
-                <button
+                <Button
                     onClick={() => {
-                        reset();
+                        setEditingStudent(null);
                         setModalOpen(true);
                     }}
-                    className="btn-primary flex items-center gap-3 self-start px-8 py-4 shadow-2xl shadow-primary-600/30 rounded-2xl"
+                    icon={UserPlus}
+                    className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
-                    <UserPlus size={24} />
-                    <span className="font-black uppercase tracking-wider text-sm">Enroll New Student</span>
-                </button>
+                    Enroll Student
+                </Button>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search by registration number or email..."
-                        className="input-field pl-12 h-14 bg-white border-slate-200 shadow-sm focus:shadow-xl focus:shadow-primary-600/5 transition-all"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Total Students</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">{students.length}</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                            <Users className="w-6 h-6 text-blue-600" />
+                        </div>
+                    </div>
                 </div>
-                <button className="h-14 px-6 bg-white border border-slate-200 rounded-2xl text-slate-500 flex items-center gap-3 hover:bg-slate-50 transition-all font-bold">
-                    <Filter size={20} />
-                    Filters
-                </button>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Active This Year</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">
+                                {students.filter(s => s.status === 'active').length}
+                            </p>
+                        </div>
+                        <div className="p-3 bg-green-50 rounded-lg">
+                            <GraduationCap className="w-6 h-6 text-green-600" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Academic Programs</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">{uniquePrograms.length}</p>
+                        </div>
+                        <div className="p-3 bg-purple-50 rounded-lg">
+                            <BookOpen className="w-6 h-6 text-purple-600" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Avg. GPA</p>
+                            <p className="text-2xl font-semibold text-gray-900 mt-1">3.4</p>
+                        </div>
+                        <div className="p-3 bg-amber-50 rounded-lg">
+                            <Award className="w-6 h-6 text-amber-600" />
+                        </div>
+                    </div>
+                </div>
             </div>
 
+            {/* Filters */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search students by name, registration, email, or CIN..."
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Filter className="w-4 h-4 text-gray-400" />
+                        <select
+                            value={selectedProgram}
+                            onChange={(e) => setSelectedProgram(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                        >
+                            <option value="all">All Programs</option>
+                            {uniquePrograms.map(program => (
+                                <option key={program} value={program}>{program}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="graduated">Graduated</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Students Grid */}
             {loading ? (
-                <div className="h-96 flex flex-col items-center justify-center gap-4">
-                    <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs">Accessing Records...</p>
+                <div className="h-96 flex flex-col items-center justify-center bg-white rounded-xl border border-gray-200">
+                    <Loader2 className="w-8 h-8 text-gray-600 animate-spin mb-3" />
+                    <p className="text-sm text-gray-500">Loading student data...</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
-                    <AnimatePresence>
-                        {filteredStudents.map((student, index) => (
-                            <motion.div
-                                key={student.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.3, delay: index * 0.05 }}
-                                className="glass-card rounded-[2.5rem] p-8 flex flex-col gap-6 hover:border-primary-400 hover:shadow-2xl hover:shadow-primary-600/10 transition-all border-2 border-transparent group"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="w-20 h-20 rounded-3xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-all duration-500 shadow-inner">
-                                        <GraduationCap size={40} />
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                                            Enrolled
-                                        </span>
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Batch 2024</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2 group-hover:text-primary-700 transition-colors">
-                                        {student.registration_num}
-                                    </h3>
-                                    <p className="text-sm text-slate-400 font-bold truncate lowercase">{student.email}</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4 py-6 border-y border-slate-50">
-                                    <div className="space-y-1 border-r border-slate-100 pr-4">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Speciality</p>
-                                        <p className="text-sm font-black text-slate-700 truncate">
-                                            {specialities.find(s => s.id === student.speciality_id)?.name || 'Unassigned'}
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1 pl-4">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Joined</p>
-                                        <p className="text-sm font-black text-slate-700">
-                                            {new Date(student.enrollment_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-between items-center pt-2">
-                                    <button className="text-xs font-black text-primary-600 uppercase tracking-widest hover:text-primary-800 transition-all underline underline-offset-4 decoration-2">
-                                        Academic File
-                                    </button>
-                                    <div className="flex gap-3">
-                                        <button className="p-3 bg-slate-50 hover:bg-white hover:shadow-xl rounded-2xl text-slate-400 hover:text-primary-600 transition-all border border-transparent hover:border-slate-100">
-                                            <Edit2 size={18} />
-                                        </button>
-                                        <button className="p-3 bg-slate-50 hover:bg-red-50 hover:shadow-xl rounded-2xl text-slate-400 hover:text-red-600 transition-all border border-transparent hover:border-red-100">
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
-            )}
-
-            {/* Enrollment Modal */}
-            <AnimatePresence>
-                {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setModalOpen(false)}
-                            className="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 50 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 50 }}
-                            className="bg-white rounded-[3rem] shadow-[0_35px_100px_-15px_rgba(0,0,0,0.3)] w-full max-w-5xl relative z-10 overflow-hidden flex flex-col xl:flex-row min-h-[600px] border border-white"
-                        >
-                            {/* Sidebar Decoration */}
-                            <div className="hidden xl:flex w-80 bg-slate-900 p-12 flex-col justify-between text-white relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
-                                <div className="relative z-10">
-                                    <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mb-8 shadow-2xl shadow-primary-600/50">
-                                        <GraduationCap size={32} />
-                                    </div>
-                                    <h2 className="text-3xl font-black leading-tight uppercase tracking-tight">
-                                        Student<br />Enrollment
-                                    </h2>
-                                    <p className="text-slate-400 mt-6 text-sm font-medium leading-relaxed">
-                                        Standardize student admissions by verifying all academic and legal prerequisites.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4 relative z-10">
-                                    {['Institutional Email', 'Academic Record', 'Birth Certificate'].map((step, i) => (
-                                        <div key={i} className="flex items-center gap-4 group cursor-default">
-                                            <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500 group-hover:bg-primary-600 group-hover:text-white transition-all">
-                                                0{i + 1}
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <AnimatePresence>
+                            {filteredStudents.map((student, index) => (
+                                <motion.div
+                                    key={student.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow group"
+                                >
+                                    {/* Header with Actions */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-gray-800 to-gray-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
+                                                {getStudentInitials(student.first_name, student.last_name)}
                                             </div>
-                                            <span className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-all">{step}</span>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold text-gray-900">
+                                                        {student.first_name} {student.last_name}
+                                                    </h3>
+                                                    <Badge 
+                                                        className={cn(
+                                                            "text-xs",
+                                                            student.status === 'active' && "bg-green-100 text-green-700 border-green-200",
+                                                            student.status === 'inactive' && "bg-gray-100 text-gray-700 border-gray-200",
+                                                            student.status === 'graduated' && "bg-blue-100 text-blue-700 border-blue-200"
+                                                        )}
+                                                    >
+                                                        {student.status || 'Active'}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-0.5">{student.registration_num}</p>
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex-1 p-10 xl:p-16 overflow-y-auto custom-scrollbar">
-                                <div className="flex justify-between items-center mb-12 xl:hidden">
-                                    <h2 className="text-2xl font-black text-slate-900">Admit Student</h2>
-                                    <button onClick={() => setModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-2xl transition-all">
-                                        <X size={24} />
-                                    </button>
-                                </div>
-
-                                <form onSubmit={handleSubmit(onSubmit)} className="space-y-12">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        {/* Academic Info */}
-                                        <div className="space-y-8">
-                                            <div className="flex items-center gap-3 pb-2 border-b-4 border-slate-900 w-fit">
-                                                <Fingerprint size={20} className="text-primary-600" />
-                                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Identification</h3>
-                                            </div>
-
-                                            <Input
-                                                label="Registration Number"
-                                                placeholder="UPF-2024-XXXX"
-                                                {...register('registration_num')}
-                                                error={errors.registration_num?.message}
-                                            />
-
-                                            <Select
-                                                label="Assigned Speciality"
-                                                placeholder="Choose academic path..."
-                                                options={specialities.map(s => ({ value: s.id, label: s.name }))}
-                                                {...register('speciality_id')}
-                                                error={errors.speciality_id?.message}
-                                            />
-
-                                            <Input
-                                                label="Date of Birth"
-                                                type="date"
-                                                {...register('birth_date')}
-                                                error={errors.birth_date?.message}
-                                            />
+                                        
+                                        {/* Dropdown Menu */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setMenuOpen(menuOpen === student.id ? null : student.id)}
+                                                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                            >
+                                                <MoreVertical size={16} />
+                                            </button>
+                                            
+                                            {menuOpen === student.id && (
+                                                <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingStudent(student);
+                                                            setModalOpen(true);
+                                                        }}
+                                                        className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                        Edit Student
+                                                    </button>
+                                                    <button className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                                        <Eye size={14} />
+                                                        View Profile
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteClick(student)}
+                                                        className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
+                                    </div>
 
-                                        {/* Account Info */}
-                                        <div className="space-y-8">
-                                            <div className="flex items-center gap-3 pb-2 border-b-4 border-primary-600 w-fit">
-                                                <Lock size={20} className="text-primary-600" />
-                                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Access Rights</h3>
+                                    {/* Student Info */}
+                                    <div className="space-y-3 mb-4">
+                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                            <Mail size={14} className="text-gray-400" />
+                                            <span className="truncate">{student.email}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                            <CreditCard size={14} className="text-gray-400" />
+                                            <span>CIN: {student.cin || 'Not provided'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Academic Details */}
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <BookOpen size={12} className="text-gray-500" />
+                                                <span className="text-xs font-medium text-gray-500">Program</span>
                                             </div>
-
-                                            <Input
-                                                label="Institutional Email"
-                                                type="email"
-                                                placeholder="student@upf.edu.ma"
-                                                {...register('email')}
-                                                error={errors.email?.message}
-                                            />
-
-                                            <Input
-                                                label="Temporary Password"
-                                                type="password"
-                                                placeholder="••••••••"
-                                                {...register('password')}
-                                                error={errors.password?.message}
-                                            />
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1 animate-pulse italic">
-                                                * Required for first time portal access
+                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                {student.speciality_name || 'Not assigned'}
+                                            </p>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <School size={12} className="text-gray-500" />
+                                                <span className="text-xs font-medium text-gray-500">Class</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {student.class_name || 'Not assigned'}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-6 pt-10">
-                                        <button
-                                            type="button"
-                                            onClick={() => setModalOpen(false)}
-                                            className="hidden md:block px-10 py-5 text-slate-500 font-black uppercase tracking-widest text-[11px] hover:text-slate-900 transition-all"
-                                        >
-                                            Discard
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting}
-                                            className="flex-1 btn-primary h-20 flex items-center justify-center gap-4 shadow-[0_20px_50px_-10px_rgba(37,99,235,0.4)] rounded-[1.5rem]"
-                                        >
-                                            {isSubmitting ? (
-                                                <Loader2 className="w-6 h-6 animate-spin" />
-                                            ) : (
-                                                <UserPlus size={24} />
-                                            )}
-                                            <span className="font-black uppercase tracking-widest text-sm">
-                                                {isSubmitting ? 'Finalizing Enrollment...' : 'Register Student'}
-                                            </span>
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </motion.div>
+                                    {/* Documents */}
+                                    {(student.bac_document_url || student.cin_document_url) && (
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <p className="text-xs font-medium text-gray-500 mb-2">Documents</p>
+                                            <div className="flex gap-2">
+                                                {student.bac_document_url && (
+                                                    <a
+                                                        href={`${import.meta.env.VITE_STORAGE_URL}${student.bac_document_url}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-colors"
+                                                    >
+                                                        <FileCheck size={12} />
+                                                        BAC
+                                                    </a>
+                                                )}
+                                                {student.cin_document_url && (
+                                                    <a
+                                                        href={`${import.meta.env.VITE_STORAGE_URL}${student.cin_document_url}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors"
+                                                    >
+                                                        <CreditCard size={12} />
+                                                        CIN
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
-                )}
-            </AnimatePresence>
+
+                    {/* Empty State */}
+                    {filteredStudents.length === 0 && (
+                        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                                <GraduationCap className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No students found</h3>
+                            <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                                {searchQuery || selectedProgram !== 'all' || selectedStatus !== 'all'
+                                    ? 'Try adjusting your search filters'
+                                    : 'Get started by enrolling your first student'}
+                            </p>
+                            {!searchQuery && selectedProgram === 'all' && selectedStatus === 'all' && (
+                                <Button
+                                    onClick={() => {
+                                        setEditingStudent(null);
+                                        setModalOpen(true);
+                                    }}
+                                    icon={UserPlus}
+                                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                                >
+                                    Enroll First Student
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Student Form Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setModalOpen(false);
+                    setEditingStudent(null);
+                }}
+                title={editingStudent ? 'Edit Student Record' : 'Enroll New Student'}
+                subtitle={editingStudent ? 'Update student information and academic details' : 'Complete the enrollment form to add a new student'}
+                size="xl"
+            >
+                <StudentForm
+                    onSubmit={handleSubmit}
+                    onCancel={() => {
+                        setModalOpen(false);
+                        setEditingStudent(null);
+                    }}
+                    isEditing={!!editingStudent}
+                    initialValues={editingStudent}
+                    departments={departments}
+                    specialities={specialities}
+                    classes={classes}
+                    roles={roles}
+                />
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={!!studentToDelete}
+                onClose={() => setStudentToDelete(null)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Student Record"
+                message={`Are you sure you want to delete ${studentToDelete?.first_name} ${studentToDelete?.last_name}? This will permanently remove all academic records and associated data. This action cannot be undone.`}
+                confirmText="Delete Student"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

@@ -6,6 +6,7 @@ const {
     updateStudent,
     deleteStudent,
 } = require('../controllers/student');
+const upload = require('../middlewares/upload');
 
 const router = express.Router();
 
@@ -16,12 +17,18 @@ const { studentSchema } = require('../utils/validationSchemas');
 
 router.use(protect); // All routes protected
 
+const studentUpload = upload.fields([
+    { name: 'bac_document', maxCount: 1 },
+    { name: 'cin_document', maxCount: 1 }
+]);
+
 router
     .route('/')
     .get(getStudents)
     .post(
-        authorize('RESPONSABLE_DEPARTMENT'),
+        authorize('RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'RH'),
         checkResourcePermission('students'),
+        studentUpload,
         validate(studentSchema),
         checkRoleCreationPermission,
         createStudent
@@ -30,7 +37,16 @@ router
 router
     .route('/:id')
     .get(getStudent)
-    .put(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('students'), updateStudent)
-    .delete(authorize('RESPONSABLE_DEPARTMENT'), checkResourcePermission('students'), deleteStudent);
+    .put(
+        authorize('RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'RH'),
+        checkResourcePermission('students'),
+        studentUpload,
+        updateStudent
+    )
+    .delete(
+        authorize('RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'RH'),
+        checkResourcePermission('students'),
+        deleteStudent
+    );
 
 module.exports = router;

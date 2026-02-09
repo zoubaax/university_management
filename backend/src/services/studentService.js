@@ -27,17 +27,27 @@ class StudentService {
             email: userData.email,
             password: userData.password,
             role_id: userData.role_id,
-            department_id: null // Students don't belong to a department directly, but to a speciality
+            department_id: studentData.department_id
         });
 
         return await Student.create({ ...studentData, user_id: newUser.id });
     }
 
     static async updateStudent(id, data) {
-        const student = await Student.update(id, data);
-        if (!student) {
+        // Find student first to check existence
+        const existingStudent = await Student.findById(id);
+        if (!existingStudent) {
             throw new ErrorResponse('Student not found', 404);
         }
+
+        // Update user if department_id changed
+        if (data.department_id && data.department_id !== existingStudent.department_id) {
+            await User.update(existingStudent.user_id, {
+                department_id: data.department_id
+            });
+        }
+
+        const student = await Student.update(id, data);
         return student;
     }
 

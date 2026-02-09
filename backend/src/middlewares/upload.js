@@ -5,10 +5,14 @@ const ErrorResponse = require('../utils/ErrorResponse');
 // Set Storage Engine
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/uploads/absences');
+        let folder = 'public/uploads/others';
+        if (file.fieldname === 'attachment') folder = 'public/uploads/absences';
+        if (file.fieldname === 'bac_document' || file.fieldname === 'cin_document') folder = 'public/uploads/students';
+
+        cb(null, folder);
     },
     filename: function (req, file, cb) {
-        cb(null, `absence-${Date.now()}${path.extname(file.originalname)}`);
+        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
 

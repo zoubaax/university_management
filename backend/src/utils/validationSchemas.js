@@ -24,9 +24,14 @@ const employeeSchema = z.object({
 const studentSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
-    role_id: z.string().uuid(), // Student role ID
+    role_id: z.string().uuid(),
+    department_id: z.string().uuid(),
     speciality_id: z.string().uuid(),
-    registration_num: z.string().min(5).max(50),
+    class_id: z.string().uuid().optional(),
+    registration_num: z.string().min(5).max(50).optional(),
+    first_name: z.string().min(2).max(100),
+    last_name: z.string().min(2).max(100),
+    cin: z.string().min(4).max(50),
     birth_date: z.string().optional(),
 });
 
