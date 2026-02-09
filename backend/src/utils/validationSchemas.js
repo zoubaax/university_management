@@ -39,10 +39,18 @@ const absenceSchema = z.object({
     status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'JUSTIFIED']).optional(),
 });
 
+const classSchema = z.object({
+    speciality_id: z.string().uuid(),
+    name: z.string().min(2).max(100),
+    level: z.string().max(50).optional(),
+    academic_year: z.string().min(4).max(20),
+});
+
 module.exports = {
     departmentSchema,
     specialitySchema,
     employeeSchema,
     studentSchema,
     absenceSchema,
+    classSchema,
 };

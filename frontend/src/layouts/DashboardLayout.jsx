@@ -17,6 +17,7 @@ import {
     FileText,
     BarChart3,
     Calendar,
+    School,
     ChevronRight,
     ChevronLeft
 } from 'lucide-react';
@@ -67,6 +68,7 @@ const DashboardLayout = () => {
                 { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'] },
                 { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'] },
                 { name: 'Academic Programs', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN'] },
+                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN'] },
                 { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY', 'SUPER_ADMIN'] },
                 { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'] },
             ]

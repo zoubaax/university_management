@@ -11,6 +11,7 @@ import SpecialitiesPage from './pages/SpecialitiesPage';
 import StaffPage from './pages/StaffPage';
 import StudentsPage from './pages/StudentsPage';
 import AbsencesPage from './pages/AbsencesPage';
+import ClassesPage from './pages/ClassesPage';
 
 const App = () => {
   return (
@@ -43,6 +44,15 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT']}>
                   <SpecialitiesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="classes"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT']}>
+                  <ClassesPage />
                 </ProtectedRoute>
               }
             />
