@@ -86,6 +86,7 @@ app.use('/api/v1/students', students);
 app.use('/api/v1/absences', require('./routes/absence'));
 app.use('/api/v1/classes', require('./routes/class'));
 app.use('/api/v1/roles', require('./routes/role'));
+app.use('/api/v1/modules', require('./routes/module'));
 
 // Health check
 app.get('/health', (req, res) => {

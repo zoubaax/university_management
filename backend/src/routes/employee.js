@@ -22,7 +22,7 @@ router.use(protect);
 
 router
     .route('/')
-    .get(authorize('SUPER_ADMIN', 'RH'), getEmployees)
+    .get(authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT'), getEmployees)
     .post(
         authorize('SUPER_ADMIN', 'RH'),
         validate(employeeSchema),

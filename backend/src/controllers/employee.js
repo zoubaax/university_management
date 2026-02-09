@@ -5,7 +5,7 @@ const EmployeeService = require('../services/employeeService');
 // @access  Private/Admin
 exports.getEmployees = async (req, res, next) => {
     try {
-        const employees = await EmployeeService.getAllEmployees();
+        const employees = await EmployeeService.getAllEmployees(req.query);
         res.status(200).json({ success: true, count: employees.length, data: employees });
     } catch (err) {
         next(err);

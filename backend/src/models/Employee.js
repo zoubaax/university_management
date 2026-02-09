@@ -1,15 +1,22 @@
 const { query } = require('../config/db');
 
 class Employee {
-    static async findAll() {
-        const result = await query(
-            `SELECT e.*, d.name as department_name, u.email as user_email, r.name as role_name, r.id as role_id
-       FROM employees e 
-       LEFT JOIN departments d ON e.department_id = d.id 
-       LEFT JOIN users u ON e.user_id = u.id 
-       LEFT JOIN roles r ON u.role_id = r.id
-       WHERE e.deleted_at IS NULL ORDER BY e.last_name ASC`
-        );
+    static async findAll(filters = {}) {
+        let sql = `SELECT e.*, d.name as department_name, u.email as user_email, r.name as role_name, r.id as role_id
+                   FROM employees e 
+                   LEFT JOIN departments d ON e.department_id = d.id 
+                   LEFT JOIN users u ON e.user_id = u.id 
+                   LEFT JOIN roles r ON u.role_id = r.id
+                   WHERE e.deleted_at IS NULL`;
+
+        const params = [];
+        if (filters.type) {
+            params.push(filters.type);
+            sql += ` AND e.type = $${params.length}`;
+        }
+
+        sql += ` ORDER BY e.last_name ASC`;
+        const result = await query(sql, params);
         return result.rows;
     }
 

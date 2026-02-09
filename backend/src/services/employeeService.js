@@ -3,8 +3,8 @@ const User = require('../models/User');
 const ErrorResponse = require('../utils/ErrorResponse');
 
 class EmployeeService {
-    static async getAllEmployees() {
-        return await Employee.findAll();
+    static async getAllEmployees(filters = {}) {
+        return await Employee.findAll(filters);
     }
 
     static async getEmployeeById(id) {
