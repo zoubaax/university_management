@@ -63,12 +63,12 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-// 9. Rate limiting
-const limiter = rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 mins
-    max: 100
-});
-app.use('/api', limiter);
+// 9. Rate limiting (Disabled)
+// const limiter = rateLimit({
+//     windowMs: 10 * 60 * 1000, 
+//     max: 5000 
+// });
+// app.use('/api', limiter);
 
 // 10. Route files
 const auth = require('./routes/auth');
@@ -87,6 +87,7 @@ app.use('/api/v1/absences', require('./routes/absence'));
 app.use('/api/v1/classes', require('./routes/class'));
 app.use('/api/v1/roles', require('./routes/role'));
 app.use('/api/v1/modules', require('./routes/module'));
+app.use('/api/v1/schedules', require('./routes/schedule'));
 
 // Health check
 app.get('/health', (req, res) => {

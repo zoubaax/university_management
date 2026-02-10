@@ -13,6 +13,7 @@ import StudentsPage from './pages/StudentsPage';
 import AbsencesPage from './pages/AbsencesPage';
 import ClassesPage from './pages/ClassesPage';
 import ModulesPage from './pages/ModulesPage';
+import SchedulesPage from './pages/SchedulesPage';
 
 const App = () => {
   return (
@@ -89,6 +90,15 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
                   <AbsencesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="schedule"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT']}>
+                  <SchedulesPage />
                 </ProtectedRoute>
               }
             />
