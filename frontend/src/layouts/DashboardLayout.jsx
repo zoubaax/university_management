@@ -67,19 +67,18 @@ const DashboardLayout = () => {
                 { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'] },
                 { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'] },
                 { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'] },
-                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN'] },
-                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN'] },
-                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN'] },
-                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY', 'SUPER_ADMIN'] },
+                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'] },
             ]
         },
         {
             category: 'Academic',
             items: [
-                { name: 'Courses', icon: FileText, path: '/courses', roles: ['PROFESSOR', 'RESPONSABLE_DEPARTMENT'] },
-                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT'] },
-                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT'] },
+                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
+                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'] },
+                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'] },
+                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT'] },
+                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT'] },
             ]
         },
         {
