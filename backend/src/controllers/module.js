@@ -8,7 +8,7 @@ const ErrorResponse = require('../utils/ErrorResponse');
  */
 exports.getModules = async (req, res, next) => {
     try {
-        const modules = await Module.findAll();
+        const modules = await Module.findAll(req.user);
         res.status(200).json({ success: true, count: modules.length, data: modules });
     } catch (err) {
         next(err);

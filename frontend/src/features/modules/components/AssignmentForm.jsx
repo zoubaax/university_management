@@ -131,7 +131,7 @@ const assignmentSchema = z.object({
         .refine(val => !isNaN(parseInt(val)), 'Must be a valid number')
         .refine(val => parseInt(val) > 0, 'Hours must be greater than 0')
         .refine(val => parseInt(val) <= 40, 'Hours cannot exceed 40 per week'),
-    semester: z.enum(['FALL', 'SPRING', 'SUMMER']).optional(),
+    semester: z.string().refine(val => ['1', '2'].includes(val), 'Please select a semester'),
 });
 
 const AssignmentForm = ({
@@ -154,7 +154,7 @@ const AssignmentForm = ({
         resolver: zodResolver(assignmentSchema),
         defaultValues: initialValues || {
             hours_per_week: '4',
-            semester: 'FALL'
+            semester: '1'
         },
         mode: 'onChange'
     });
@@ -184,10 +184,11 @@ const AssignmentForm = ({
     };
 
     const semesterOptions = [
-        { value: 'FALL', label: 'Fall Semester', description: 'September - December' },
-        { value: 'SPRING', label: 'Spring Semester', description: 'January - April' },
-        { value: 'SUMMER', label: 'Summer Semester', description: 'May - August' },
+        { value: '1', label: 'Semester 1', description: 'Fall Semester' },
+        { value: '2', label: 'Semester 2', description: 'Spring Semester' },
     ];
+
+    const filteredModules = modules.filter(m => m.semester?.toString() === semester);
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -230,26 +231,49 @@ const AssignmentForm = ({
                     />
                 </div>
 
-                {/* Module Selection */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                        <BookOpen className="w-4 h-4 text-gray-500" />
-                        Academic Module
-                        <span className="text-xs text-red-500 ml-1">*</span>
-                    </label>
-                    <Select
-                        placeholder="Select a module..."
-                        leftIcon={<BookOpen className="w-4 h-4 text-gray-400" />}
-                        options={modules.map(m => ({
-                            value: m.id,
-                            label: `${m.code} - ${m.name}`,
-                            description: `${m.credits || 3} credits • ${m.department_name || 'General'}`
-                        }))}
-                        {...register('module_id', {
-                            onChange: () => trigger('module_id')
-                        })}
-                        error={errors.module_id?.message}
-                    />
+                {/* Semester & Module Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            Target Semester
+                            <span className="text-xs text-red-500 ml-1">*</span>
+                        </label>
+                        <Select
+                            placeholder="Select semester..."
+                            leftIcon={<Calendar className="w-4 h-4 text-gray-400" />}
+                            options={semesterOptions}
+                            {...register('semester', {
+                                onChange: () => {
+                                    setValue('module_id', ''); // Reset module on semester change
+                                    trigger('semester');
+                                }
+                            })}
+                            error={errors.semester?.message}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <BookOpen className="w-4 h-4 text-gray-500" />
+                            Academic Module
+                            <span className="text-xs text-red-500 ml-1">*</span>
+                        </label>
+                        <Select
+                            placeholder={semester ? `Select S${semester} module...` : "Select a module..."}
+                            leftIcon={<BookOpen className="w-4 h-4 text-gray-400" />}
+                            options={filteredModules.map(m => ({
+                                value: m.id,
+                                label: `${m.code} - ${m.name}`,
+                                description: `S${m.semester} • ${m.credits || 3} credits`
+                            }))}
+                            {...register('module_id', {
+                                onChange: () => trigger('module_id')
+                            })}
+                            error={errors.module_id?.message}
+                            disabled={!semester}
+                        />
+                    </div>
                 </div>
 
                 {/* Professor Selection */}
@@ -274,57 +298,39 @@ const AssignmentForm = ({
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Weekly Hours */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                                <Clock className="w-4 h-4 text-gray-500" />
-                                Weekly Hours
-                                <span className="text-xs text-red-500 ml-1">*</span>
-                            </label>
-                            {hours && !errors.hours_per_week && (
-                                <Badge className={`text-xs ${getWorkloadColor(hours)}`}>
-                                    {parseInt(hours) <= 4 ? 'Light' : 
-                                     parseInt(hours) <= 8 ? 'Moderate' : 
-                                     parseInt(hours) <= 12 ? 'Heavy' : 'Very Heavy'}
-                                </Badge>
-                            )}
-                        </div>
-                        <Input
-                            type="number"
-                            placeholder="Enter weekly hours (e.g., 4)"
-                            leftIcon={<Clock className="w-4 h-4 text-gray-400" />}
-                            min="1"
-                            max="40"
-                            step="0.5"
-                            {...register('hours_per_week', {
-                                onChange: () => trigger('hours_per_week')
-                            })}
-                            error={errors.hours_per_week?.message}
-                        />
+                {/* Weekly Hours */}
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-gray-500" />
+                            Weekly Hours
+                            <span className="text-xs text-red-500 ml-1">*</span>
+                        </label>
                         {hours && !errors.hours_per_week && (
-                            <p className="text-xs text-gray-600">
-                                Total semester hours: {calculateTotalHours()} hours
-                            </p>
+                            <Badge className={`text-xs ${getWorkloadColor(hours)}`}>
+                                {parseInt(hours) <= 4 ? 'Light' :
+                                    parseInt(hours) <= 8 ? 'Moderate' :
+                                        parseInt(hours) <= 12 ? 'Heavy' : 'Very Heavy'}
+                            </Badge>
                         )}
                     </div>
-
-                    {/* Semester */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                            <Calendar className="w-4 h-4 text-gray-500" />
-                            Semester
-                            <span className="text-xs text-gray-400 ml-1">(Optional)</span>
-                        </label>
-                        <Select
-                            placeholder="Select semester..."
-                            leftIcon={<Calendar className="w-4 h-4 text-gray-400" />}
-                            options={semesterOptions}
-                            {...register('semester')}
-                            error={errors.semester?.message}
-                        />
-                    </div>
+                    <Input
+                        type="number"
+                        placeholder="Enter weekly hours (e.g., 4)"
+                        leftIcon={<Clock className="w-4 h-4 text-gray-400" />}
+                        min="1"
+                        max="40"
+                        step="0.5"
+                        {...register('hours_per_week', {
+                            onChange: () => trigger('hours_per_week')
+                        })}
+                        error={errors.hours_per_week?.message}
+                    />
+                    {hours && !errors.hours_per_week && (
+                        <p className="text-xs text-gray-600">
+                            Total semester hours: {calculateTotalHours()} hours
+                        </p>
+                    )}
                 </div>
 
                 {/* Preview Section */}

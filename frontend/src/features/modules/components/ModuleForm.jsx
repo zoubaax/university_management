@@ -161,6 +161,7 @@ const moduleSchema = z.object({
         .refine(val => parseInt(val) <= 10, 'Credits cannot exceed 10')
         .optional()
         .or(z.literal('')),
+    semester: z.string().refine(val => ['1', '2'].includes(val), 'Please select a semester'),
     description: z.string()
         .max(500, 'Description cannot exceed 500 characters')
         .optional(),
@@ -186,6 +187,7 @@ const ModuleForm = ({
             coefficient: '1.0',
             credits: '3',
             code: '',
+            semester: '1',
         },
         mode: 'onChange'
     });
@@ -195,13 +197,14 @@ const ModuleForm = ({
     const specialityId = watch('speciality_id');
     const coefficient = watch('coefficient');
     const credits = watch('credits');
+    const semester = watch('semester');
     const description = watch('description');
 
     const nameTouched = touchedFields.name;
     const codeTouched = touchedFields.code;
     const coeffTouched = touchedFields.coefficient;
 
-    const selectedSpeciality = specialityId 
+    const selectedSpeciality = specialityId
         ? specialities.find(s => s.id === specialityId)
         : null;
 
@@ -212,13 +215,13 @@ const ModuleForm = ({
             // Generate suggested code from first 3-4 letters of module name
             const words = name.split(' ');
             let suggestion = '';
-            
+
             if (words.length === 1) {
                 suggestion = words[0].substring(0, 4).toUpperCase();
             } else {
                 suggestion = words.map(word => word[0]).join('').toUpperCase();
             }
-            
+
             if (suggestion.length > 4) suggestion = suggestion.substring(0, 4);
             setSuggestedCode(`${suggestion}-101`);
         }
@@ -403,9 +406,9 @@ const ModuleForm = ({
                                 </label>
                                 {coeffTouched && coefficient && (
                                     <Badge className={`text-xs ${getCoefficientColor(coefficient)}`}>
-                                        {parseFloat(coefficient) <= 1 ? 'Light' : 
-                                         parseFloat(coefficient) <= 2 ? 'Standard' : 
-                                         parseFloat(coefficient) <= 3 ? 'Heavy' : 'Very Heavy'}
+                                        {parseFloat(coefficient) <= 1 ? 'Light' :
+                                            parseFloat(coefficient) <= 2 ? 'Standard' :
+                                                parseFloat(coefficient) <= 3 ? 'Heavy' : 'Very Heavy'}
                                     </Badge>
                                 )}
                             </div>
@@ -444,9 +447,27 @@ const ModuleForm = ({
                                 })}
                                 error={errors.credits?.message}
                             />
-                            <p className="text-xs text-gray-500">
-                                ECTS or credit hour value
-                            </p>
+                        </div>
+
+                        {/* Semester */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                                <Clock className="w-4 h-4 text-gray-500" />
+                                Semester
+                                <span className="text-xs text-red-500 ml-1">*</span>
+                            </label>
+                            <Select
+                                placeholder="Select semester..."
+                                leftIcon={<Clock className="w-4 h-4 text-gray-400" />}
+                                options={[
+                                    { value: '1', label: 'Semester 1', description: 'Fall Semester' },
+                                    { value: '2', label: 'Semester 2', description: 'Spring Semester' },
+                                ]}
+                                {...register('semester', {
+                                    onChange: () => trigger('semester')
+                                })}
+                                error={errors.semester?.message}
+                            />
                         </div>
                     </div>
 
@@ -507,6 +528,10 @@ const ModuleForm = ({
                                         <span className="text-sm font-medium text-gray-900">{credits}</span>
                                     </div>
                                 )}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-600">Semester:</span>
+                                    <span className="text-sm font-medium text-gray-900">Semester {semester}</span>
+                                </div>
                             </div>
                         </div>
                     )}
