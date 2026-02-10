@@ -26,7 +26,14 @@ class ClassService {
     }
 
     static async createClass(data, user) {
-        // Validation could be added here to ensure the speciality belongs to the user's department
+        // If user is Responsable de Departement or Director, verify the speciality belongs to their department
+        if (user.role_name === 'RESPONSABLE_DEPARTMENT' || user.role_name === 'DIRECTOR_DEPARTMENT') {
+            const Speciality = require('../models/Speciality');
+            const speciality = await Speciality.findById(data.speciality_id);
+            if (!speciality || speciality.department_id !== user.department_id) {
+                throw new ErrorResponse('You can only create classes for specialities within your department', 403);
+            }
+        }
         return await Class.create(data);
     }
 

@@ -7,8 +7,17 @@ const ErrorResponse = require('../utils/ErrorResponse');
 exports.getSpecialities = async (req, res, next) => {
     try {
         let specialities;
+        const isDeptRole = req.user.role_name === 'RESPONSABLE_DEPARTMENT' || req.user.role_name === 'DIRECTOR_DEPARTMENT';
+
         if (req.query.departmentId) {
+            // If they are dept role, they can only request their own department
+            if (isDeptRole && req.query.departmentId !== req.user.department_id) {
+                return next(new ErrorResponse('You are not authorized to access specialities from another department', 403));
+            }
             specialities = await SpecialityService.getSpecialitiesByDepartment(req.query.departmentId);
+        } else if (isDeptRole) {
+            // Auto-filter for departmental roles
+            specialities = await SpecialityService.getSpecialitiesByDepartment(req.user.department_id);
         } else {
             specialities = await SpecialityService.getAllSpecialities();
         }
@@ -36,7 +45,8 @@ exports.getSpeciality = async (req, res, next) => {
 exports.createSpeciality = async (req, res, next) => {
     try {
         // Department Isolation
-        if (req.user.role_name === 'RESPONSABLE_DEPARTMENT' && req.user.department_id !== req.body.department_id) {
+        const isDeptRole = req.user.role_name === 'RESPONSABLE_DEPARTMENT' || req.user.role_name === 'DIRECTOR_DEPARTMENT';
+        if (isDeptRole && req.user.department_id !== req.body.department_id) {
             return next(new ErrorResponse('You are not authorized to add specialities to this department', 403));
         }
 
@@ -55,7 +65,8 @@ exports.updateSpeciality = async (req, res, next) => {
         const speciality = await SpecialityService.getSpecialityById(req.params.id);
 
         // Department Isolation
-        if (req.user.role_name === 'RESPONSABLE_DEPARTMENT' && req.user.department_id !== speciality.department_id) {
+        const isDeptRole = req.user.role_name === 'RESPONSABLE_DEPARTMENT' || req.user.role_name === 'DIRECTOR_DEPARTMENT';
+        if (isDeptRole && req.user.department_id !== speciality.department_id) {
             return next(new ErrorResponse('You are not authorized to update specialities in this department', 403));
         }
 
@@ -74,7 +85,8 @@ exports.deleteSpeciality = async (req, res, next) => {
         const speciality = await SpecialityService.getSpecialityById(req.params.id);
 
         // Department Isolation
-        if (req.user.role_name === 'RESPONSABLE_DEPARTMENT' && req.user.department_id !== speciality.department_id) {
+        const isDeptRole = req.user.role_name === 'RESPONSABLE_DEPARTMENT' || req.user.role_name === 'DIRECTOR_DEPARTMENT';
+        if (isDeptRole && req.user.department_id !== speciality.department_id) {
             return next(new ErrorResponse('You are not authorized to delete specialities in this department', 403));
         }
 

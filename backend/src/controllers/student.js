@@ -5,7 +5,7 @@ const StudentService = require('../services/studentService');
 // @access  Private
 exports.getStudents = async (req, res, next) => {
     try {
-        const students = await StudentService.getAllStudents();
+        const students = await StudentService.getAllStudents(req.user);
         res.status(200).json({ success: true, count: students.length, data: students });
     } catch (err) {
         next(err);
@@ -17,7 +17,7 @@ exports.getStudents = async (req, res, next) => {
 // @access  Private
 exports.getStudent = async (req, res, next) => {
     try {
-        const student = await StudentService.getStudentById(req.params.id);
+        const student = await StudentService.getStudentById(req.params.id, req.user);
         res.status(200).json({ success: true, data: student });
     } catch (err) {
         next(err);
@@ -46,7 +46,7 @@ exports.createStudent = async (req, res, next) => {
             }
         }
 
-        const student = await StudentService.createStudent(studentData, userData);
+        const student = await StudentService.createStudent(studentData, userData, req.user);
         res.status(201).json({ success: true, data: student });
     } catch (err) {
         next(err);
@@ -70,7 +70,7 @@ exports.updateStudent = async (req, res, next) => {
             }
         }
 
-        const student = await StudentService.updateStudent(req.params.id, studentData);
+        const student = await StudentService.updateStudent(req.params.id, studentData, req.user);
         res.status(200).json({ success: true, data: student });
     } catch (err) {
         next(err);
@@ -82,7 +82,7 @@ exports.updateStudent = async (req, res, next) => {
 // @access  Private/Admin
 exports.deleteStudent = async (req, res, next) => {
     try {
-        await StudentService.deleteStudent(req.params.id);
+        await StudentService.deleteStudent(req.params.id, req.user);
         res.status(200).json({ success: true, data: {} });
     } catch (err) {
         next(err);
