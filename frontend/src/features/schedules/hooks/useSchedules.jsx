@@ -28,7 +28,7 @@ export const useSchedules = (classId) => {
             fetchSchedules();
             return result;
         } catch (err) {
-            const msg = err.response?.data?.message || 'Failed to update schedule';
+            const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to update schedule';
             toast.error(msg);
             throw err;
         }
@@ -41,7 +41,7 @@ export const useSchedules = (classId) => {
             fetchSchedules();
             return true;
         } catch (err) {
-            const msg = err.response?.data?.message || 'Failed to clear schedule';
+            const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to clear schedule';
             toast.error(msg);
             return false;
         }

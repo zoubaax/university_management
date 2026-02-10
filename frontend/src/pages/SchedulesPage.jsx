@@ -29,6 +29,7 @@ import classService from '../api/services/classService';
 import moduleService from '../api/services/moduleService';
 import specialityService from '../api/services/specialityService';
 import roomService from '../api/services/roomService';
+import scheduleService from '../api/services/scheduleService';
 import { useSchedules } from '../features/schedules/hooks/useSchedules';
 import Button from '../components/ui/Button';
 import Select from '../components/ui/Select';
@@ -79,6 +80,7 @@ const SchedulesPage = () => {
         professor_id: '',
         room: ''
     });
+    const [roomConflict, setRoomConflict] = useState(null);
 
     const {
         schedules,
@@ -89,6 +91,42 @@ const SchedulesPage = () => {
 
     const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'].includes(user?.role_name);
     const isProfessor = user?.role_name === 'PROFESSOR';
+
+    // Check for room conflicts when room is selected
+    useEffect(() => {
+        if (!formData.room || !selectedSlot) {
+            setRoomConflict(null);
+            return;
+        }
+
+        const checkAvailability = async () => {
+            try {
+                const result = await scheduleService.checkRoomAvailability(
+                    formData.room,
+                    selectedSlot.day,
+                    selectedSlot.slotType,
+                    selectedClass
+                );
+
+                if (result.available) {
+                    setRoomConflict({
+                        hasConflict: false,
+                        message: '✓ Room available for this time slot'
+                    });
+                } else {
+                    setRoomConflict({
+                        hasConflict: true,
+                        message: `✗ Already reserved for "${result.conflict.class_name}"`
+                    });
+                }
+            } catch (err) {
+                console.error('Error checking room availability:', err);
+                setRoomConflict(null);
+            }
+        };
+
+        checkAvailability();
+    }, [formData.room, selectedSlot, selectedClass]);
 
     const filteredClasses = useMemo(() => {
         if (selectedSpeciality === 'all') return classes;
@@ -607,6 +645,23 @@ const SchedulesPage = () => {
                                 value={formData.room}
                                 onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                             />
+
+                            {/* Room Availability Status */}
+                            {formData.room && roomConflict && (
+                                <div className={cn(
+                                    "flex items-center gap-2 p-3 rounded-lg text-sm",
+                                    roomConflict.hasConflict
+                                        ? "bg-red-50 border border-red-200 text-red-700"
+                                        : "bg-green-50 border border-green-200 text-green-700"
+                                )}>
+                                    {roomConflict.hasConflict ? (
+                                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                    ) : (
+                                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                                    )}
+                                    <span className="font-medium">{roomConflict.message}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -622,6 +677,7 @@ const SchedulesPage = () => {
                         <Button
                             type="submit"
                             variant="primary"
+                            disabled={!formData.module_id || roomConflict?.hasConflict}
                             className="flex-1 bg-gray-900 hover:bg-gray-800"
                         >
                             Save Assignment

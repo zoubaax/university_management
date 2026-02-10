@@ -41,7 +41,10 @@ const errorHandler = (err, req, res, next) => {
         error = new ErrorResponse('Token expired', 401);
     }
 
-    res.status(error.statusCode || 500).json({
+    // Use custom statusCode if provided
+    const statusCode = err.statusCode || error.statusCode || 500;
+
+    res.status(statusCode).json({
         success: false,
         error: error.message || 'Server Error',
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })

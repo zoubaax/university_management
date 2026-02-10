@@ -14,6 +14,13 @@ const scheduleService = {
     delete: async (id) => {
         const response = await api.delete(`/schedules/${id}`);
         return response.data;
+    },
+
+    checkRoomAvailability: async (room, day, slot, classId = null) => {
+        const params = new URLSearchParams({ room, day, slot });
+        if (classId) params.append('classId', classId);
+        const response = await api.get(`/schedules/check-room?${params.toString()}`);
+        return response.data.data;
     }
 };
 

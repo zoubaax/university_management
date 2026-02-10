@@ -66,3 +66,23 @@ exports.deleteSchedule = async (req, res, next) => {
         next(err);
     }
 };
+
+/**
+ * @desc    Check room availability
+ * @route   GET /api/v1/schedules/check-room?room=FSI1&day=Monday&slot=MORNING&classId=xxx
+ * @access  Private
+ */
+exports.checkRoomAvailability = async (req, res, next) => {
+    try {
+        const { room, day, slot, classId } = req.query;
+
+        if (!room || !day || !slot) {
+            return next(new ErrorResponse('Room, day, and slot are required', 400));
+        }
+
+        const result = await Schedule.checkAvailability(room, day, slot, classId || null);
+        res.status(200).json({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+};
