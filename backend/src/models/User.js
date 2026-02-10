@@ -16,7 +16,7 @@ class User {
 
     static async findWithPassword(email) {
         const result = await query(
-            `SELECT u.id, u.email, u.password_hash, r.name as role_name 
+            `SELECT u.id, u.email, u.department_id, u.is_active, u.password_hash, r.name as role_name 
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
        WHERE u.email = $1 AND u.deleted_at IS NULL`,

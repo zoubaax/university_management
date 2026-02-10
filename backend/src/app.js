@@ -88,6 +88,7 @@ app.use('/api/v1/classes', require('./routes/class'));
 app.use('/api/v1/roles', require('./routes/role'));
 app.use('/api/v1/modules', require('./routes/module'));
 app.use('/api/v1/schedules', require('./routes/schedule'));
+app.use('/api/v1/rooms', require('./routes/room'));
 
 // Health check
 app.get('/health', (req, res) => {

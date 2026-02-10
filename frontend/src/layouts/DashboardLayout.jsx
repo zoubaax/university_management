@@ -77,6 +77,7 @@ const DashboardLayout = () => {
                 { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'] },
                 { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'] },
+                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'RH', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT'] },
             ]

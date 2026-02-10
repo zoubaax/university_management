@@ -28,6 +28,7 @@ import {
 import classService from '../api/services/classService';
 import moduleService from '../api/services/moduleService';
 import specialityService from '../api/services/specialityService';
+import roomService from '../api/services/roomService';
 import { useSchedules } from '../features/schedules/hooks/useSchedules';
 import Button from '../components/ui/Button';
 import Select from '../components/ui/Select';
@@ -66,6 +67,7 @@ const SchedulesPage = () => {
     const [selectedClass, setSelectedClass] = useState(null);
     const [classes, setClasses] = useState([]);
     const [specialities, setSpecialities] = useState([]);
+    const [rooms, setRooms] = useState([]);
     const [selectedSpeciality, setSelectedSpeciality] = useState('all');
     const [classModules, setClassModules] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
@@ -107,12 +109,14 @@ const SchedulesPage = () => {
 
     const fetchClasses = async () => {
         try {
-            const [classesData, specialitiesData] = await Promise.all([
+            const [classesData, specialitiesData, roomsData] = await Promise.all([
                 classService.getAll(),
-                specialityService.getAll()
+                specialityService.getAll(),
+                roomService.getAll()
             ]);
             setClasses(classesData || []);
             setSpecialities(specialitiesData || []);
+            setRooms(roomsData || []);
         } catch (err) {
             toast.error('Failed to load classes');
             console.error('Fetch error:', err);
@@ -575,15 +579,31 @@ const SchedulesPage = () => {
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                                <MapPin className="w-4 h-4 text-gray-500" />
-                                Room
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
-                                placeholder="Room number or name"
+                        <div className="space-y-4">
+                            <Select
+                                label="Room"
+                                placeholder="Select a room"
+                                leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
+                                options={(() => {
+                                    const cls = classes.find(c => c.id === selectedClass);
+                                    if (!cls) return [];
+                                    // Try to find department from speciality
+                                    const spec = specialities.find(s => s.id === cls.speciality_id);
+                                    const deptId = spec?.department_id;
+
+                                    // If we can identify the department, filter rooms. Otherwise show all (or none).
+                                    // As a fallback for Super Admins who might want to assign any room, maybe show all?
+                                    // But user asked for department-specific rooms.
+                                    const availableRooms = deptId
+                                        ? rooms.filter(r => r.department_id === deptId)
+                                        : rooms;
+
+                                    return availableRooms.map(r => ({
+                                        value: r.name, // Storing name as schema uses name string. Ideally should be ID.
+                                        label: `${r.name} (${r.type})`,
+                                        description: `Capacity: ${r.capacity}`
+                                    }));
+                                })()}
                                 value={formData.room}
                                 onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                             />
