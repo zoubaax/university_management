@@ -269,45 +269,20 @@ const SchedulesPage = () => {
         window.print();
     };
 
-    // Class List View
-    if (!selectedClass) {
+    // For professors, always show the "Class List View" which contains their Personal Schedule
+    // This effectively hides the individual class schedule management for them
+    if (!selectedClass || isProfessor) {
         return (
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Schedule Management</h1>
                         <p className="text-sm text-gray-500 mt-1">
-                            {isProfessor ? 'Switch between your personal schedule and class views' : 'Select a class to view or manage its weekly schedule'}
+                            {isProfessor ? 'Viewing your personal academic teaching schedule' : 'Select a class to view or manage its weekly schedule'}
                         </p>
                     </div>
                     <div className="flex items-center gap-4">
-                        {isProfessor && (
-                            <div className="flex p-1 bg-gray-100 rounded-lg">
-                                <button
-                                    onClick={() => setViewMode('personal')}
-                                    className={cn(
-                                        "px-4 py-2 text-sm font-medium rounded-md transition-all",
-                                        viewMode === 'personal'
-                                            ? "bg-white text-gray-900 shadow-sm"
-                                            : "text-gray-500 hover:text-gray-700"
-                                    )}
-                                >
-                                    My Schedule
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('class')}
-                                    className={cn(
-                                        "px-4 py-2 text-sm font-medium rounded-md transition-all",
-                                        viewMode === 'class'
-                                            ? "bg-white text-gray-900 shadow-sm"
-                                            : "text-gray-500 hover:text-gray-700"
-                                    )}
-                                >
-                                    Class Schedules
-                                </button>
-                            </div>
-                        )}
-                        {(!isProfessor || viewMode === 'class') && (
+                        {!isProfessor && (
                             <div className="w-full md:w-[300px]">
                                 <Select
                                     placeholder="Filter by Speciality"
@@ -324,7 +299,7 @@ const SchedulesPage = () => {
                     </div>
                 </div>
 
-                {isProfessor && viewMode === 'personal' ? (
+                {isProfessor ? (
                     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div className="flex items-center gap-2">
