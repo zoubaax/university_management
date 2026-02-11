@@ -143,12 +143,12 @@ const ModulesPage = () => {
         return Array.from(specialitiesMap.values());
     };
 
-    const uniqueSpecialities = getUniqueSpecialities(isProfessor ? modules.filter(m => m.assignments?.some(a => a.professor_id === user?.id)) : modules);
+    const uniqueSpecialities = getUniqueSpecialities(isProfessor ? modules.filter(m => m.assignments?.some(a => a.professor_id === user?.employee_id)) : modules);
 
     const filteredModules = modules.filter(module => {
         // Professor filtering: only modules they teach
         if (isProfessor) {
-            const isAssigned = module.assignments?.some(a => a.professor_id === user?.id);
+            const isAssigned = module.assignments?.some(a => a.professor_id === user?.employee_id);
             if (!isAssigned) return false;
         }
 

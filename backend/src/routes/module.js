@@ -19,11 +19,11 @@ router.use(protect);
 router
     .route('/')
     .get(getModules)
-    .post(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'), createModule);
+    .post(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), createModule);
 
 router
     .route('/assign')
-    .post(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'), assignToClass);
+    .post(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), assignToClass);
 
 router
     .route('/class/:classId')
@@ -31,12 +31,12 @@ router
 
 router
     .route('/class/:classId/module/:moduleId')
-    .delete(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'), removeFromClass);
+    .delete(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), removeFromClass);
 
 router
     .route('/:id')
     .get(getModule)
-    .put(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'), updateModule)
-    .delete(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'), deleteModule);
+    .put(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), updateModule)
+    .delete(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), deleteModule);
 
 module.exports = router;
