@@ -50,6 +50,42 @@ class StudentAttendance {
         );
         return result.rows;
     }
+
+    static async getClassWeeklyReport(classId, startDate, endDate) {
+        const result = await query(
+            `WITH class_students AS (
+                SELECT id, first_name, last_name, registration_num
+                FROM students
+                WHERE class_id = $1 AND deleted_at IS NULL
+            ),
+            attendance_records AS (
+                SELECT 
+                    sa.student_id,
+                    m.name as module_name,
+                    m.code as module_code,
+                    sa.status,
+                    sa.date
+                FROM student_attendance sa
+                JOIN schedules sch ON sa.schedule_id = sch.id
+                JOIN modules m ON sch.module_id = m.id
+                WHERE sa.date >= $2 AND sa.date <= $3
+            )
+            SELECT 
+                cs.id as student_id,
+                cs.first_name,
+                cs.last_name,
+                cs.registration_num,
+                ar.module_name,
+                ar.module_code,
+                ar.status,
+                ar.date
+            FROM class_students cs
+            LEFT JOIN attendance_records ar ON cs.id = ar.student_id
+            ORDER BY cs.last_name, cs.first_name, ar.date`,
+            [classId, startDate, endDate]
+        );
+        return result.rows;
+    }
 }
 
 module.exports = StudentAttendance;

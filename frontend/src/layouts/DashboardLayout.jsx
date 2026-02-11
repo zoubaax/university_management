@@ -79,13 +79,14 @@ const DashboardLayout = () => {
                 { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'] },
                 { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
+                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT'] },
             ]
         },
         {
             category: 'Personal',
             items: [
-                { name: 'My Profile', icon: UserCircle, path: '/profile', roles: ['STUDENT', 'PROFESSOR', 'RH'] },
+                { name: 'My Profile', icon: UserCircle, path: '/profile', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'] },
                 { name: 'Settings', icon: Settings, path: '/settings', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN'] },
             ]
         }
@@ -127,27 +128,6 @@ const DashboardLayout = () => {
                     boxShadow: isSidebarOpen ? '2px 0 8px rgba(0, 0, 0, 0.05)' : 'none'
                 }}
             >
-                {/* Collapse/Expand Button at Top */}
-                {/* <div className="p-4 flex items-center justify-end border-b border-gray-100">
-                    {isSidebarOpen ? (
-                        <button
-                            onClick={() => setSidebarOpen(false)}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Collapse sidebar"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors mx-auto"
-                            title="Expand sidebar"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    )}
-                </div> */}
-
                 {/* User Profile Summary */}
                 <div className={cn("p-4 border-b border-gray-100", !isSidebarOpen && "px-0")}>
                     <div className="flex items-center gap-3">

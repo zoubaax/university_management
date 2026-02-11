@@ -24,7 +24,10 @@ import {
     ChevronDown,
     Layers,
     Printer,
-    Users
+    Users,
+    ChevronLeft,
+    ChevronRight,
+    RotateCcw
 } from 'lucide-react';
 import classService from '../api/services/classService';
 import moduleService from '../api/services/moduleService';
@@ -90,6 +93,7 @@ const SchedulesPage = () => {
     const [allModules, setAllModules] = useState([]);
     const [roomConflict, setRoomConflict] = useState(null);
     const [attendanceSlot, setAttendanceSlot] = useState(null);
+    const [weekOffset, setWeekOffset] = useState(0);
 
     const {
         schedules,
@@ -158,7 +162,7 @@ const SchedulesPage = () => {
         if (isProfessor && viewMode === 'personal' && user?.employee_id) {
             fetchProfessorSchedule();
         }
-    }, [isProfessor, viewMode, user?.employee_id]);
+    }, [isProfessor, viewMode, user?.employee_id, weekOffset]); // Added weekOffset dependency
 
     useEffect(() => {
         if (selectedClass) {
@@ -190,7 +194,7 @@ const SchedulesPage = () => {
     const fetchProfessorSchedule = async () => {
         try {
             setLoadingData(true);
-            const data = await scheduleService.getByProfessor(user.employee_id);
+            const data = await scheduleService.getByProfessor(user.employee_id, weekOffset);
             setProfessorSchedules(data || []);
         } catch (err) {
             toast.error('Failed to load your personal schedule');
@@ -279,8 +283,22 @@ const SchedulesPage = () => {
         const currentDay = today.getDay();
 
         const targetDate = new Date(today);
-        targetDate.setDate(today.getDate() + (targetDay - currentDay));
+        targetDate.setDate(today.getDate() + (targetDay - currentDay) + (weekOffset * 7));
         return targetDate.toISOString().split('T')[0];
+    };
+
+    const formatWeekRange = () => {
+        const today = new Date();
+        const currentDay = today.getDay();
+
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + (1 - currentDay) + (weekOffset * 7));
+
+        const saturday = new Date(today);
+        saturday.setDate(today.getDate() + (6 - currentDay) + (weekOffset * 7));
+
+        const options = { month: 'short', day: 'numeric' };
+        return `${monday.toLocaleDateString(undefined, options)} - ${saturday.toLocaleDateString(undefined, options)}`;
     };
 
     // For professors, always show the "Class List View" which contains their Personal Schedule
@@ -291,9 +309,44 @@ const SchedulesPage = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Schedule Management</h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            {isProfessor ? 'Viewing your personal academic teaching schedule' : 'Select a class to view or manage its weekly schedule'}
-                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                            <p className="text-sm text-gray-500">
+                                {isProfessor ? 'Viewing your personal academic teaching schedule' : 'Select a class to view or manage its weekly schedule'}
+                            </p>
+                            {isProfessor && (
+                                <>
+                                    <span className="text-gray-300">|</span>
+                                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-0.5 shadow-sm">
+                                        <button
+                                            onClick={() => setWeekOffset(prev => prev - 1)}
+                                            className="p-1 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
+                                            title="Previous week"
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <span className="text-xs font-bold text-gray-900 min-w-[100px] text-center">
+                                            {weekOffset === 0 ? 'This Week' : weekOffset === 1 ? 'Next Week' : weekOffset === -1 ? 'Last Week' : formatWeekRange()}
+                                        </span>
+                                        <button
+                                            onClick={() => setWeekOffset(prev => prev + 1)}
+                                            className="p-1 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
+                                            title="Next week"
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                        {weekOffset !== 0 && (
+                                            <button
+                                                onClick={() => setWeekOffset(0)}
+                                                className="p-1 hover:bg-gray-100 rounded-md transition-colors text-blue-600 border-l border-gray-100 ml-1"
+                                                title="Back to current week"
+                                            >
+                                                <RotateCcw size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                     <div className="flex items-center gap-4">
                         {!isProfessor && (

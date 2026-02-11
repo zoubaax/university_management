@@ -15,6 +15,7 @@ import ClassesPage from './pages/ClassesPage';
 import ModulesPage from './pages/ModulesPage';
 import SchedulesPage from './pages/SchedulesPage';
 import RoomsPage from './pages/RoomsPage';
+import AttendanceReportPage from './pages/AttendanceReportPage';
 
 const App = () => {
   return (
@@ -100,6 +101,15 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
                   <AbsencesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="attendance-report"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                  <AttendanceReportPage />
                 </ProtectedRoute>
               }
             />

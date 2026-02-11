@@ -1,6 +1,7 @@
 const StudentAttendance = require('../models/StudentAttendance');
 const Student = require('../models/Student');
 const Schedule = require('../models/Schedule');
+const Class = require('../models/Class');
 
 // @desc    Get attendance for a specific session
 // @route   GET /api/v1/student-attendance/session/:scheduleId?date=YYYY-MM-DD
@@ -93,6 +94,65 @@ exports.getStudentAttendance = async (req, res) => {
             success: true,
             count: attendances.length,
             data: attendances
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
+// @desc    Get weekly attendance report for a class
+// @route   GET /api/v1/student-attendance/class/:classId/report?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+exports.getClassWeeklyReport = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        const { startDate, endDate } = req.query;
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, error: 'Please provide startDate and endDate' });
+        }
+
+        // 1. Check if class exists and user has access
+        const academicClass = await Class.findById(classId);
+        if (!academicClass) {
+            return res.status(404).json({ success: false, error: 'Class not found' });
+        }
+
+        // Authorize department heads
+        if (['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'].includes(req.user.role_name)) {
+            if (academicClass.department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, error: 'You do not have access to this department report' });
+            }
+        }
+
+        const report = await StudentAttendance.getClassWeeklyReport(classId, startDate, endDate);
+
+        // Group by student for easier frontend processing
+        const groupedReport = report.reduce((acc, curr) => {
+            const studentId = curr.student_id;
+            if (!acc[studentId]) {
+                acc[studentId] = {
+                    student_id: studentId,
+                    first_name: curr.first_name,
+                    last_name: curr.last_name,
+                    registration_num: curr.registration_num,
+                    attendances: []
+                };
+            }
+            if (curr.module_name) {
+                acc[studentId].attendances.push({
+                    module_name: curr.module_name,
+                    module_code: curr.module_code,
+                    status: curr.status,
+                    date: curr.date
+                });
+            }
+            return acc;
+        }, {});
+
+        res.status(200).json({
+            success: true,
+            data: Object.values(groupedReport)
         });
     } catch (err) {
         console.error(err);

@@ -34,6 +34,18 @@ const studentAttendanceService = {
         } catch (error) {
             throw error.response?.data || error.message;
         }
+    },
+
+    // Get weekly report for a class
+    getClassWeeklyReport: async (classId, startDate, endDate) => {
+        try {
+            const response = await API.get(`/student-attendance/class/${classId}/report`, {
+                params: { startDate, endDate }
+            });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error.message;
+        }
     }
 };
 

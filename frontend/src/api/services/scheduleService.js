@@ -6,8 +6,10 @@ const scheduleService = {
         return response.data.data;
     },
 
-    getByProfessor: async (professorId) => {
-        const response = await api.get(`/schedules/professor/${professorId}`);
+    getByProfessor: async (professorId, weekOffset = 0) => {
+        const response = await api.get(`/schedules/professor/${professorId}`, {
+            params: { weekOffset }
+        });
         return response.data.data;
     },
 

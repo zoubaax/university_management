@@ -2,7 +2,8 @@ const express = require('express');
 const {
     getSessionAttendance,
     recordSessionAttendance,
-    getStudentAttendance
+    getStudentAttendance,
+    getClassWeeklyReport
 } = require('../controllers/studentAttendance');
 
 const router = express.Router();
@@ -15,6 +16,10 @@ router
     .route('/session/:scheduleId')
     .get(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'), getSessionAttendance)
     .post(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'), recordSessionAttendance);
+
+router
+    .route('/class/:classId/report')
+    .get(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), getClassWeeklyReport);
 
 router
     .route('/student/:studentId')
