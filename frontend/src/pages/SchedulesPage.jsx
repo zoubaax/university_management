@@ -23,7 +23,8 @@ import {
     Bell,
     ChevronDown,
     Layers,
-    Printer
+    Printer,
+    Users
 } from 'lucide-react';
 import classService from '../api/services/classService';
 import moduleService from '../api/services/moduleService';
@@ -38,6 +39,7 @@ import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
+import StudentAttendanceModal from '../features/absences/components/StudentAttendanceModal';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SLOTS = [
@@ -87,6 +89,7 @@ const SchedulesPage = () => {
     const [professorSchedules, setProfessorSchedules] = useState([]);
     const [allModules, setAllModules] = useState([]);
     const [roomConflict, setRoomConflict] = useState(null);
+    const [attendanceSlot, setAttendanceSlot] = useState(null);
 
     const {
         schedules,
@@ -269,6 +272,17 @@ const SchedulesPage = () => {
         window.print();
     };
 
+    const getSessionDate = (dayName) => {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const targetDay = days.indexOf(dayName);
+        const today = new Date();
+        const currentDay = today.getDay();
+
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + (targetDay - currentDay));
+        return targetDate.toISOString().split('T')[0];
+    };
+
     // For professors, always show the "Class List View" which contains their Personal Schedule
     // This effectively hides the individual class schedule management for them
     if (!selectedClass || isProfessor) {
@@ -365,6 +379,18 @@ const SchedulesPage = () => {
                                                                     <div className="text-[10px] text-blue-500 italic">
                                                                         {schedule.speciality_name}
                                                                     </div>
+                                                                    {isProfessor && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setAttendanceSlot(schedule);
+                                                                            }}
+                                                                            className="mt-2 w-full py-1 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-bold hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1 shadow-sm"
+                                                                        >
+                                                                            <Users size={12} />
+                                                                            Mark Attendance
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         ) : (
@@ -422,6 +448,13 @@ const SchedulesPage = () => {
                         )}
                     </div>
                 )}
+                {/* Attendance Modal */}
+                <StudentAttendanceModal
+                    isOpen={!!attendanceSlot}
+                    onClose={() => setAttendanceSlot(null)}
+                    schedule={attendanceSlot}
+                    date={attendanceSlot ? getSessionDate(attendanceSlot.day_of_week) : null}
+                />
             </div>
         );
     }
@@ -822,6 +855,14 @@ const SchedulesPage = () => {
                 message={`Are you sure you want to remove ${slotToDelete?.module_name} from the schedule? This action cannot be undone.`}
                 confirmText="Clear Slot"
                 variant="danger"
+            />
+
+            {/* Attendance Modal */}
+            <StudentAttendanceModal
+                isOpen={!!attendanceSlot}
+                onClose={() => setAttendanceSlot(null)}
+                schedule={attendanceSlot}
+                date={attendanceSlot ? getSessionDate(attendanceSlot.day_of_week) : null}
             />
         </div>
     );

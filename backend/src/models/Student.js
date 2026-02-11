@@ -37,6 +37,25 @@ class Student {
         return result.rows;
     }
 
+    static async findByClass(classId) {
+        const result = await query(
+            `    SELECT s.*, 
+                 sp.name as speciality_name, 
+                 d.name as department_name, 
+                 u.email as user_email,
+                 c.name as class_name
+          FROM students s 
+          JOIN specialities sp ON s.speciality_id = sp.id 
+          JOIN departments d ON s.department_id = d.id 
+          LEFT JOIN classes c ON s.class_id = c.id
+          JOIN users u ON s.user_id = u.id 
+          WHERE s.class_id = $1 AND s.deleted_at IS NULL 
+          ORDER BY s.last_name ASC, s.first_name ASC`,
+            [classId]
+        );
+        return result.rows;
+    }
+
     static async findById(id) {
         const result = await query(
             `    SELECT s.*, 
