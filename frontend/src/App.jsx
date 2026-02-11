@@ -91,7 +91,7 @@ const App = () => {
             <Route
               path="students"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT', 'PROFESSOR']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT']}>
                   <StudentsPage />
                 </ProtectedRoute>
               }

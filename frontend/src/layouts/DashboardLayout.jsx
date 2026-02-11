@@ -68,7 +68,7 @@ const DashboardLayout = () => {
                 { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'] },
                 { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'] },
                 { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'] },
-                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'PROFESSOR', 'SECRETARY', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
+                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'] },
             ]
         },
