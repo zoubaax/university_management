@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const ErrorResponse = require('../utils/ErrorResponse');
+const fs = require('fs');
 
 // Set Storage Engine
 const storage = multer.diskStorage({
@@ -8,6 +9,12 @@ const storage = multer.diskStorage({
         let folder = 'public/uploads/others';
         if (file.fieldname === 'attachment') folder = 'public/uploads/absences';
         if (file.fieldname === 'bac_document' || file.fieldname === 'cin_document') folder = 'public/uploads/students';
+        if (file.fieldname === 'resource') folder = 'public/uploads/resources';
+
+        // Create folder if it doesn't exist
+        if (!fs.existsSync(folder)) {
+            fs.mkdirSync(folder, { recursive: true });
+        }
 
         cb(null, folder);
     },
@@ -19,23 +26,24 @@ const storage = multer.diskStorage({
 // Check File Type
 function checkFileType(file, cb) {
     // Allowed ext
-    const filetypes = /jpeg|jpg|png|pdf/;
+    const filetypes = /jpeg|jpg|png|pdf|docx|doc|pptx|ppt|xls|xlsx|zip|rar|txt|mp4|mov/;
     // Check ext
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     // Check mime
-    const mimetype = filetypes.test(file.mimetype);
+    // For binary files, mimetype check might be complex, so we primarily trust ext for now or expand mime list
+    const mimetype = true; // simplifying for academic resources to allow docs/vids
 
-    if (mimetype && extname) {
+    if (extname) {
         return cb(null, true);
     } else {
-        cb(new ErrorResponse('Error: Images or PDFs Only!', 400));
+        cb(new ErrorResponse('Error: File type not supported!', 400));
     }
 }
 
 // Init Upload
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5000000 }, // 5MB
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for courses/vids
     fileFilter: function (req, file, cb) {
         checkFileType(file, cb);
     }

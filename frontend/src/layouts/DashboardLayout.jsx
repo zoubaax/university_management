@@ -19,7 +19,8 @@ import {
     Calendar,
     School,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    FolderOpen
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -79,6 +80,7 @@ const DashboardLayout = () => {
                 { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'PROFESSOR'] },
                 { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
+                { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT'] },
             ]
