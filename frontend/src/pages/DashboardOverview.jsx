@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Badge from '../components/ui/Badge';
+import studentService from '../api/services/studentService';
+import moduleService from '../api/services/moduleService';
+import scheduleService from '../api/services/scheduleService';
 
 const StatCard = ({ title, value, icon: Icon, trend, subtitle, delay }) => {
     const getTrendColor = () => {
@@ -93,6 +96,65 @@ const ActivityItem = ({ title, description, time, status, index }) => {
 const DashboardOverview = () => {
     const { user } = useAuth();
 
+    const [profStats, setProfStats] = React.useState({
+        studentsCount: 0,
+        modulesCount: 0,
+        upcomingClasses: []
+    });
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        if (user?.role_name === 'PROFESSOR' && user?.employee_id) {
+            fetchProfessorDashboardData();
+        }
+    }, [user?.employee_id]);
+
+    const fetchProfessorDashboardData = async () => {
+        try {
+            setLoading(true);
+            const [allStudents, allModules, schedule] = await Promise.all([
+                studentService.getAll(),
+                moduleService.getAll(),
+                scheduleService.getByProfessor(user.employee_id)
+            ]);
+
+            const myModules = (allModules || []).filter(m =>
+                (m.assignments || []).some(a => a.professor_id === user.employee_id)
+            );
+
+            const myClassIds = myModules.flatMap(m => (m.assignments || []).filter(a => a.professor_id === user.employee_id).map(a => a.class_id));
+            const uniqueClassIds = [...new Set(myClassIds)];
+
+            const myStudentsCount = (allStudents || []).filter(s => uniqueClassIds.includes(s.class_id)).length;
+
+            const upcoming = (schedule || [])
+                .filter(s => {
+                    // Simple day sort for current week
+                    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const todayIdx = new Date().getDay() - 1; // 0 is Sunday
+                    return days.indexOf(s.day_of_week) >= (todayIdx < 0 ? 0 : todayIdx);
+                })
+                .slice(0, 3)
+                .map(s => ({
+                    title: s.module_name,
+                    date: s.day_of_week,
+                    time: s.slot_type === 'MORNING' ? '08:30 AM' : '14:30 PM',
+                    location: s.room || 'TBD',
+                    className: s.class_name
+                }));
+
+            setProfStats({
+                studentsCount: myStudentsCount,
+                modulesCount: myModules.length,
+                upcomingClasses: upcoming
+            });
+        } catch (err) {
+            console.error('Failed to fetch dashboard data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const getRoleContent = () => {
         const baseContent = {
             SUPER_ADMIN: {
@@ -150,17 +212,16 @@ const DashboardOverview = () => {
                 title: 'Academic Portal',
                 subtitle: 'Manage courses and student progress',
                 stats: [
-                    { title: 'My Students', value: '120', icon: GraduationCap },
-                    { title: 'Active Courses', value: '3', icon: BookOpen },
-                    { title: 'Assignments Due', value: '5', icon: FileText, trend: '-2' },
-                    { title: 'Avg. Grade', value: 'B+', icon: TrendingUp, subtitle: 'Current term' }
+                    { title: 'My Students', value: profStats.studentsCount.toString(), icon: GraduationCap },
+                    { title: 'Active Modules', value: profStats.modulesCount.toString(), icon: BookOpen },
+                    { title: 'Weekly Hours', value: (profStats.modulesCount * 3.5).toString() + 'h', icon: Clock, trend: '+0' },
+                    { title: 'Next Class', value: profStats.upcomingClasses[0]?.location || 'N/A', icon: TrendingUp, subtitle: profStats.upcomingClasses[0]?.title || 'No upcoming classes' }
                 ],
-                activity: 'Course Updates',
+                activity: 'Performance Overview',
                 activities: [
-                    { title: 'Assignment graded', description: 'Data Structures', time: 'Today, 14:20', status: 'completed' },
-                    { title: 'Office hours', description: 'Scheduled for Friday', time: 'Upcoming', status: 'pending' },
-                    { title: 'Course material', description: 'Updated slides', time: 'Yesterday', status: 'completed' },
-                    { title: 'Student consultation', description: '3 requests', time: 'Pending', status: 'pending' }
+                    { title: 'Active Engagement', description: 'Modules are fully assigned', time: 'Real-time', status: 'completed' },
+                    { title: 'Schedule Sync', description: 'Weekly view updated', time: 'Live', status: 'completed' },
+                    { title: 'Student Access', description: 'Department-wide visibility', time: 'System', status: 'completed' }
                 ]
             },
             STUDENT: {
@@ -265,21 +326,37 @@ const DashboardOverview = () => {
                             Upcoming Events
                         </h2>
                         <div className="space-y-4">
-                            {[
+                            {(user?.role_name === 'PROFESSOR' && profStats.upcomingClasses.length > 0 ? profStats.upcomingClasses : [
                                 { title: 'Faculty Meeting', date: 'Feb 15', time: '09:30 AM', location: 'Conference Room A' },
                                 { title: 'System Maintenance', date: 'Feb 16', time: '10:00 PM', location: 'All Systems' },
                                 { title: 'Student Orientation', date: 'Feb 18', time: '02:00 PM', location: 'Main Hall' },
-                            ].map((event, index) => (
+                            ]).map((event, index) => (
                                 <div key={index} className="flex gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                                     <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center">
-                                            <span className="text-xs font-medium text-gray-500">FEB</span>
-                                            <span className="text-lg font-bold text-gray-900">{event.date.split(' ')[1]}</span>
+                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center">
+                                            {event.date.length > 5 ? (
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-[10px] font-bold text-blue-600 leading-tight">
+                                                        {event.date.substring(0, 3).toUpperCase()}
+                                                    </span>
+                                                    <Calendar className="w-4 h-4 text-gray-400 mt-1" />
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <span className="text-xs font-medium text-gray-500">FEB</span>
+                                                    <span className="text-lg font-bold text-gray-900">{event.date.split(' ')[1]}</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="font-medium text-gray-900">{event.title}</h4>
+                                        <h4 className="font-medium text-gray-900 line-clamp-1">{event.title}</h4>
                                         <p className="text-sm text-gray-500 mt-1">{event.time} • {event.location}</p>
+                                        {event.className && (
+                                            <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase italic bg-blue-50 inline-block px-1 rounded">
+                                                {event.className}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             ))}

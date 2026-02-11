@@ -25,6 +25,8 @@ import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../utils/cn';
+import { useAuth } from '../../../contexts/AuthContext';
+import moduleService from '../../../api/services/moduleService';
 
 const ClassesPage = () => {
     const {
@@ -36,6 +38,10 @@ const ClassesPage = () => {
         deleteClass
     } = useClasses();
 
+    const { user } = useAuth();
+    const isProfessor = user?.role_name === 'PROFESSOR';
+    const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'].includes(user?.role_name);
+
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingClass, setEditingClass] = useState(null);
     const [classToDelete, setClassToDelete] = useState(null);
@@ -43,23 +49,49 @@ const ClassesPage = () => {
     const [filterQuery, setFilterQuery] = useState('');
     const [selectedSpeciality, setSelectedSpeciality] = useState('all');
     const [menuOpen, setMenuOpen] = useState(null);
+    const [modules, setModules] = useState([]);
+
+    React.useEffect(() => {
+        const fetchModules = async () => {
+            try {
+                const data = await moduleService.getAll();
+                setModules(data || []);
+            } catch (err) {
+                console.error('Failed to fetch modules for assignment check', err);
+            }
+        };
+        fetchModules();
+    }, []);
+
+    const professorClassIds = useMemo(() => {
+        if (!isProfessor) return [];
+        return modules
+            .flatMap(m => m.assignments || [])
+            .filter(a => a.professor_id === user?.employee_id)
+            .map(a => a.class_id);
+    }, [modules, isProfessor, user?.employee_id]);
+
+    const visibleClasses = useMemo(() => {
+        if (!isProfessor) return classes;
+        return classes.filter(c => professorClassIds.includes(c.id));
+    }, [classes, isProfessor, professorClassIds]);
 
     const filteredClasses = useMemo(() => {
-        if (!filterQuery && selectedSpeciality === 'all') return classes;
-        
-        return classes.filter(c => {
-            const matchesSearch = !filterQuery || 
+        if (!filterQuery && selectedSpeciality === 'all') return visibleClasses;
+
+        return visibleClasses.filter(c => {
+            const matchesSearch = !filterQuery ||
                 c.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
                 c.speciality_name.toLowerCase().includes(filterQuery.toLowerCase()) ||
                 c.department_name.toLowerCase().includes(filterQuery.toLowerCase()) ||
                 c.academic_year.toLowerCase().includes(filterQuery.toLowerCase());
-            
-            const matchesSpeciality = selectedSpeciality === 'all' || 
+
+            const matchesSpeciality = selectedSpeciality === 'all' ||
                 c.speciality_id === selectedSpeciality;
-            
+
             return matchesSearch && matchesSpeciality;
         });
-    }, [classes, filterQuery, selectedSpeciality]);
+    }, [visibleClasses, filterQuery, selectedSpeciality]);
 
     const handleEdit = (cls) => {
         setEditingClass(cls);
@@ -96,7 +128,7 @@ const ClassesPage = () => {
 
     const getUniqueSpecialities = () => {
         const specialitiesMap = new Map();
-        classes.forEach(cls => {
+        visibleClasses.forEach(cls => {
             if (cls.speciality_id && cls.speciality_name) {
                 specialitiesMap.set(cls.speciality_id, {
                     id: cls.speciality_id,
@@ -124,18 +156,22 @@ const ClassesPage = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Academic Classes</h1>
-                    <p className="text-sm text-gray-500 mt-1">Manage student groups, levels, and academic years across programs</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                        {isProfessor ? 'Viewing student groups you are currently teaching' : 'Manage student groups, levels, and academic years across programs'}
+                    </p>
                 </div>
-                <Button
-                    onClick={() => {
-                        setEditingClass(null);
-                        setModalOpen(true);
-                    }}
-                    icon={Plus}
-                    className="bg-gray-900 hover:bg-gray-800 text-white whitespace-nowrap"
-                >
-                    New Class
-                </Button>
+                {isManager && (
+                    <Button
+                        onClick={() => {
+                            setEditingClass(null);
+                            setModalOpen(true);
+                        }}
+                        icon={Plus}
+                        className="bg-gray-900 hover:bg-gray-800 text-white whitespace-nowrap"
+                    >
+                        New Class
+                    </Button>
+                )}
             </div>
 
             {/* Stats */}
@@ -180,7 +216,7 @@ const ClassesPage = () => {
                         <div>
                             <p className="text-sm text-gray-500">Avg. Class Size</p>
                             <p className="text-2xl font-semibold text-gray-900 mt-1">
-                                {classes.length > 0 
+                                {classes.length > 0
                                     ? Math.round(classes.reduce((sum, cls) => sum + (cls.student_count || 0), 0) / classes.length)
                                     : 0
                                 }
@@ -252,35 +288,37 @@ const ClassesPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Dropdown Menu */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setMenuOpen(menuOpen === cls.id ? null : cls.id)}
-                                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <MoreVertical size={16} />
-                                    </button>
-                                    
-                                    {menuOpen === cls.id && (
-                                        <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                            <button
-                                                onClick={() => handleEdit(cls)}
-                                                className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                            >
-                                                <Edit2 size={14} />
-                                                Edit Class
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(cls)}
-                                                className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                            >
-                                                <Trash2 size={14} />
-                                                Delete
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                {isManager && (
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setMenuOpen(menuOpen === cls.id ? null : cls.id)}
+                                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                        >
+                                            <MoreVertical size={16} />
+                                        </button>
+
+                                        {menuOpen === cls.id && (
+                                            <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                <button
+                                                    onClick={() => handleEdit(cls)}
+                                                    className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                >
+                                                    <Edit2 size={14} />
+                                                    Edit Class
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(cls)}
+                                                    className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Program Info */}
@@ -338,11 +376,11 @@ const ClassesPage = () => {
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No classes found</h3>
                     <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-                        {filterQuery || selectedSpeciality !== 'all' 
-                            ? 'Try adjusting your search filters' 
+                        {filterQuery || selectedSpeciality !== 'all'
+                            ? 'Try adjusting your search filters'
                             : 'Get started by creating your first academic class'}
                     </p>
-                    {!filterQuery && selectedSpeciality === 'all' && (
+                    {isManager && !filterQuery && selectedSpeciality === 'all' && (
                         <Button
                             onClick={() => {
                                 setEditingClass(null);

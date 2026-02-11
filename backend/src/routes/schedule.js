@@ -1,6 +1,7 @@
 const express = require('express');
 const {
     getClassSchedules,
+    getProfessorSchedules,
     upsertSchedule,
     deleteSchedule,
     checkRoomAvailability
@@ -13,6 +14,7 @@ const { protect, authorize } = require('../middlewares/auth');
 router.use(protect);
 
 router.get('/class/:classId', getClassSchedules);
+router.get('/professor/:professorId', getProfessorSchedules);
 router.get('/check-room', checkRoomAvailability);
 
 router.use(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'));

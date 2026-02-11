@@ -30,6 +30,8 @@ import specialityService from '../api/services/specialityService';
 import departmentService from '../api/services/departmentService';
 import classService from '../api/services/classService';
 import roleService from '../api/services/roleService';
+import moduleService from '../api/services/moduleService';
+import { useAuth } from '../contexts/AuthContext';
 import StudentForm from '../features/students/components/StudentForm';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
@@ -37,11 +39,16 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 import Badge from '../components/ui/Badge';
 
 const StudentsPage = () => {
+    const { user } = useAuth();
+    const isProfessor = user?.role_name === 'PROFESSOR';
+    const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'].includes(user?.role_name);
+
     const [students, setStudents] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [specialities, setSpecialities] = useState([]);
     const [classes, setClasses] = useState([]);
     const [roles, setRoles] = useState([]);
+    const [modules, setModules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
@@ -59,18 +66,20 @@ const StudentsPage = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [studentData, deptData, specData, classData, roleData] = await Promise.all([
+            const [studentData, deptData, specData, classData, roleData, moduleData] = await Promise.all([
                 studentService.getAll(),
                 departmentService.getAll(),
                 specialityService.getAll(),
                 classService.getAll(),
-                roleService.getAll()
+                roleService.getAll(),
+                moduleService.getAll()
             ]);
             setStudents(studentData || []);
             setDepartments(deptData || []);
             setSpecialities(specData || []);
             setClasses(classData || []);
             setRoles(roleData || []);
+            setModules(moduleData || []);
         } catch (err) {
             toast.error('Failed to load student data');
             console.error('Fetch error:', err);
@@ -117,10 +126,19 @@ const StudentsPage = () => {
         }
     };
 
-    // Get unique programs for filter
-    const uniquePrograms = [...new Set(students.map(s => s.speciality_name).filter(Boolean))];
+    // Get classes the professor is assigned to
+    const professorClassIds = isProfessor
+        ? modules.flatMap(m => m.assignments || []).filter(a => a.professor_id === user?.employee_id).map(a => a.class_id)
+        : [];
 
-    const filteredStudents = students.filter(student => {
+    // Get unique programs for filter
+    const visibleStudents = isProfessor
+        ? students.filter(s => professorClassIds.includes(s.class_id))
+        : students;
+
+    const uniquePrograms = [...new Set(visibleStudents.map(s => s.speciality_name).filter(Boolean))];
+
+    const filteredStudents = visibleStudents.filter(student => {
         const matchesSearch = !searchQuery ||
             student.registration_num.toLowerCase().includes(searchQuery.toLowerCase()) ||
             student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -145,16 +163,18 @@ const StudentsPage = () => {
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Student Management</h1>
                     <p className="text-sm text-gray-500 mt-1">Enroll and manage student records across academic programs</p>
                 </div>
-                <Button
-                    onClick={() => {
-                        setEditingStudent(null);
-                        setModalOpen(true);
-                    }}
-                    icon={UserPlus}
-                    className="bg-gray-900 hover:bg-gray-800 text-white"
-                >
-                    Enroll Student
-                </Button>
+                {isManager && (
+                    <Button
+                        onClick={() => {
+                            setEditingStudent(null);
+                            setModalOpen(true);
+                        }}
+                        icon={UserPlus}
+                        className="bg-gray-900 hover:bg-gray-800 text-white"
+                    >
+                        Enroll Student
+                    </Button>
+                )}
             </div>
 
             {/* Stats */}
@@ -278,7 +298,7 @@ const StudentsPage = () => {
                                                     <h3 className="font-semibold text-gray-900">
                                                         {student.first_name} {student.last_name}
                                                     </h3>
-                                                    <Badge 
+                                                    <Badge
                                                         className={cn(
                                                             "text-xs",
                                                             student.status === 'active' && "bg-green-100 text-green-700 border-green-200",
@@ -292,42 +312,44 @@ const StudentsPage = () => {
                                                 <p className="text-xs text-gray-500 mt-0.5">{student.registration_num}</p>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Dropdown Menu */}
-                                        <div className="relative">
-                                            <button
-                                                onClick={() => setMenuOpen(menuOpen === student.id ? null : student.id)}
-                                                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                            >
-                                                <MoreVertical size={16} />
-                                            </button>
-                                            
-                                            {menuOpen === student.id && (
-                                                <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingStudent(student);
-                                                            setModalOpen(true);
-                                                        }}
-                                                        className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                                    >
-                                                        <Edit2 size={14} />
-                                                        Edit Student
-                                                    </button>
-                                                    <button className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                                                        <Eye size={14} />
-                                                        View Profile
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(student)}
-                                                        className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
+                                        {isManager && (
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => setMenuOpen(menuOpen === student.id ? null : student.id)}
+                                                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                                >
+                                                    <MoreVertical size={16} />
+                                                </button>
+
+                                                {menuOpen === student.id && (
+                                                    <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingStudent(student);
+                                                                setModalOpen(true);
+                                                            }}
+                                                            className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                        >
+                                                            <Edit2 size={14} />
+                                                            Edit Student
+                                                        </button>
+                                                        <button className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                                            <Eye size={14} />
+                                                            View Profile
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(student)}
+                                                            className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Student Info */}
@@ -411,7 +433,7 @@ const StudentsPage = () => {
                                     ? 'Try adjusting your search filters'
                                     : 'Get started by enrolling your first student'}
                             </p>
-                            {!searchQuery && selectedProgram === 'all' && selectedStatus === 'all' && (
+                            {isManager && !searchQuery && selectedProgram === 'all' && selectedStatus === 'all' && (
                                 <Button
                                     onClick={() => {
                                         setEditingStudent(null);

@@ -27,6 +27,33 @@ class Schedule {
         return result.rows;
     }
 
+    static async findAllByProfessor(professorId) {
+        const result = await query(
+            `SELECT s.*, m.name as module_name, m.code as module_code,
+                    c.name as class_name, spec.name as speciality_name
+             FROM schedules s
+             JOIN modules m ON s.module_id = m.id
+             JOIN classes c ON s.class_id = c.id
+             JOIN specialities spec ON c.speciality_id = spec.id
+             WHERE s.professor_id = $1
+             ORDER BY 
+                CASE s.day_of_week
+                    WHEN 'Monday' THEN 1
+                    WHEN 'Tuesday' THEN 2
+                    WHEN 'Wednesday' THEN 3
+                    WHEN 'Thursday' THEN 4
+                    WHEN 'Friday' THEN 5
+                    WHEN 'Saturday' THEN 6
+                END,
+                CASE s.slot_type
+                    WHEN 'MORNING' THEN 1
+                    WHEN 'AFTERNOON' THEN 2
+                END`,
+            [professorId]
+        );
+        return result.rows;
+    }
+
     static async checkRoomConflict(room, day_of_week, slot_type, excludeClassId = null) {
         const result = await query(
             `SELECT s.*, c.name as class_name

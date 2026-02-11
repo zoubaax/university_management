@@ -26,6 +26,7 @@ import moduleService from '../api/services/moduleService';
 import specialityService from '../api/services/specialityService';
 import classService from '../api/services/classService';
 import staffService from '../api/services/staffService';
+import { useAuth } from '../contexts/AuthContext';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import ConfirmModal from '../components/ui/ConfirmModal';
@@ -35,6 +36,10 @@ import AssignmentForm from '../features/modules/components/AssignmentForm';
 import { cn } from '../utils/cn';
 
 const ModulesPage = () => {
+    const { user } = useAuth();
+    const isProfessor = user?.role_name === 'PROFESSOR';
+    const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'].includes(user?.role_name);
+
     const [modules, setModules] = useState([]);
     const [specialities, setSpecialities] = useState([]);
     const [classes, setClasses] = useState([]);
@@ -125,9 +130,9 @@ const ModulesPage = () => {
         }
     };
 
-    const getUniqueSpecialities = () => {
+    const getUniqueSpecialities = (moduleList) => {
         const specialitiesMap = new Map();
-        modules.forEach(module => {
+        moduleList.forEach(module => {
             if (module.speciality_id && module.speciality_name) {
                 specialitiesMap.set(module.speciality_id, {
                     id: module.speciality_id,
@@ -138,9 +143,15 @@ const ModulesPage = () => {
         return Array.from(specialitiesMap.values());
     };
 
-    const uniqueSpecialities = getUniqueSpecialities();
+    const uniqueSpecialities = getUniqueSpecialities(isProfessor ? modules.filter(m => m.assignments?.some(a => a.professor_id === user?.id)) : modules);
 
     const filteredModules = modules.filter(module => {
+        // Professor filtering: only modules they teach
+        if (isProfessor) {
+            const isAssigned = module.assignments?.some(a => a.professor_id === user?.id);
+            if (!isAssigned) return false;
+        }
+
         const matchesSearch = !searchQuery ||
             module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             module.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -173,24 +184,28 @@ const ModulesPage = () => {
                     <p className="text-sm text-gray-500 mt-1">Manage course subjects, curriculum, and faculty assignments</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
-                        onClick={() => setAssignModalOpen(true)}
-                        icon={LinkIcon}
-                        variant="outline"
-                        className="order-2 sm:order-1"
-                    >
-                        Assign to Class
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setEditingModule(null);
-                            setModuleModalOpen(true);
-                        }}
-                        icon={Plus}
-                        className="bg-gray-900 hover:bg-gray-800 text-white order-1 sm:order-2"
-                    >
-                        New Module
-                    </Button>
+                    {isManager && (
+                        <>
+                            <Button
+                                onClick={() => setAssignModalOpen(true)}
+                                icon={LinkIcon}
+                                variant="outline"
+                                className="order-2 sm:order-1"
+                            >
+                                Assign to Class
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setEditingModule(null);
+                                    setModuleModalOpen(true);
+                                }}
+                                icon={Plus}
+                                className="bg-gray-900 hover:bg-gray-800 text-white order-1 sm:order-2"
+                            >
+                                New Module
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -236,7 +251,7 @@ const ModulesPage = () => {
                         <div>
                             <p className="text-sm text-gray-500">Avg. Coefficient</p>
                             <p className="text-2xl font-semibold text-gray-900 mt-1">
-                                {modules.length > 0 
+                                {modules.length > 0
                                     ? (modules.reduce((sum, module) => sum + parseFloat(module.coefficient || 0), 0) / modules.length).toFixed(1)
                                     : '0.0'
                                 }
@@ -308,47 +323,51 @@ const ModulesPage = () => {
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <h3 className="font-semibold text-gray-900 truncate">{module.name}</h3>
-                                                    <Badge className="text-xs bg-gray-100 text-gray-700 border-gray-200">
-                                                        {module.code}
-                                                    </Badge>
+                                                    {!isProfessor && (
+                                                        <Badge className="text-xs bg-gray-100 text-gray-700 border-gray-200">
+                                                            {module.code}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-0.5 truncate">
                                                     {module.speciality_name}
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Dropdown Menu */}
-                                        <div className="relative">
-                                            <button
-                                                onClick={() => setMenuOpen(menuOpen === module.id ? null : module.id)}
-                                                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                            >
-                                                <MoreVertical size={16} />
-                                            </button>
-                                            
-                                            {menuOpen === module.id && (
-                                                <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingModule(module);
-                                                            setModuleModalOpen(true);
-                                                        }}
-                                                        className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                                    >
-                                                        <Edit2 size={14} />
-                                                        Edit Module
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(module)}
-                                                        className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
+                                        {isManager && (
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => setMenuOpen(menuOpen === module.id ? null : module.id)}
+                                                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                                >
+                                                    <MoreVertical size={16} />
+                                                </button>
+
+                                                {menuOpen === module.id && (
+                                                    <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingModule(module);
+                                                                setModuleModalOpen(true);
+                                                            }}
+                                                            className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                        >
+                                                            <Edit2 size={14} />
+                                                            Edit Module
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(module)}
+                                                            className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Module Details */}
@@ -356,7 +375,7 @@ const ModulesPage = () => {
                                         {module.description && (
                                             <p className="text-sm text-gray-600 line-clamp-2">{module.description}</p>
                                         )}
-                                        
+
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="bg-gray-50 p-3 rounded-lg">
                                                 <div className="flex items-center gap-2 mb-1">

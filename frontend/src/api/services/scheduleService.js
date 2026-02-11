@@ -6,6 +6,11 @@ const scheduleService = {
         return response.data.data;
     },
 
+    getByProfessor: async (professorId) => {
+        const response = await api.get(`/schedules/professor/${professorId}`);
+        return response.data.data;
+    },
+
     upsert: async (data) => {
         const response = await api.post('/schedules', data);
         return response.data.data;

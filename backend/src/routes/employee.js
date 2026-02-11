@@ -22,7 +22,7 @@ router.use(protect);
 
 router
     .route('/')
-    .get(authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT'), getEmployees)
+    .get(authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'PROFESSOR'), getEmployees)
     .post(
         authorize('SUPER_ADMIN', 'RH'),
         validate(employeeSchema),
@@ -40,7 +40,7 @@ router
 
 router
     .route('/:id')
-    .get(authorize('SUPER_ADMIN', 'RH'), getEmployee)
+    .get(authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'PROFESSOR'), getEmployee)
     .put(authorize('SUPER_ADMIN', 'RH'), checkResourcePermission('employees'), updateEmployee)
     .delete(authorize('SUPER_ADMIN', 'RH'), checkResourcePermission('employees'), deleteEmployee);
 

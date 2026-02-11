@@ -1,0 +1,23 @@
+[
+  {
+    "name": "SUPER_ADMIN"
+  },
+  {
+    "name": "RH"
+  },
+  {
+    "name": "RESPONSABLE_DEPARTMENT"
+  },
+  {
+    "name": "DIRECTOR_DEPARTMENT"
+  },
+  {
+    "name": "SECRETARY"
+  },
+  {
+    "name": "PROFESSOR"
+  },
+  {
+    "name": "STUDENT"
+  }
+]

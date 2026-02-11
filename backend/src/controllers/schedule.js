@@ -17,6 +17,20 @@ exports.getClassSchedules = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get schedules for a professor
+ * @route   GET /api/v1/schedules/professor/:professorId
+ * @access  Private
+ */
+exports.getProfessorSchedules = async (req, res, next) => {
+    try {
+        const schedules = await Schedule.findAllByProfessor(req.params.professorId);
+        res.status(200).json({ success: true, count: schedules.length, data: schedules });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
  * @desc    Create or Update a schedule slot
  * @route   POST /api/v1/schedules
  * @access  Private (SuperAdmin, RespDept)
