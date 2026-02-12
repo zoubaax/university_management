@@ -7,31 +7,30 @@ const PERMISSIONS_LIST = [
         category: 'User Management', items: [
             { id: 'manage_students', label: 'Manage Students' },
             { id: 'view_students', label: 'View Students' },
-            { id: 'manage_professors', label: 'Manage Professors' },
-            { id: 'manage_staff', label: 'Manage Staff' },
+            { id: 'manage_staff', label: 'Manage Human Resources' },
             { id: 'manage_departments', label: 'Manage Departments' },
         ]
     },
     {
         category: 'Academic', items: [
+            { id: 'manage_specialities', label: 'Manage Specialities' },
+            { id: 'view_specialities', label: 'View Specialities' },
             { id: 'manage_classes', label: 'Manage Classes' },
             { id: 'view_classes', label: 'View Classes' },
             { id: 'manage_modules', label: 'Manage Modules' },
             { id: 'view_modules', label: 'View Modules' },
-            { id: 'manage_specialities', label: 'Manage Specialities' },
-            { id: 'view_specialities', label: 'View Specialities' },
             { id: 'manage_grades', label: 'Manage Grades' },
             { id: 'view_grades', label: 'View Grades' },
             { id: 'manage_certificates', label: 'Manage Certificates' },
-            { id: 'request_certificate', label: 'Request Certificate' },
-            { id: 'upload_resources', label: 'Upload Resources' },
-            { id: 'view_resources', label: 'View Resources' },
+            { id: 'request_certificate', label: 'Request Certificates' },
+            { id: 'upload_resources', label: 'Upload Course Materials' },
+            { id: 'view_resources', label: 'View Course Materials' },
         ]
     },
     {
-        category: 'Attendance', items: [
-            { id: 'manage_absences', label: 'Manage Absences' },
-            { id: 'view_absences', label: 'View Absences' },
+        category: 'Attendance & Planning', items: [
+            { id: 'manage_absences', label: 'Manage Staff Absences' },
+            { id: 'view_absences', label: 'View Staff Absences' },
             { id: 'manage_student_absences', label: 'Manage Student Absences' },
             { id: 'view_student_absences', label: 'View Student Absences' },
             { id: 'manage_schedules', label: 'Manage Schedules' },
@@ -41,10 +40,10 @@ const PERMISSIONS_LIST = [
         ]
     },
     {
-        category: 'System', items: [
+        category: 'System & Reports', items: [
             { id: 'manage_roles', label: 'Manage Roles' },
-            { id: 'manage_system', label: 'System Settings' },
-            { id: 'view_reports', label: 'View Reports' },
+            { id: 'manage_system', label: 'Manage System Settings' },
+            { id: 'view_reports', label: 'View Attendance Reports' },
         ]
     }
 ];
