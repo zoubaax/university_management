@@ -44,6 +44,14 @@ const studentService = {
     getProfile: async (id) => {
         const response = await api.get(`/students/${id}`);
         return response.data.data;
+    },
+
+    /**
+     * Delete student record
+     */
+    delete: async (id) => {
+        const response = await api.delete(`/students/${id}`);
+        return response.data;
     }
 };
 

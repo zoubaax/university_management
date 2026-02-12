@@ -80,6 +80,7 @@ const SchedulesPage = () => {
     const { user } = useAuth();
     const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'].includes(user?.role_name);
     const isProfessor = user?.role_name === 'PROFESSOR';
+    const isStudent = user?.role_name === 'STUDENT';
 
     // State management
     const [selectedClass, setSelectedClass] = useState(null);
@@ -131,7 +132,7 @@ const SchedulesPage = () => {
 
                 setRoomConflict({
                     available: result.available,
-                    message: result.available 
+                    message: result.available
                         ? '✓ Room available for this time slot'
                         : `✗ Already reserved for "${result.conflict?.class_name || 'another class'}"`,
                     conflict: result.conflict
@@ -149,7 +150,7 @@ const SchedulesPage = () => {
     // Filter classes based on speciality and professor
     const filteredClasses = useMemo(() => {
         let baseList = classes;
-        
+
         if (isProfessor) {
             const professorClassIds = allModules
                 .flatMap(m => m.assignments || [])
@@ -167,7 +168,10 @@ const SchedulesPage = () => {
     // Fetch initial data
     useEffect(() => {
         fetchInitialData();
-    }, []);
+        if (isStudent && user?.class_id) {
+            setSelectedClass(user.class_id);
+        }
+    }, [isStudent, user?.class_id]);
 
     // Fetch professor schedule
     useEffect(() => {
@@ -263,7 +267,7 @@ const SchedulesPage = () => {
             setIsModalOpen(false);
             setSlotToEdit(null);
             toast.success('Schedule updated successfully');
-            
+
             if (isProfessor && viewMode === 'personal') {
                 fetchProfessorSchedule();
             }
@@ -278,7 +282,7 @@ const SchedulesPage = () => {
             if (success) {
                 toast.success('Schedule slot cleared');
                 setSlotToDelete(null);
-                
+
                 if (isProfessor && viewMode === 'personal') {
                     fetchProfessorSchedule();
                 }
@@ -346,8 +350,11 @@ const SchedulesPage = () => {
         }));
     };
 
-    // Class selection view
-    if (!selectedClass || isProfessor) {
+    // For students, skip selection if class is set
+    const shouldShowSelection = !selectedClass && !isProfessor;
+
+    // View conditional rendering
+    if (shouldShowSelection) {
         return (
             <div className="space-y-6">
                 {/* Header */}
@@ -356,8 +363,8 @@ const SchedulesPage = () => {
                         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Academic Scheduling</h1>
                         <div className="flex items-center gap-3 mt-1">
                             <p className="text-sm text-gray-500">
-                                {isProfessor 
-                                    ? 'Manage your teaching schedule and track attendance' 
+                                {isProfessor
+                                    ? 'Manage your teaching schedule and track attendance'
                                     : 'Select a class to view or configure its weekly timetable'}
                             </p>
                             {isProfessor && (
@@ -372,9 +379,9 @@ const SchedulesPage = () => {
                                             <ChevronLeft size={16} />
                                         </button>
                                         <span className="text-xs font-medium text-gray-900 min-w-[100px] text-center">
-                                            {weekOffset === 0 ? 'This Week' : 
-                                             weekOffset === 1 ? 'Next Week' : 
-                                             weekOffset === -1 ? 'Last Week' : formatWeekRange()}
+                                            {weekOffset === 0 ? 'This Week' :
+                                                weekOffset === 1 ? 'Next Week' :
+                                                    weekOffset === -1 ? 'Last Week' : formatWeekRange()}
                                         </span>
                                         <button
                                             onClick={() => setWeekOffset(prev => prev + 1)}
@@ -397,7 +404,7 @@ const SchedulesPage = () => {
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                         {!isProfessor && (
                             <div className="w-full md:w-64">
@@ -413,7 +420,7 @@ const SchedulesPage = () => {
                                 />
                             </div>
                         )}
-                        
+
                         {isProfessor && (
                             <Button
                                 onClick={handlePrint}
@@ -490,16 +497,16 @@ const SchedulesPage = () => {
                                                                             {schedule.class_name}
                                                                         </span>
                                                                     </div>
-                                                                    
+
                                                                     <h4 className="text-sm font-semibold text-blue-900 mb-2 line-clamp-2">
                                                                         {schedule.module_name}
                                                                     </h4>
-                                                                    
+
                                                                     <div className="flex items-center gap-2 text-xs text-blue-700 mb-2">
                                                                         <School className="w-3 h-3" />
                                                                         <span className="truncate">{schedule.speciality_name}</span>
                                                                     </div>
-                                                                    
+
                                                                     <button
                                                                         onClick={() => setAttendanceSlot(schedule)}
                                                                         className="mt-2 w-full py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
@@ -567,8 +574,8 @@ const SchedulesPage = () => {
                                 <School className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                                 <h3 className="text-gray-900 font-medium">No classes found</h3>
                                 <p className="text-gray-500 text-sm mt-1">
-                                    {selectedSpeciality !== 'all' 
-                                        ? 'No classes in this speciality' 
+                                    {selectedSpeciality !== 'all'
+                                        ? 'No classes in this speciality'
                                         : 'Try adjusting your filters'}
                                 </p>
                             </div>
@@ -608,14 +615,16 @@ const SchedulesPage = () => {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
                 <div className="flex items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        onClick={() => setSelectedClass(null)}
-                        className="p-2 hover:bg-gray-100 border border-transparent hover:border-gray-200"
-                        icon={ChevronLeft}
-                    >
-                        Back
-                    </Button>
+                    {(!isStudent) && (
+                        <Button
+                            variant="ghost"
+                            onClick={() => setSelectedClass(null)}
+                            className="p-2 hover:bg-gray-100 border border-transparent hover:border-gray-200"
+                            icon={ChevronLeft}
+                        >
+                            Back
+                        </Button>
+                    )}
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{selectedClassInfo?.name}</h1>
                         <div className="flex items-center gap-2 mt-1">
@@ -776,7 +785,7 @@ const SchedulesPage = () => {
                                                     <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0.5">
                                                         {schedule.room}
                                                     </Badge>
-                                                    
+
                                                     {isManager && (
                                                         <div className="relative">
                                                             <button
@@ -788,7 +797,7 @@ const SchedulesPage = () => {
                                                             >
                                                                 <MoreVertical size={14} />
                                                             </button>
-                                                            
+
                                                             {menuOpen === schedule.id && (
                                                                 <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                                                                     <button

@@ -6,7 +6,7 @@ class User {
     static async findByEmail(email) {
         const result = await query(
             `SELECT u.id, u.email, u.role_id, u.department_id, u.is_active, u.created_at, r.name as role_name,
-                    e.id as employee_id, s.id as student_id
+                    e.id as employee_id, s.id as student_id, s.class_id
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
        LEFT JOIN employees e ON u.id = e.user_id
@@ -20,7 +20,7 @@ class User {
     static async findWithPassword(email) {
         const result = await query(
             `SELECT u.id, u.email, u.department_id, u.is_active, u.password_hash, r.name as role_name,
-                    e.id as employee_id, s.id as student_id
+                    e.id as employee_id, s.id as student_id, s.class_id
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
        LEFT JOIN employees e ON u.id = e.user_id
@@ -34,7 +34,7 @@ class User {
     static async findById(id) {
         const result = await query(
             `SELECT u.id, u.email, u.role_id, u.department_id, u.is_active, u.created_at, r.name as role_name,
-                    e.id as employee_id, s.id as student_id
+                    e.id as employee_id, s.id as student_id, s.class_id
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
        LEFT JOIN employees e ON u.id = e.user_id

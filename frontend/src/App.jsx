@@ -18,6 +18,7 @@ import RoomsPage from './pages/RoomsPage';
 import AttendanceReportPage from './pages/AttendanceReportPage';
 import CourseResourcesPage from './pages/CourseResourcesPage';
 import GradesPage from './pages/GradesPage';
+import ProfilePage from './pages/ProfilePage';
 
 const App = () => {
   return (
@@ -160,7 +161,7 @@ const App = () => {
               path="profile"
               element={
                 <ProtectedRoute allowedRoles={['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT']}>
-                  <div className="p-8"><h1 className="text-2xl font-bold">My Profile</h1><p>Manage your personal and academic information.</p></div>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />

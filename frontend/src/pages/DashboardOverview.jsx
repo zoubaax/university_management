@@ -24,6 +24,7 @@ import Badge from '../components/ui/Badge';
 import studentService from '../api/services/studentService';
 import moduleService from '../api/services/moduleService';
 import scheduleService from '../api/services/scheduleService';
+import studentAttendanceService from '../api/services/studentAttendanceService';
 
 const StatCard = ({ title, value, icon: Icon, trend, subtitle, delay }) => {
     const getTrendColor = () => {
@@ -101,13 +102,23 @@ const DashboardOverview = () => {
         modulesCount: 0,
         upcomingClasses: []
     });
+    const [studentStats, setStudentStats] = React.useState({
+        gpa: '0.0',
+        credits: '0/180',
+        activeCourses: 0,
+        absences: 0,
+        upcomingClasses: []
+    });
     const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
         if (user?.role_name === 'PROFESSOR' && user?.employee_id) {
             fetchProfessorDashboardData();
         }
-    }, [user?.employee_id]);
+        if (user?.role_name === 'STUDENT' && user?.student_id) {
+            fetchStudentDashboardData();
+        }
+    }, [user?.employee_id, user?.student_id]);
 
     const fetchProfessorDashboardData = async () => {
         try {
@@ -150,6 +161,53 @@ const DashboardOverview = () => {
             });
         } catch (err) {
             console.error('Failed to fetch dashboard data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchStudentDashboardData = async () => {
+        try {
+            setLoading(true);
+            const [grades, attendance, schedule] = await Promise.all([
+                gradeService.getMyGrades(),
+                studentAttendanceService.getStudentAttendance(user.student_id),
+                scheduleService.getByClass(user.class_id)
+            ]);
+
+            // Calculate GPA (simple avg for now)
+            const validGrades = (grades.data || []).filter(g => g.cc1 !== null || g.cc2 !== null || g.exam !== null);
+            const avg = validGrades.length > 0
+                ? (validGrades.reduce((acc, g) => {
+                    const mark = ((Number(g.cc1 || 0) + Number(g.cc2 || 0)) / 2) * 0.4 + Number(g.exam || 0) * 0.6;
+                    return acc + mark;
+                }, 0) / validGrades.length).toFixed(2)
+                : '0.0';
+
+            const upcoming = (schedule || [])
+                .filter(s => {
+                    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const todayIdx = new Date().getDay() - 1;
+                    return days.indexOf(s.day_of_week) >= (todayIdx < 0 ? 0 : todayIdx);
+                })
+                .slice(0, 3)
+                .map(s => ({
+                    title: s.module_name,
+                    date: s.day_of_week,
+                    time: s.slot_type === 'MORNING' ? '08:30 AM' : '14:30 PM',
+                    location: s.room || 'TBD',
+                    className: s.class_name
+                }));
+
+            setStudentStats({
+                gpa: avg,
+                credits: `${validGrades.length * 6}/180`, // Assume 6 credits per module
+                activeCourses: validGrades.length,
+                absences: (attendance.data || []).filter(a => a.status === 'ABSENT').length,
+                upcomingClasses: upcoming
+            });
+        } catch (err) {
+            console.error('Failed to fetch student dashboard data:', err);
         } finally {
             setLoading(false);
         }
@@ -228,17 +286,16 @@ const DashboardOverview = () => {
                 title: 'Student Dashboard',
                 subtitle: 'Track your academic progress',
                 stats: [
-                    { title: 'Current GPA', value: '3.8', icon: TrendingUp },
-                    { title: 'Credits Earned', value: '120/180', icon: GraduationCap, subtitle: '66% complete' },
-                    { title: 'Active Courses', value: '5', icon: BookOpen },
-                    { title: 'Assignments Due', value: '3', icon: FileText, trend: '+1' }
+                    { title: 'Current GPA', value: studentStats.gpa, icon: TrendingUp },
+                    { title: 'Credits Earned', value: studentStats.credits, icon: GraduationCap, subtitle: `${Math.round((parseInt(studentStats.credits) / 180) * 100)}% complete` },
+                    { title: 'Absences', value: studentStats.absences.toString(), icon: Clock, trend: studentStats.absences > 3 ? '+ Warning' : 'Safe' },
+                    { title: 'Active Modules', value: studentStats.activeCourses.toString(), icon: BookOpen }
                 ],
                 activity: 'Academic Activity',
                 activities: [
-                    { title: 'Assignment submitted', description: 'Calculus III', time: 'Today, 11:45', status: 'completed' },
-                    { title: 'Grade updated', description: 'Physics B+ → A-', time: 'Today, 10:30', status: 'completed' },
-                    { title: 'Exam scheduled', description: 'Next week', time: 'Upcoming', status: 'pending' },
-                    { title: 'Library book', description: 'Due tomorrow', time: 'Reminder', status: 'pending' }
+                    { title: 'Record Status', description: 'Academic records updated', time: 'Today', status: 'completed' },
+                    { title: 'Attendance Tracked', description: 'Absences are monitored live', time: 'System', status: 'completed' },
+                    { title: 'Module Access', description: 'G-Suite/LMS integration active', time: 'Live', status: 'completed' }
                 ]
             }
         };
@@ -326,40 +383,43 @@ const DashboardOverview = () => {
                             Upcoming Events
                         </h2>
                         <div className="space-y-4">
-                            {(user?.role_name === 'PROFESSOR' && profStats.upcomingClasses.length > 0 ? profStats.upcomingClasses : [
-                                { title: 'Faculty Meeting', date: 'Feb 15', time: '09:30 AM', location: 'Conference Room A' },
-                                { title: 'System Maintenance', date: 'Feb 16', time: '10:00 PM', location: 'All Systems' },
-                                { title: 'Student Orientation', date: 'Feb 18', time: '02:00 PM', location: 'Main Hall' },
-                            ]).map((event, index) => (
-                                <div key={index} className="flex gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center">
-                                            {event.date.length > 5 ? (
-                                                <div className="flex flex-col items-center">
-                                                    <span className="text-[10px] font-bold text-blue-600 leading-tight">
-                                                        {event.date.substring(0, 3).toUpperCase()}
-                                                    </span>
-                                                    <Calendar className="w-4 h-4 text-gray-400 mt-1" />
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <span className="text-xs font-medium text-gray-500">FEB</span>
-                                                    <span className="text-lg font-bold text-gray-900">{event.date.split(' ')[1]}</span>
-                                                </>
+                            {((user?.role_name === 'PROFESSOR' && profStats.upcomingClasses.length > 0) ||
+                                (user?.role_name === 'STUDENT' && studentStats.upcomingClasses.length > 0))
+                                ? (user?.role_name === 'PROFESSOR' ? profStats.upcomingClasses : studentStats.upcomingClasses)
+                                : [
+                                    { title: 'Faculty Meeting', date: 'Feb 15', time: '09:30 AM', location: 'Conference Room A' },
+                                    { title: 'System Maintenance', date: 'Feb 16', time: '10:00 PM', location: 'All Systems' },
+                                    { title: 'Student Orientation', date: 'Feb 18', time: '02:00 PM', location: 'Main Hall' },
+                                ].map((event, index) => (
+                                    <div key={index} className="flex gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                        <div className="flex-shrink-0">
+                                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center">
+                                                {event.date.length > 5 ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-[10px] font-bold text-blue-600 leading-tight">
+                                                            {event.date.substring(0, 3).toUpperCase()}
+                                                        </span>
+                                                        <Calendar className="w-4 h-4 text-gray-400 mt-1" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-xs font-medium text-gray-500">FEB</span>
+                                                        <span className="text-lg font-bold text-gray-900">{event.date.split(' ')[1]}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-medium text-gray-900 line-clamp-1">{event.title}</h4>
+                                            <p className="text-sm text-gray-500 mt-1">{event.time} • {event.location}</p>
+                                            {event.className && (
+                                                <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase italic bg-blue-50 inline-block px-1 rounded">
+                                                    {event.className}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-medium text-gray-900 line-clamp-1">{event.title}</h4>
-                                        <p className="text-sm text-gray-500 mt-1">{event.time} • {event.location}</p>
-                                        {event.className && (
-                                            <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase italic bg-blue-50 inline-block px-1 rounded">
-                                                {event.className}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
                         </div>
                         <button className="w-full mt-6 py-2.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
                             View Full Calendar
