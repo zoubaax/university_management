@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import {
@@ -78,6 +79,7 @@ const SLOTS = [
 
 const SchedulesPage = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'].includes(user?.role_name);
     const isProfessor = user?.role_name === 'PROFESSOR';
     const isStudent = user?.role_name === 'STUDENT';
@@ -507,13 +509,24 @@ const SchedulesPage = () => {
                                                                         <span className="truncate">{schedule.speciality_name}</span>
                                                                     </div>
 
-                                                                    <button
-                                                                        onClick={() => setAttendanceSlot(schedule)}
-                                                                        className="mt-2 w-full py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
-                                                                    >
-                                                                        <Users size={12} />
-                                                                        Mark Attendance
-                                                                    </button>
+                                                                    <div className="flex gap-2 mt-2">
+                                                                        <button
+                                                                            onClick={() => setAttendanceSlot(schedule)}
+                                                                            className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
+                                                                            title="Mark Today's Attendance"
+                                                                        >
+                                                                            <Users size={12} />
+                                                                            Mark
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => navigate('/attendance-report', { state: { classId: schedule.class_id } })}
+                                                                            className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
+                                                                            title="View Attendance History"
+                                                                        >
+                                                                            <Clock size={12} />
+                                                                            History
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             ) : (
                                                                 <div className="h-28 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 flex items-center justify-center">
@@ -848,6 +861,34 @@ const SchedulesPage = () => {
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* Attendance Buttons for Professors */}
+                                            {isProfessor && schedule.professor_id === user?.employee_id && (
+                                                <div className="flex gap-1.5 mt-3 pt-3 border-t border-gray-200">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setAttendanceSlot(schedule);
+                                                        }}
+                                                        className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
+                                                        title="Mark Today's Attendance"
+                                                    >
+                                                        <Users size={11} />
+                                                        Mark
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate('/attendance-report', { state: { classId: schedule.class_id } });
+                                                        }}
+                                                        className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
+                                                        title="View Attendance History"
+                                                    >
+                                                        <Clock size={11} />
+                                                        History
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="h-full flex flex-col items-center justify-center">

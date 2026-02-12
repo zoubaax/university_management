@@ -1,6 +1,15 @@
 import API from '../axios';
 
 const studentAttendanceService = {
+    getAll: async (filters = {}) => {
+        try {
+            const response = await API.get('/student-attendance', { params: filters });
+            return response.data?.data;
+        } catch (error) {
+            throw error.response?.data || error.message;
+        }
+    },
+
     // Get attendance for a session
     getSessionAttendance: async (scheduleId, date) => {
         try {

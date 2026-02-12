@@ -159,3 +159,28 @@ exports.getClassWeeklyReport = async (req, res) => {
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
+// @desc    Get attendance records with filters
+// @route   GET /api/v1/student-attendance
+// @access  Private (Professor, Admin, Director, Dept Head)
+exports.getAttendanceList = async (req, res) => {
+    try {
+        const { classId, moduleId, startDate, endDate, studentName } = req.query;
+        const filters = { classId, moduleId, startDate, endDate, studentName };
+
+        // If user is a professor, restrict to their own schedules
+        if (req.user.role_name === 'PROFESSOR') {
+            filters.professorId = req.user.employee_id;
+        }
+
+        const data = await StudentAttendance.findAllByFilters(filters);
+
+        res.status(200).json({
+            success: true,
+            count: data.length,
+            data
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};

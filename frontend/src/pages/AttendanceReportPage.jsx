@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     FileText,
     Calendar,
@@ -28,10 +29,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 const AttendanceReportPage = () => {
     const { user } = useAuth();
+    const location = useLocation();
     const isDeptHead = ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'].includes(user?.role_name);
 
     const [classes, setClasses] = useState([]);
-    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedClass, setSelectedClass] = useState(location.state?.classId || '');
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState([]);
     const [weekOffset, setWeekOffset] = useState(0);
@@ -40,6 +42,12 @@ const AttendanceReportPage = () => {
     useEffect(() => {
         fetchClasses();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.classId) {
+            setSelectedClass(location.state.classId);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         if (selectedClass) {
@@ -54,7 +62,7 @@ const AttendanceReportPage = () => {
             const data = await classService.getAll();
             setClasses(data || []);
             // Auto-select first class if available
-            if (data && data.length > 0 && !selectedClass) {
+            if (data && data.length > 0 && !selectedClass && !location.state?.classId) {
                 // setSelectedClass(data[0].id);
             }
         } catch (err) {

@@ -86,6 +86,69 @@ class StudentAttendance {
         );
         return result.rows;
     }
+    static async findAllByFilters({ classId, moduleId, professorId, startDate, endDate, studentName }) {
+        let queryStr = `
+            SELECT sa.*, 
+                   s.first_name, s.last_name, s.registration_num,
+                   m.name as module_name, m.code as module_code,
+                   c.name as class_name,
+                   sch.slot_type, sch.day_of_week
+            FROM student_attendance sa
+            JOIN students s ON sa.student_id = s.id
+            JOIN schedules sch ON sa.schedule_id = sch.id
+            JOIN classes c ON sch.class_id = c.id
+            JOIN modules m ON sch.module_id = m.id
+            WHERE 1=1
+        `;
+        const params = [];
+        let paramCount = 1;
+
+        if (classId) {
+            queryStr += ` AND sch.class_id = $${paramCount}`;
+            params.push(classId);
+            paramCount++;
+        }
+
+        if (moduleId) {
+            queryStr += ` AND sch.module_id = $${paramCount}`;
+            params.push(moduleId);
+            paramCount++;
+        }
+
+        if (professorId) {
+            queryStr += ` AND sch.professor_id = $${paramCount}`;
+            params.push(professorId);
+            paramCount++;
+        }
+
+        if (startDate) {
+            queryStr += ` AND sa.date >= $${paramCount}`;
+            params.push(startDate);
+            paramCount++;
+        }
+
+        if (endDate) {
+            queryStr += ` AND sa.date <= $${paramCount}`;
+            params.push(endDate);
+            paramCount++;
+        }
+
+        if (studentName) {
+            queryStr += ` AND (LOWER(s.first_name) LIKE $${paramCount} OR LOWER(s.last_name) LIKE $${paramCount} OR LOWER(s.registration_num) LIKE $${paramCount})`;
+            params.push(`%${studentName.toLowerCase()}%`);
+            paramCount++;
+        }
+
+        queryStr += ` ORDER BY sa.date DESC, 
+                      CASE sch.slot_type 
+                        WHEN 'MORNING' THEN 1 
+                        WHEN 'AFTERNOON' THEN 2 
+                      END ASC, 
+                      s.last_name ASC`;
+
+        const result = await query(queryStr, params);
+        return result.rows;
+    }
 }
 
 module.exports = StudentAttendance;

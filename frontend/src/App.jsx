@@ -11,6 +11,7 @@ import SpecialitiesPage from './pages/SpecialitiesPage';
 import StaffPage from './pages/StaffPage';
 import StudentsPage from './pages/StudentsPage';
 import AbsencesPage from './pages/AbsencesPage';
+import StudentAbsencesPage from './pages/StudentAbsencesPage';
 import ClassesPage from './pages/ClassesPage';
 import ModulesPage from './pages/ModulesPage';
 import SchedulesPage from './pages/SchedulesPage';
@@ -59,7 +60,7 @@ const App = () => {
             <Route
               path="classes"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
                   <ClassesPage />
                 </ProtectedRoute>
               }
@@ -67,7 +68,7 @@ const App = () => {
             <Route
               path="modules"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
                   <ModulesPage />
                 </ProtectedRoute>
               }
@@ -105,6 +106,15 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
                   <AbsencesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="student-absences"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                  <StudentAbsencesPage />
                 </ProtectedRoute>
               }
             />

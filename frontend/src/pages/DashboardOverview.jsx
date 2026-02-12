@@ -383,14 +383,14 @@ const DashboardOverview = () => {
                             Upcoming Events
                         </h2>
                         <div className="space-y-4">
-                            {((user?.role_name === 'PROFESSOR' && profStats.upcomingClasses.length > 0) ||
+                            {(((user?.role_name === 'PROFESSOR' && profStats.upcomingClasses.length > 0) ||
                                 (user?.role_name === 'STUDENT' && studentStats.upcomingClasses.length > 0))
                                 ? (user?.role_name === 'PROFESSOR' ? profStats.upcomingClasses : studentStats.upcomingClasses)
                                 : [
                                     { title: 'Faculty Meeting', date: 'Feb 15', time: '09:30 AM', location: 'Conference Room A' },
                                     { title: 'System Maintenance', date: 'Feb 16', time: '10:00 PM', location: 'All Systems' },
                                     { title: 'Student Orientation', date: 'Feb 18', time: '02:00 PM', location: 'Main Hall' },
-                                ].map((event, index) => (
+                                ]).map((event, index) => (
                                     <div key={index} className="flex gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                                         <div className="flex-shrink-0">
                                             <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center">
