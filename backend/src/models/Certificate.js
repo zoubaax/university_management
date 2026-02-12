@@ -60,7 +60,16 @@ class Certificate {
                     s.first_name, s.last_name, s.registration_num,
                     spec.name as speciality_name,
                     dept.name as department_name,
-                    c.name as class_name, c.level
+                    c.name as class_name, c.level,
+                    (
+                        SELECT e.first_name || ' ' || e.last_name
+                        FROM employees e
+                        JOIN users u ON e.user_id = u.id
+                        JOIN roles r ON u.role_id = r.id
+                        WHERE u.department_id = spec.department_id 
+                        AND r.name IN ('DIRECTOR_DEPARTMENT', 'RESPONSABLE_DEPARTMENT')
+                        LIMIT 1
+                    ) as department_head_name
              FROM certificate_requests cr
              JOIN students s ON cr.student_id = s.id
              JOIN specialities spec ON s.speciality_id = spec.id
