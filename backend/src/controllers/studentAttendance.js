@@ -75,6 +75,46 @@ exports.recordSessionAttendance = async (req, res) => {
 
         const results = await StudentAttendance.batchUpsert(attendances);
 
+        // NOTIFICATION LOGIC
+        try {
+            const Notification = require('../models/Notification');
+            const { query } = require('../config/db');
+
+            // Find students marked as ABSENT
+            const absentStudentIds = students
+                .filter(s => s.status === 'ABSENT')
+                .map(s => s.student_id);
+
+            if (absentStudentIds.length > 0) {
+                // Get module name from schedule
+                const scheduleResult = await query(`
+                    SELECT m.name as module_name
+                    FROM schedules s
+                    JOIN modules m ON s.module_id = m.id
+                    WHERE s.id = $1
+                `, [scheduleId]);
+
+                const moduleName = scheduleResult.rows[0]?.module_name || 'Class';
+
+                // Get User IDs for these students
+                const usersResult = await query(`
+                    SELECT user_id FROM students WHERE id = ANY($1)
+                `, [absentStudentIds]);
+
+                const recipientUserIds = usersResult.rows.map(u => u.user_id);
+
+                if (recipientUserIds.length > 0) {
+                    await Notification.notifyAbsence(
+                        moduleName,
+                        date,
+                        recipientUserIds
+                    );
+                }
+            }
+        } catch (error) {
+            console.error('Notification error:', error);
+        }
+
         res.status(200).json({
             success: true,
             data: results

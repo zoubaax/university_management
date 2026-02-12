@@ -121,12 +121,31 @@ exports.deleteNotification = async (req, res) => {
 // @access  Private (Admin)
 exports.createAnnouncement = async (req, res) => {
     try {
-        const { title, message, recipient_ids, link } = req.body;
+        let { title, message, recipient_ids, target_audience } = req.body;
+
+        // If target_audience is provided, fetch IDs automatically
+        if (target_audience) {
+            const { query } = require('../config/db');
+            let sql = 'SELECT id FROM users WHERE is_active = true AND deleted_at IS NULL';
+
+            if (target_audience === 'students') {
+                // Assuming role names are consistent
+                sql += " AND role_id = (SELECT id FROM roles WHERE name = 'STUDENT')";
+            } else if (target_audience === 'professors') {
+                sql += " AND role_id = (SELECT id FROM roles WHERE name = 'PROFESSOR')";
+            } else if (target_audience === 'staff') {
+                sql += " AND role_id IN (SELECT id FROM roles WHERE name IN ('RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'))";
+            }
+            // 'everyone' falls through to select all users
+
+            const result = await query(sql);
+            recipient_ids = result.rows.map(u => u.id);
+        }
 
         if (!title || !message || !recipient_ids || !Array.isArray(recipient_ids)) {
             return res.status(400).json({
                 success: false,
-                error: 'Please provide title, message, and recipient_ids array'
+                error: 'Please provide title, message, and either recipient_ids array or target_audience'
             });
         }
 
@@ -134,12 +153,13 @@ exports.createAnnouncement = async (req, res) => {
             title,
             message,
             recipient_ids,
-            link
+            req.body.link
         );
 
         res.status(201).json({
             success: true,
             count: notifications.length,
+            message: `Announcement sent to ${notifications.length} users`,
             data: notifications
         });
     } catch (err) {

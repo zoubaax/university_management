@@ -48,6 +48,37 @@ exports.createResource = async (req, res, next) => {
         };
 
         const resource = await CourseResource.create(resourceData);
+
+        // NOTIFICATION LOGIC
+        try {
+            const Notification = require('../models/Notification');
+            const { query } = require('../config/db');
+
+            // 1. Get professor name
+            const professorName = `${req.user.first_name} ${req.user.last_name}`;
+
+            // 2. Find students in the class
+            const studentsResult = await query(`
+                SELECT s.user_id 
+                FROM students s
+                WHERE s.class_id = $1
+            `, [req.body.class_id]);
+
+            const recipientIds = studentsResult.rows.map(s => s.user_id);
+
+            // 3. Send notifications
+            if (recipientIds.length > 0) {
+                await Notification.notifyFileUpload(
+                    professorName,
+                    req.file?.originalname || 'Resource',
+                    resource.id,
+                    recipientIds
+                );
+            }
+        } catch (error) {
+            console.error('Notification error:', error);
+        }
+
         res.status(201).json({
             success: true,
             data: resource

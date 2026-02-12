@@ -45,6 +45,33 @@ exports.createAbsence = async (req, res, next) => {
         }
 
         const absence = await AbsenceService.createAbsence(req.body);
+
+        // NOTIFICATION LOGIC
+        try {
+            const Notification = require('../models/Notification');
+            const { query } = require('../config/db');
+
+            // Find Employee's User ID
+            const result = await query(
+                `SELECT user_id FROM employees WHERE id = $1`,
+                [req.body.employee_id]
+            );
+            const userId = result.rows[0]?.user_id;
+
+            if (userId) {
+                await Notification.create({
+                    user_id: userId,
+                    type: 'general',
+                    title: 'Absence Recorded',
+                    message: `An absence has been recorded for you from ${req.body.start_date} to ${req.body.end_date}`,
+                    link: '/profile',
+                    related_id: absence.id
+                });
+            }
+        } catch (error) {
+            console.error('Notification error:', error);
+        }
+
         res.status(201).json({
             success: true,
             data: absence

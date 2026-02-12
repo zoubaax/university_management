@@ -50,6 +50,40 @@ exports.upsertSchedule = async (req, res, next) => {
         }
 
         const schedule = await Schedule.upsert(req.body);
+
+        // NOTIFICATION LOGIC
+        try {
+            const Notification = require('../models/Notification');
+            const { query } = require('../config/db');
+
+            // Find all students in this class
+            const studentsResult = await query(
+                `SELECT user_id FROM students WHERE class_id = $1`,
+                [req.body.class_id]
+            );
+            const userIds = studentsResult.rows.map(s => s.user_id);
+
+            // Get module name
+            const modResult = await query('SELECT name FROM modules WHERE id = $1', [req.body.module_id]);
+            const moduleName = modResult.rows[0]?.name || 'Course';
+
+            if (userIds.length > 0) {
+                // Bulk create notifications using our createBulk helper
+                const notifications = userIds.map(uid => ({
+                    user_id: uid,
+                    type: 'general',
+                    title: 'Schedule Update',
+                    message: `Schedule updated for ${moduleName} on ${req.body.day_of_week}`,
+                    link: '/timetable',
+                    related_id: schedule.id
+                }));
+
+                await Notification.createBulk(notifications);
+            }
+        } catch (error) {
+            console.error('Notification error:', error);
+        }
+
         res.status(200).json({ success: true, data: schedule });
     } catch (err) {
         next(err);

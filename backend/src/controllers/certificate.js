@@ -1,7 +1,9 @@
 const Certificate = require('../models/Certificate');
-const ErrorResponse = require('../utils/errorResponse');
+const ErrorResponse = require('../utils/ErrorResponse');
 const asyncHandler = require('../middlewares/async');
 const { getCurrentAcademicYear } = require('../utils/academicYear');
+
+const { query } = require('../config/db'); // Add this import
 
 // @desc    Request a certificate
 // @route   POST /api/v1/certificates/request
@@ -19,6 +21,44 @@ exports.requestCertificate = asyncHandler(async (req, res, next) => {
         academic_year,
         type
     });
+
+    // NOTIFICATION LOGIC
+    try {
+        const Notification = require('../models/Notification');
+
+        // 1. Get student details (name)
+        const studentResult = await query(
+            `SELECT first_name, last_name, department_id FROM students WHERE id = $1`,
+            [req.user.student_id]
+        );
+        const student = studentResult.rows[0];
+        const studentName = `${student.first_name} ${student.last_name}`;
+
+        // 2. Find recipients (Department Head/Responsible of the student's department)
+        // Also notify SUPER_ADMIN just in case
+        const recipientsResult = await query(`
+            SELECT u.id 
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            WHERE (u.department_id = $1 AND r.name IN ('RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'))
+               OR r.name = 'SUPER_ADMIN'
+        `, [student.department_id]);
+
+        const recipientIds = recipientsResult.rows.map(r => r.id);
+
+        // 3. Send notifications
+        if (recipientIds.length > 0) {
+            await Notification.notifyCertificateRequest(
+                studentName,
+                request.id, // passing request ID as related_id
+                type,
+                recipientIds
+            );
+        }
+    } catch (error) {
+        console.error('Notification error:', error);
+        // Don't fail the request if notification fails
+    }
 
     res.status(201).json({
         success: true,
@@ -72,6 +112,43 @@ exports.processRequest = asyncHandler(async (req, res, next) => {
 
     if (!request) {
         return next(new ErrorResponse('Request not found', 404));
+    }
+
+    // NOTIFICATION LOGIC
+    try {
+        const Notification = require('../models/Notification');
+        const { query } = require('../config/db');
+
+        // Get student user_id
+        const studentResult = await query(
+            `SELECT user_id FROM students WHERE id = $1`,
+            [request.student_id]
+        );
+        const userId = studentResult.rows[0]?.user_id;
+
+        if (userId) {
+            let title = 'Certificate Request Update';
+            let message = `Your request for ${request.type} has been ${status.toLowerCase()}`;
+
+            if (status === 'READY') {
+                title = 'Certificate Ready';
+                message = `Your ${request.type} is ready for pickup!`;
+            } else if (status === 'REJECTED') {
+                title = 'Certificate Request Rejected';
+                message = `Your request for ${request.type} was rejected. ${remarks ? 'Reason: ' + remarks : ''}`;
+            }
+
+            await Notification.create({
+                user_id: userId,
+                type: 'certificate',
+                title: title,
+                message: message,
+                link: '/certificates/my-requests',
+                related_id: request.id
+            });
+        }
+    } catch (error) {
+        console.error('Notification error:', error);
     }
 
     res.status(200).json({
