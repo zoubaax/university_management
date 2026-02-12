@@ -88,26 +88,27 @@ const DashboardLayout = () => {
         {
             category: 'Administration',
             items: [
-                { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'] },
-                { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'] },
-                { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'] },
-                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'] },
-                { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'RH'] },
+                { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'], permissions: ['manage_system'] },
+                { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_staff'] },
+                { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_departments'] },
+                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_students', 'view_students'] },
+                { name: 'Roles', icon: ShieldCheck, path: '/roles', roles: ['SUPER_ADMIN'], permissions: ['manage_roles'] },
+                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_absences', 'view_absences'] },
+                { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences', 'view_student_absences'] },
             ]
         },
         {
             category: 'Academic',
             items: [
-                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT'] },
-                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
-                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'] },
-                { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'] },
+                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_specialities', 'view_specialities'] },
+                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_classes', 'view_classes'] },
+                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_modules', 'view_modules'] },
+                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_rooms', 'view_rooms'] },
+                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['view_schedules', 'manage_schedules'] },
+                { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT'], permissions: ['upload_resources', 'view_resources'] },
+                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['view_reports'] },
+                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'], permissions: ['manage_grades', 'view_grades'] },
+                { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'], permissions: ['manage_certificates', 'request_certificate'] },
             ]
         },
         {
@@ -120,12 +121,48 @@ const DashboardLayout = () => {
         }
     ];
 
-    // Filter navigation items based on user role
+    // Filter navigation items based on user role and permissions
     const getFilteredNavItems = () => {
         return navItems
             .map(category => ({
                 ...category,
-                items: category.items.filter(item => item.roles.includes(user?.role_name))
+                items: category.items.filter(item => {
+                    // 1. Super Admin sees explicit role-based items OR everything? 
+                    // Let's stick to standard logic: access if role matches OR permission matches
+
+                    const userRole = user?.role_name;
+                    const userPermissions = user?.permissions || [];
+
+                    // Always allow if role matches AND item has no permissions defined
+                    // BUT if item HAS permissions defined, we should check them to allow dynamic removal
+                    // EXCEPT if user is SUPER_ADMIN, they usually override?
+                    // Let's enforce permissions if defined.
+
+                    if (item.permissions && item.permissions.length > 0) {
+                        // Check if user has AT LEAST ONE of the required permissions
+                        const hasPermission = item.permissions.some(p => userPermissions.includes(p));
+                        if (hasPermission) return true;
+
+                        // If user doesn't have permission, check if they are SUPER_ADMIN (fallback)
+                        if (userRole === 'SUPER_ADMIN') return true;
+
+                        // Otherwise, strictly hide if permissions are defined but missing?
+                        // This allows "removing" a permission to hide the link.
+                        // However, legacy roles (Student/Professor) might not have permissions populated in DB yet!
+                        // My populate script only updated Admin roles.
+                        // So for Student/Professor, we must fallback to Role check.
+
+                        const legacyRoles = ['STUDENT', 'PROFESSOR'];
+                        if (legacyRoles.includes(userRole)) {
+                            return item.roles.includes(userRole);
+                        }
+
+                        return false;
+                    }
+
+                    // Fallback for items with no permissions defined (Overview, Personal)
+                    return item.roles.includes(userRole);
+                })
             }))
             .filter(category => category.items.length > 0);
     };

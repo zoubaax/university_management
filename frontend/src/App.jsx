@@ -22,6 +22,7 @@ import GradesPage from './pages/GradesPage';
 import ProfilePage from './pages/ProfilePage';
 import CertificatesPage from './pages/CertificatesPage';
 import MessagesPage from './pages/MessagesPage';
+import RolesPage from './pages/RolesPage';
 
 const App = () => {
   return (
@@ -183,6 +184,15 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN']}>
                   <CertificatesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="roles"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                  <RolesPage />
                 </ProtectedRoute>
               }
             />

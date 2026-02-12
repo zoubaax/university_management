@@ -7,15 +7,47 @@ const { query } = require('../config/db');
  */
 exports.checkResourcePermission = (resource) => {
     return (req, res, next) => {
-        if (!canManageResource(req.user.role_name, resource)) {
-            return next(
-                new ErrorResponse(
-                    `User role ${req.user.role_name} is not authorized to manage ${resource}`,
-                    403
-                )
-            );
+        const userPermissions = req.user.permissions || [];
+        const userRole = req.user.role_name;
+
+        // SUPER_ADMIN always has access
+        if (userRole === ROLES.SUPER_ADMIN) {
+            return next();
         }
-        next();
+
+        // Mapping resource names to actual permission strings
+        const resourceToPermission = {
+            'students': 'manage_students',
+            'employees': 'manage_staff',
+            'departments': 'manage_departments',
+            'specialities': 'manage_specialities',
+            'classes': 'manage_classes',
+            'absences': 'manage_absences',
+            'modules': 'manage_modules',
+            'rooms': 'manage_rooms',
+            'schedules': 'manage_schedules',
+            'grades': 'manage_grades'
+        };
+
+        const requiredPermission = resourceToPermission[resource];
+
+        // 1. Try dynamic permission check
+        if (requiredPermission && userPermissions.includes(requiredPermission)) {
+            return next();
+        }
+
+        // 2. Fallback to hardcoded permissions for roles that might not have dynamic permissions yet
+        // This ensures existing functionality doesn't break for students/professors
+        if (canManageResource(userRole, resource)) {
+            return next();
+        }
+
+        return next(
+            new ErrorResponse(
+                `User does not have the required permission (${requiredPermission || resource}) to access this resource`,
+                403
+            )
+        );
     };
 };
 
