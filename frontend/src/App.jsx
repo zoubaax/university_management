@@ -21,6 +21,7 @@ import CourseResourcesPage from './pages/CourseResourcesPage';
 import GradesPage from './pages/GradesPage';
 import ProfilePage from './pages/ProfilePage';
 import CertificatesPage from './pages/CertificatesPage';
+import MessagesPage from './pages/MessagesPage';
 
 const App = () => {
   return (
@@ -185,6 +186,8 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+
+            <Route path="messages" element={<MessagesPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

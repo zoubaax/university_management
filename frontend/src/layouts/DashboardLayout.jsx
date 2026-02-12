@@ -20,7 +20,8 @@ import {
     School,
     ChevronRight,
     ChevronLeft,
-    FolderOpen
+    FolderOpen,
+    Mail
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -28,6 +29,7 @@ import { cn } from '../utils/cn';
 const DashboardLayout = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -48,6 +50,26 @@ const DashboardLayout = () => {
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    // Fetch unread message count
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            try {
+                const messageService = (await import('../api/services/messageService')).default;
+                const count = await messageService.getUnreadCount();
+                setUnreadCount(count);
+            } catch (err) {
+                console.error('Failed to fetch unread count:', err);
+            }
+        };
+
+        fetchUnreadCount();
+
+        // Poll every 30 seconds
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
 
     const handleLogout = () => {
         logout();
@@ -90,6 +112,7 @@ const DashboardLayout = () => {
         {
             category: 'Personal',
             items: [
+                { name: 'Messages', icon: Mail, path: '/messages', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY'] },
                 { name: 'My Profile', icon: UserCircle, path: '/profile', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'] },
                 { name: 'Settings', icon: Settings, path: '/settings', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN'] },
             ]
@@ -186,6 +209,11 @@ const DashboardLayout = () => {
                                         {isSidebarOpen && (
                                             <>
                                                 <span className="text-sm font-medium flex-1">{item.name}</span>
+                                                {item.name === 'Messages' && unreadCount > 0 && (
+                                                    <span className="px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full">
+                                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                                    </span>
+                                                )}
                                                 {isActive && (
                                                     <ChevronRight size={14} className="text-white opacity-70" />
                                                 )}
