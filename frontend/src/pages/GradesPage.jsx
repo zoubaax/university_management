@@ -37,6 +37,7 @@ import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { cn } from '../utils/cn';
+import { getCurrentAcademicYear, getAcademicYearOptions } from '../utils/academicYearUtils';
 
 const GradesPage = () => {
     const { user } = useAuth();
@@ -56,7 +57,7 @@ const GradesPage = () => {
     // Filters
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedModule, setSelectedModule] = useState('');
-    const [academicYear, setAcademicYear] = useState('2023/2024');
+    const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
     const [searchQuery, setSearchQuery] = useState('');
     const [sortField, setSortField] = useState('last_name');
     const [sortDirection, setSortDirection] = useState('asc');
@@ -315,11 +316,7 @@ const GradesPage = () => {
                 <div className="flex items-center gap-3">
                     <Select
                         label="Academic Year"
-                        options={[
-                            { value: '2022/2023', label: '2022/2023' },
-                            { value: '2023/2024', label: '2023/2024' },
-                            { value: '2024/2025', label: '2024/2025' }
-                        ]}
+                        options={getAcademicYearOptions(5)}
                         value={academicYear}
                         onChange={(e) => {
                             setAcademicYear(e.target.value);
@@ -557,10 +554,7 @@ const GradesPage = () => {
                             Academic Year
                         </label>
                         <Select
-                            options={[
-                                { value: '2023/2024', label: '2023/2024' },
-                                { value: '2024/2025', label: '2024/2025' }
-                            ]}
+                            options={getAcademicYearOptions(5, true)}
                             value={academicYear}
                             onChange={(e) => setAcademicYear(e.target.value)}
                         />

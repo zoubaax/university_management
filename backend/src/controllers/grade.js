@@ -1,13 +1,14 @@
 const Grade = require('../models/Grade');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middlewares/async');
+const { getCurrentAcademicYear } = require('../utils/academicYear');
 
 // @desc    Get grades for a specific class and module
 // @route   GET /api/grades/class/:classId/module/:moduleId
 // @access  Private (Professor, Admin)
 exports.getClassGrades = asyncHandler(async (req, res, next) => {
     const { classId, moduleId } = req.params;
-    const academicYear = req.query.academicYear || '2023/2024'; // Default to current system year
+    const academicYear = req.query.academicYear || getCurrentAcademicYear();
 
     const grades = await Grade.findByClassAndModule(classId, moduleId, academicYear);
 
@@ -48,7 +49,7 @@ exports.upsertGrades = asyncHandler(async (req, res, next) => {
 // @route   GET /api/grades/my-grades
 // @access  Private (Student)
 exports.getMyGrades = asyncHandler(async (req, res, next) => {
-    const academicYear = req.query.academicYear || '2023/2024';
+    const academicYear = req.query.academicYear || getCurrentAcademicYear();
 
     // Check if user is student
     if (!req.user.student_id) {

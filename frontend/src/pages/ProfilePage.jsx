@@ -28,6 +28,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { cn } from '../utils/cn';
 import { toast } from 'react-hot-toast';
+import { getCurrentAcademicYear } from '../utils/academicYearUtils';
 
 const ProfilePage = () => {
     const { user } = useAuth();
@@ -278,7 +279,7 @@ const ProfilePage = () => {
                                         <p className="text-sm text-blue-600 font-medium">{profileData.speciality_name}</p>
                                         <div className="flex items-center gap-3 mt-2">
                                             <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-100">Semester 2</span>
-                                            <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-100">Academic Year 2023/2024</span>
+                                            <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-100">Academic Year {getCurrentAcademicYear()}</span>
                                         </div>
                                     </div>
                                 </div>

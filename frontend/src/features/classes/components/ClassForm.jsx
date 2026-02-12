@@ -7,6 +7,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import { cn } from '../../../utils/cn';
+import { getCurrentAcademicYear } from '../../../utils/academicYearUtils';
 
 const classSchema = z.object({
     speciality_id: z.string().uuid('Please select an academic program'),
@@ -33,7 +34,7 @@ const ClassForm = ({ onSubmit, specialities, onCancel, initialValues, isEditing 
     } = useForm({
         resolver: zodResolver(classSchema),
         defaultValues: initialValues || {
-            academic_year: `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
+            academic_year: getCurrentAcademicYear(),
         },
         mode: 'onChange'
     });
@@ -45,7 +46,7 @@ const ClassForm = ({ onSubmit, specialities, onCancel, initialValues, isEditing 
     const nameTouched = touchedFields.name;
     const yearTouched = touchedFields.academic_year;
 
-    const selectedSpeciality = specialityId 
+    const selectedSpeciality = specialityId
         ? specialities.find(s => s.id === specialityId)
         : null;
 
@@ -63,9 +64,9 @@ const ClassForm = ({ onSubmit, specialities, onCancel, initialValues, isEditing 
     const generateClassCode = () => {
         if (!selectedSpeciality || !level) return '';
         const programCode = selectedSpeciality.name.substring(0, 3).toUpperCase();
-        const levelCode = level.includes('Master') ? 'M' : 
-                         level.includes('Doctorate') ? 'D' : 
-                         level[0];
+        const levelCode = level.includes('Master') ? 'M' :
+            level.includes('Doctorate') ? 'D' :
+                level[0];
         return `${programCode}${levelCode}-A`;
     };
 
