@@ -139,18 +139,32 @@ exports.sendMessage = async (req, res) => {
         // We use 'general' type since 'new_message' wasn't in our initial enum list
         // but it works perfectly for this purpose
         const Notification = require('../models/Notification');
+        const { query } = require('../config/db');
+
         const senderName = req.user.role_name === 'STUDENT'
             ? `${req.user.first_name} ${req.user.last_name}`
             : `${req.user.first_name} ${req.user.last_name}`;
 
-        await Notification.create({
-            user_id: recipient_id,
-            type: 'general',
-            title: `New Message from ${senderName}`,
-            message: subject.length > 50 ? subject.substring(0, 47) + '...' : subject,
-            link: '/messages',
-            related_id: message.id
-        });
+        // Look up the actual User ID for the notification because recipient_id is student/employee ID
+        let recipientUserId = null;
+        if (recipient_type === 'student') {
+            const res = await query('SELECT user_id FROM students WHERE id = $1', [recipient_id]);
+            recipientUserId = res.rows[0]?.user_id;
+        } else if (recipient_type === 'employee') {
+            const res = await query('SELECT user_id FROM employees WHERE id = $1', [recipient_id]);
+            recipientUserId = res.rows[0]?.user_id;
+        }
+
+        if (recipientUserId) {
+            await Notification.create({
+                user_id: recipientUserId,
+                type: 'general',
+                title: `New Message from ${senderName}`,
+                message: subject.length > 50 ? subject.substring(0, 47) + '...' : subject,
+                link: '/messages',
+                related_id: message.id
+            });
+        }
 
         res.status(201).json({
             success: true,
