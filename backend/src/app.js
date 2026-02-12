@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const errorHandler = require('./middlewares/error');
 const logger = require('./utils/logger');
+const path = require('path');
 
 // Load env vars
 dotenv.config();
@@ -15,7 +16,10 @@ dotenv.config();
 const app = express();
 
 // Serve static files
-app.use(express.static('public'));
+// Serve from root for /uploads
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+// Serve from /api/v1/uploads for compatibility
+app.use('/api/v1/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Diagnostic log
 console.log('Backend starting...');
