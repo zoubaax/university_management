@@ -135,6 +135,23 @@ exports.sendMessage = async (req, res) => {
             body
         });
 
+        // Create a system notification for the recipient
+        // We use 'general' type since 'new_message' wasn't in our initial enum list
+        // but it works perfectly for this purpose
+        const Notification = require('../models/Notification');
+        const senderName = req.user.role_name === 'STUDENT'
+            ? `${req.user.first_name} ${req.user.last_name}`
+            : `${req.user.first_name} ${req.user.last_name}`;
+
+        await Notification.create({
+            user_id: recipient_id,
+            type: 'general',
+            title: `New Message from ${senderName}`,
+            message: subject.length > 50 ? subject.substring(0, 47) + '...' : subject,
+            link: '/messages',
+            related_id: message.id
+        });
+
         res.status(201).json({
             success: true,
             data: message

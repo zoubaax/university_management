@@ -25,6 +25,7 @@ import studentService from '../api/services/studentService';
 import moduleService from '../api/services/moduleService';
 import scheduleService from '../api/services/scheduleService';
 import studentAttendanceService from '../api/services/studentAttendanceService';
+import gradeService from '../api/services/gradeService';
 
 const StatCard = ({ title, value, icon: Icon, trend, subtitle, delay }) => {
     const getTrendColor = () => {
