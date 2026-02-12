@@ -92,6 +92,7 @@ app.use('/api/v1/rooms', require('./routes/room'));
 app.use('/api/v1/student-attendance', require('./routes/studentAttendance'));
 app.use('/api/v1/course-resources', require('./routes/courseResource'));
 app.use('/api/v1/grades', require('./routes/grade'));
+app.use('/api/v1/certificates', require('./routes/certificate'));
 
 // Health check
 app.get('/health', (req, res) => {

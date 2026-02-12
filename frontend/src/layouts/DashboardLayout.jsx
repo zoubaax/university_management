@@ -83,6 +83,7 @@ const DashboardLayout = () => {
                 { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'] },
                 { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'] },
+                { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'] },
             ]
         },
         {
