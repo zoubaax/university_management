@@ -98,6 +98,7 @@ app.use('/api/v1/course-resources', require('./routes/courseResource'));
 app.use('/api/v1/grades', require('./routes/grade'));
 app.use('/api/v1/certificates', require('./routes/certificate'));
 app.use('/api/v1/messages', require('./routes/messages'));
+app.use('/api/v1/dashboard', require('./routes/dashboard'));
 app.use('/api/v1/notifications', require('./routes/notifications'));
 
 // Health check

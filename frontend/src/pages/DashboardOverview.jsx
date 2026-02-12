@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Users,
@@ -8,7 +8,6 @@ import {
     Calendar,
     ArrowRight,
     ShieldCheck,
-    UserCircle,
     Building2,
     Briefcase,
     Clock,
@@ -19,6 +18,10 @@ import {
     FileText,
     Activity
 } from 'lucide-react';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    PieChart, Pie, Cell, Legend
+} from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import Badge from '../components/ui/Badge';
 import studentService from '../api/services/studentService';
@@ -26,6 +29,9 @@ import moduleService from '../api/services/moduleService';
 import scheduleService from '../api/services/scheduleService';
 import studentAttendanceService from '../api/services/studentAttendanceService';
 import gradeService from '../api/services/gradeService';
+import dashboardService from '../api/services/dashboardService';
+
+const COLORS = ['#1a1a1a', '#404040', '#737373', '#a3a3a3', '#d4d4d4'];
 
 const StatCard = ({ title, value, icon: Icon, trend, subtitle, delay }) => {
     const getTrendColor = () => {
@@ -97,31 +103,49 @@ const ActivityItem = ({ title, description, time, status, index }) => {
 
 const DashboardOverview = () => {
     const { user } = useAuth();
+    const [loading, setLoading] = useState(false);
 
-    const [profStats, setProfStats] = React.useState({
+    // Stats states
+    const [adminStats, setAdminStats] = useState({
+        counts: { students_count: 0, staff_count: 0, departments_count: 0, roles_count: 0 },
+        studentDistribution: [],
+        roleDistribution: [],
+        absenceTrends: []
+    });
+
+    const [profStats, setProfStats] = useState({
         studentsCount: 0,
         modulesCount: 0,
         upcomingClasses: []
     });
-    const [studentStats, setStudentStats] = React.useState({
+
+    const [studentStats, setStudentStats] = useState({
         gpa: '0.0',
         credits: '0/180',
         activeCourses: 0,
         absences: 0,
         upcomingClasses: []
     });
-    const [loading, setLoading] = React.useState(false);
 
-    React.useEffect(() => {
-        if (user?.role_name === 'PROFESSOR' && user?.employee_id) {
-            fetchProfessorDashboardData();
-        }
-        if (user?.role_name === 'STUDENT' && user?.student_id) {
-            fetchStudentDashboardData();
-        }
-    }, [user?.employee_id, user?.student_id]);
+    useEffect(() => {
+        if (user?.role_name === 'SUPER_ADMIN') fetchAdminStats();
+        if (user?.role_name === 'PROFESSOR' && user?.employee_id) fetchProfessorStats();
+        if (user?.role_name === 'STUDENT' && user?.student_id) fetchStudentStats();
+    }, [user]);
 
-    const fetchProfessorDashboardData = async () => {
+    const fetchAdminStats = async () => {
+        try {
+            setLoading(true);
+            const data = await dashboardService.getAdminStats();
+            setAdminStats(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchProfessorStats = async () => {
         try {
             setLoading(true);
             const [allStudents, allModules, schedule] = await Promise.all([
@@ -129,45 +153,25 @@ const DashboardOverview = () => {
                 moduleService.getAll(),
                 scheduleService.getByProfessor(user.employee_id)
             ]);
-
             const myModules = (allModules || []).filter(m =>
                 (m.assignments || []).some(a => a.professor_id === user.employee_id)
             );
-
             const myClassIds = myModules.flatMap(m => (m.assignments || []).filter(a => a.professor_id === user.employee_id).map(a => a.class_id));
             const uniqueClassIds = [...new Set(myClassIds)];
-
             const myStudentsCount = (allStudents || []).filter(s => uniqueClassIds.includes(s.class_id)).length;
 
-            const upcoming = (schedule || [])
-                .filter(s => {
-                    // Simple day sort for current week
-                    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                    const todayIdx = new Date().getDay() - 1; // 0 is Sunday
-                    return days.indexOf(s.day_of_week) >= (todayIdx < 0 ? 0 : todayIdx);
-                })
-                .slice(0, 3)
-                .map(s => ({
-                    title: s.module_name,
-                    date: s.day_of_week,
-                    time: s.slot_type === 'MORNING' ? '08:30 AM' : '14:30 PM',
-                    location: s.room || 'TBD',
-                    className: s.class_name
-                }));
+            const upcoming = (schedule || []).slice(0, 3).map(s => ({
+                title: s.module_name,
+                date: s.day_of_week,
+                time: s.slot_type === 'MORNING' ? '08:30' : '14:30',
+                location: s.room || 'TBD'
+            }));
 
-            setProfStats({
-                studentsCount: myStudentsCount,
-                modulesCount: myModules.length,
-                upcomingClasses: upcoming
-            });
-        } catch (err) {
-            console.error('Failed to fetch dashboard data:', err);
-        } finally {
-            setLoading(false);
-        }
+            setProfStats({ studentsCount: myStudentsCount, modulesCount: myModules.length, upcomingClasses: upcoming });
+        } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
-    const fetchStudentDashboardData = async () => {
+    const fetchStudentStats = async () => {
         try {
             setLoading(true);
             const [grades, attendance, schedule] = await Promise.all([
@@ -175,274 +179,168 @@ const DashboardOverview = () => {
                 studentAttendanceService.getStudentAttendance(user.student_id),
                 scheduleService.getByClass(user.class_id)
             ]);
-
-            // Calculate GPA (simple avg for now)
-            const validGrades = (grades.data || []).filter(g => g.cc1 !== null || g.cc2 !== null || g.exam !== null);
-            const avg = validGrades.length > 0
-                ? (validGrades.reduce((acc, g) => {
-                    const mark = ((Number(g.cc1 || 0) + Number(g.cc2 || 0)) / 2) * 0.4 + Number(g.exam || 0) * 0.6;
-                    return acc + mark;
-                }, 0) / validGrades.length).toFixed(2)
-                : '0.0';
-
-            const upcoming = (schedule || [])
-                .filter(s => {
-                    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                    const todayIdx = new Date().getDay() - 1;
-                    return days.indexOf(s.day_of_week) >= (todayIdx < 0 ? 0 : todayIdx);
-                })
-                .slice(0, 3)
-                .map(s => ({
-                    title: s.module_name,
-                    date: s.day_of_week,
-                    time: s.slot_type === 'MORNING' ? '08:30 AM' : '14:30 PM',
-                    location: s.room || 'TBD',
-                    className: s.class_name
-                }));
+            const validGrades = (grades.data || []).filter(g => g.cc1 !== null);
+            const avg = validGrades.length > 0 ? (validGrades.reduce((acc, g) => acc + ((g.cc1 + g.cc2) / 2) * 0.4 + g.exam * 0.6, 0) / validGrades.length).toFixed(2) : '0.0';
 
             setStudentStats({
                 gpa: avg,
-                credits: `${validGrades.length * 6}/180`, // Assume 6 credits per module
+                credits: `${validGrades.length * 6}/180`,
                 activeCourses: validGrades.length,
                 absences: (attendance.data || []).filter(a => a.status === 'ABSENT').length,
-                upcomingClasses: upcoming
+                upcomingClasses: (schedule || []).slice(0, 3).map(s => ({ title: s.module_name, date: s.day_of_week, time: s.slot_type === 'MORNING' ? '08:30' : '14:30', location: s.room }))
             });
-        } catch (err) {
-            console.error('Failed to fetch student dashboard data:', err);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
     const getRoleContent = () => {
-        const baseContent = {
+        const base = {
             SUPER_ADMIN: {
-                title: 'System Administration',
-                subtitle: 'Monitor and manage institutional systems',
+                title: 'System Intelligence',
+                subtitle: 'High-level institutional performance data',
                 stats: [
-                    { title: 'Active Administrators', value: '12', icon: ShieldCheck, trend: '+2' },
-                    { title: 'System Uptime', value: '99.9%', icon: TrendingUp, subtitle: 'Last 30 days' },
-                    { title: 'Active Sessions', value: '42', icon: Activity, trend: '+5' },
-                    { title: 'Pending Audits', value: '8', icon: FileText, trend: '-3' }
+                    { title: 'Total Students', value: adminStats.counts.students_count.toString(), icon: GraduationCap },
+                    { title: 'Academic Staff', value: adminStats.counts.staff_count.toString(), icon: Users },
+                    { title: 'Departments', value: adminStats.counts.departments_count.toString(), icon: Building2 },
+                    { title: 'System Roles', value: adminStats.counts.roles_count.toString(), icon: ShieldCheck }
                 ],
-                activity: 'System Activity',
                 activities: [
-                    { title: 'Security audit completed', description: 'System security scan', time: '10:30 AM', status: 'completed' },
-                    { title: 'Database backup', description: 'Scheduled backup completed', time: '09:15 AM', status: 'completed' },
-                    { title: 'User role updated', description: 'Professor → Department Head', time: 'Yesterday', status: 'completed' },
-                    { title: 'System maintenance', description: 'Planned for tonight', time: 'Scheduled', status: 'pending' }
+                    { title: 'Security Audit', description: 'System scan complete', time: '10:00 AM', status: 'completed' },
+                    { title: 'Data Backup', description: 'Institutional cloud sync', time: '04:00 AM', status: 'completed' }
                 ]
             },
             RH: {
-                title: 'Human Resources',
-                subtitle: 'Manage staff, departments, and payroll',
+                title: 'Staff Management',
+                subtitle: 'Manage university employees and logistics',
                 stats: [
-                    { title: 'Total Staff', value: '84', icon: Users, trend: '+5' },
-                    { title: 'Departments', value: '12', icon: Building2 },
-                    { title: 'Pending Requests', value: '8', icon: Briefcase, trend: '-2' },
-                    { title: 'Payroll Processed', value: '98%', icon: TrendingUp, subtitle: 'This month' }
+                    { title: 'Total Staff', value: '84', icon: Users, trend: '+2' },
+                    { title: 'Active Depts', value: '12', icon: Building2 },
+                    { title: 'Pending File', value: '5', icon: FileText },
+                    { title: 'Requests', value: '3', icon: Bell }
                 ],
-                activity: 'Recent Staff Activity',
                 activities: [
-                    { title: 'New staff registered', description: 'Dr. Sarah Johnson', time: 'Today, 11:30', status: 'completed' },
-                    { title: 'Department transfer', description: 'CS → Engineering', time: 'Today, 10:15', status: 'pending' },
-                    { title: 'Contract renewal', description: '3 staff members', time: 'Yesterday', status: 'completed' },
-                    { title: 'Training session', description: 'All new hires', time: 'Tomorrow', status: 'pending' }
-                ]
-            },
-            RESPONSABLE_DEPARTMENT: {
-                title: 'Department Overview',
-                subtitle: 'Monitor academic programs and faculty',
-                stats: [
-                    { title: 'Total Students', value: '420', icon: GraduationCap, trend: '+15' },
-                    { title: 'Faculty Members', value: '15', icon: Users },
-                    { title: 'Active Courses', value: '24', icon: BookOpen },
-                    { title: 'Avg. GPA', value: '14.5', icon: TrendingUp, subtitle: 'This semester' }
-                ],
-                activity: 'Department Updates',
-                activities: [
-                    { title: 'New course approved', description: 'Advanced Algorithms', time: 'Today, 09:45', status: 'completed' },
-                    { title: 'Faculty meeting', description: 'Monthly review', time: 'Tomorrow', status: 'pending' },
-                    { title: 'Research grant', description: 'Submitted for review', time: 'Yesterday', status: 'pending' },
-                    { title: 'Student petitions', description: '5 pending review', time: 'This week', status: 'pending' }
+                    { title: 'New Hire', description: 'Dr. Sarah Smith joined', time: 'Today', status: 'completed' }
                 ]
             },
             PROFESSOR: {
-                title: 'Academic Portal',
-                subtitle: 'Manage courses and student progress',
+                title: 'Faculty Portal',
+                subtitle: 'Academic management and course planning',
                 stats: [
                     { title: 'My Students', value: profStats.studentsCount.toString(), icon: GraduationCap },
-                    { title: 'Active Modules', value: profStats.modulesCount.toString(), icon: BookOpen },
-                    { title: 'Weekly Hours', value: (profStats.modulesCount * 3.5).toString() + 'h', icon: Clock, trend: '+0' },
-                    { title: 'Next Class', value: profStats.upcomingClasses[0]?.location || 'N/A', icon: TrendingUp, subtitle: profStats.upcomingClasses[0]?.title || 'No upcoming classes' }
+                    { title: 'Modules', value: profStats.modulesCount.toString(), icon: BookOpen },
+                    { title: 'Weekly Hours', value: (profStats.modulesCount * 3.5).toString() + 'h', icon: Clock },
+                    { title: 'Engagement', value: '94%', icon: TrendingUp }
                 ],
-                activity: 'Performance Overview',
                 activities: [
-                    { title: 'Active Engagement', description: 'Modules are fully assigned', time: 'Real-time', status: 'completed' },
-                    { title: 'Schedule Sync', description: 'Weekly view updated', time: 'Live', status: 'completed' },
-                    { title: 'Student Access', description: 'Department-wide visibility', time: 'System', status: 'completed' }
+                    { title: 'Marks Uploaded', description: 'Module: Advanced CS', time: 'Yesterday', status: 'completed' }
                 ]
             },
             STUDENT: {
-                title: 'Student Dashboard',
-                subtitle: 'Track your academic progress',
+                title: 'My Progress',
+                subtitle: 'Track your personal academic records',
                 stats: [
                     { title: 'Current GPA', value: studentStats.gpa, icon: TrendingUp },
-                    { title: 'Credits Earned', value: studentStats.credits, icon: GraduationCap, subtitle: `${Math.round((parseInt(studentStats.credits) / 180) * 100)}% complete` },
-                    { title: 'Absences', value: studentStats.absences.toString(), icon: Clock, trend: studentStats.absences > 3 ? '+ Warning' : 'Safe' },
-                    { title: 'Active Modules', value: studentStats.activeCourses.toString(), icon: BookOpen }
+                    { title: 'Credits', value: studentStats.credits, icon: GraduationCap },
+                    { title: 'Absences', value: studentStats.absences.toString(), icon: Clock },
+                    { title: 'Courses', value: studentStats.activeCourses.toString(), icon: BookOpen }
                 ],
-                activity: 'Academic Activity',
                 activities: [
-                    { title: 'Record Status', description: 'Academic records updated', time: 'Today', status: 'completed' },
-                    { title: 'Attendance Tracked', description: 'Absences are monitored live', time: 'System', status: 'completed' },
-                    { title: 'Module Access', description: 'G-Suite/LMS integration active', time: 'Live', status: 'completed' }
+                    { title: 'Grade Released', description: 'Web Development', time: 'Today', status: 'completed' }
                 ]
             }
         };
-
-        return baseContent[user?.role_name] || baseContent.STUDENT;
+        return base[user?.role_name] || base.STUDENT;
     };
 
     const content = getRoleContent();
-    const roleName = user?.role_name?.replace(/_/g, ' ') || 'User';
-    const userName = user?.first_name || user?.email?.split('@')[0] || user?.email;
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{content.title}</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        Welcome back, <span className="font-medium text-gray-700">{userName}</span>. {content.subtitle}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-gray-600">
-                        {roleName}
-                    </Badge>
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <Bell className="w-5 h-5" />
-                    </button>
-                </div>
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{content.title}</h1>
+                <p className="text-sm text-gray-500 mt-1">Welcome, {user?.first_name || 'User'}. {content.subtitle}</p>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {content.stats.map((stat, index) => (
-                    <StatCard
-                        key={stat.title}
-                        {...stat}
-                        delay={index * 0.05}
-                    />
+                {content.stats.map((stat, i) => (
+                    <StatCard key={i} {...stat} delay={i * 0.05} />
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Recent Activity */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900">{content.activity}</h2>
-                                <p className="text-sm text-gray-500 mt-1">Latest updates and notifications</p>
-                            </div>
-                            <button className="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1">
-                                View all
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <div className="space-y-3">
-                            {content.activities.map((activity, index) => (
-                                <ActivityItem key={index} {...activity} index={index} />
-                            ))}
+            {/* Charts for Super Admin */}
+            {user?.role_name === 'SUPER_ADMIN' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 h-[400px] min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-500 uppercase mb-6">Student Distribution by Department</h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={adminStats.studentDistribution}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        cx="50%" cy="50%"
+                                        outerRadius={80}
+                                        label
+                                    >
+                                        {adminStats.studentDistribution.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend verticalAlign="bottom" height={36} />
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Quick Actions */}
-                    <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button className="bg-white/10 hover:bg-white/20 text-white p-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                                <BarChart3 className="w-4 h-4" />
-                                Generate Report
-                            </button>
-                            <button className="bg-white/10 hover:bg-white/20 text-white p-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                                <FileText className="w-4 h-4" />
-                                View Documents
-                            </button>
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 h-[400px] min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-500 uppercase mb-6">Absence Trends (7 Days)</h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={adminStats.absenceTrends}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                                    <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                    <Bar dataKey="absent_count" name="Absences" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
                 </div>
+            )}
 
-                {/* Calendar & Upcoming */}
-                <div className="space-y-6">
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-gray-500" />
-                            Upcoming Events
-                        </h2>
-                        <div className="space-y-4">
-                            {(((user?.role_name === 'PROFESSOR' && profStats.upcomingClasses.length > 0) ||
-                                (user?.role_name === 'STUDENT' && studentStats.upcomingClasses.length > 0))
-                                ? (user?.role_name === 'PROFESSOR' ? profStats.upcomingClasses : studentStats.upcomingClasses)
-                                : [
-                                    { title: 'Faculty Meeting', date: 'Feb 15', time: '09:30 AM', location: 'Conference Room A' },
-                                    { title: 'System Maintenance', date: 'Feb 16', time: '10:00 PM', location: 'All Systems' },
-                                    { title: 'Student Orientation', date: 'Feb 18', time: '02:00 PM', location: 'Main Hall' },
-                                ]).map((event, index) => (
-                                    <div key={index} className="flex gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="flex-shrink-0">
-                                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center">
-                                                {event.date.length > 5 ? (
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="text-[10px] font-bold text-blue-600 leading-tight">
-                                                            {event.date.substring(0, 3).toUpperCase()}
-                                                        </span>
-                                                        <Calendar className="w-4 h-4 text-gray-400 mt-1" />
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <span className="text-xs font-medium text-gray-500">FEB</span>
-                                                        <span className="text-lg font-bold text-gray-900">{event.date.split(' ')[1]}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-medium text-gray-900 line-clamp-1">{event.title}</h4>
-                                            <p className="text-sm text-gray-500 mt-1">{event.time} • {event.location}</p>
-                                            {event.className && (
-                                                <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase italic bg-blue-50 inline-block px-1 rounded">
-                                                    {event.className}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                        </div>
-                        <button className="w-full mt-6 py-2.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-                            View Full Calendar
-                        </button>
+            {/* Bottom Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h3>
+                    <div className="space-y-3">
+                        {content.activities.map((a, i) => (
+                            <ActivityItem key={i} {...a} index={i} />
+                        ))}
                     </div>
+                </div>
 
-                    {/* System Status */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">System Status</h2>
+                <div className="bg-gray-900 rounded-xl p-6 text-white flex flex-col justify-between">
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2">Quick Access</h3>
+                        <p className="text-sm text-gray-400 mb-6">Common system tools and generation utilities.</p>
                         <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">All Systems</span>
-                                <Badge className="bg-green-100 text-green-700 border-green-200">Operational</Badge>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Database</span>
-                                <Badge className="bg-green-100 text-green-700 border-green-200">Normal</Badge>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">API Services</span>
-                                <Badge className="bg-green-100 text-green-700 border-green-200">Stable</Badge>
-                            </div>
+                            <button className="w-full bg-white/10 hover:bg-white/20 p-3 rounded-lg text-sm flex items-center gap-3 transition-colors">
+                                <FileText size={16} /> Reports Generator
+                            </button>
+                            <button className="w-full bg-white/10 hover:bg-white/20 p-3 rounded-lg text-sm flex items-center gap-3 transition-colors">
+                                <Activity size={16} /> System Health
+                            </button>
+                        </div>
+                    </div>
+                    <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-gray-500 font-medium">
+                        <span>UPF Cloud Node 01</span>
+                        <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-green-500 ring-4 ring-green-500/20" />
+                            Stable
                         </div>
                     </div>
                 </div>

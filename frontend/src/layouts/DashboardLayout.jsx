@@ -88,27 +88,27 @@ const DashboardLayout = () => {
         {
             category: 'Administration',
             items: [
-                { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: ['SUPER_ADMIN'], permissions: ['manage_system'] },
+                { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: [], permissions: ['manage_system'] },
                 { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_staff'] },
-                { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_departments'] },
-                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_students', 'view_students'] },
+                { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH'], permissions: ['manage_departments'] },
+                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_students', 'view_students'] },
                 { name: 'Roles', icon: ShieldCheck, path: '/roles', roles: ['SUPER_ADMIN'], permissions: ['manage_roles'] },
-                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_absences', 'view_absences'] },
-                { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences', 'view_student_absences'] },
+                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH'], permissions: ['manage_absences', 'view_absences'] },
+                { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences', 'view_student_absences'] },
             ]
         },
         {
             category: 'Academic',
             items: [
-                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_specialities', 'view_specialities'] },
-                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_classes', 'view_classes'] },
-                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_modules', 'view_modules'] },
-                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_rooms', 'view_rooms'] },
-                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['view_schedules', 'manage_schedules'] },
+                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_specialities', 'view_specialities'] },
+                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_classes', 'view_classes'] },
+                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_modules', 'view_modules'] },
+                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_rooms', 'view_rooms'] },
+                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['view_schedules', 'manage_schedules'] },
                 { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT'], permissions: ['upload_resources', 'view_resources'] },
-                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'SUPER_ADMIN', 'DIRECTOR_DEPARTMENT'], permissions: ['view_reports'] },
-                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'], permissions: ['manage_grades', 'view_grades'] },
-                { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'], permissions: ['manage_certificates', 'request_certificate'] },
+                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['view_reports'] },
+                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_grades', 'view_grades'] },
+                { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_certificates', 'request_certificate'] },
             ]
         },
         {
