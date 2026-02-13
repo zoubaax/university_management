@@ -24,6 +24,7 @@ import CertificatesPage from './pages/CertificatesPage';
 import MessagesPage from './pages/MessagesPage';
 import RolesPage from './pages/RolesPage';
 import TaskCenterPage from './pages/TaskCenterPage';
+import VerificationPage from './pages/VerificationPage';
 
 const App = () => {
   return (
@@ -31,6 +32,9 @@ const App = () => {
       <Toaster position="top-right" reverseOrder={false} />
       <BrowserRouter>
         <Routes>
+          {/* Public Route for Document Verification */}
+          <Route path="/verify/:code" element={<VerificationPage />} />
+
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/" element={

@@ -18,5 +18,6 @@ router.get('/my-requests', authorize('STUDENT'), getMyRequests);
 router.get('/department-requests', authorize('RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'), getDepartmentRequests);
 router.put('/process/:id', authorize('RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN'), processRequest);
 router.get('/details/:id', getCertificateDetails);
+router.get('/download/:id', require('../controllers/certificate').downloadCertificate);
 
 module.exports = router;

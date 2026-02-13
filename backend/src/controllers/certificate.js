@@ -172,3 +172,23 @@ exports.getCertificateDetails = asyncHandler(async (req, res, next) => {
         data: details
     });
 });
+// @desc    Download generated certificate
+// @route   GET /api/v1/certificates/download/:id
+// @access  Private
+exports.downloadCertificate = asyncHandler(async (req, res, next) => {
+    const DocumentService = require('../services/documentService');
+
+    try {
+        const { buffer, fileName } = await DocumentService.generateCertificate(req.params.id);
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'Content-Length': buffer.length,
+        });
+
+        res.send(buffer);
+    } catch (err) {
+        return next(new ErrorResponse(err.message || 'Error generating document', 500));
+    }
+});

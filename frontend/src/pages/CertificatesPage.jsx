@@ -18,9 +18,11 @@ import {
     CheckCheck,
     X,
     Loader2,
-    ChevronDown
+    ChevronDown,
+    Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import certificateService from '../api/services/certificateService';
 import Button from '../components/ui/Button';
@@ -37,16 +39,16 @@ const CertificatesPage = () => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
-    
+
     // UI State
     const [isRequestModalOpen, setRequestModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [rejectionModal, setRejectionModal] = useState({ 
-        isOpen: false, 
-        requestId: null, 
-        remarks: '' 
+    const [rejectionModal, setRejectionModal] = useState({
+        isOpen: false,
+        requestId: null,
+        remarks: ''
     });
 
     // Fetch data on mount
@@ -107,7 +109,7 @@ const CertificatesPage = () => {
 
     const handleReject = async () => {
         if (!rejectionModal.requestId) return;
-        
+
         if (!rejectionModal.remarks.trim()) {
             toast.error('Please provide a reason for rejection');
             return;
@@ -151,6 +153,37 @@ const CertificatesPage = () => {
             setTimeout(() => {
                 window.print();
             }, 500);
+        }
+    };
+
+    const handleDownload = async (id) => {
+        try {
+            setProcessing(true);
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+            const response = await axios({
+                url: `${apiUrl}/certificates/download/${id}`,
+                method: 'GET',
+                responseType: 'blob',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Smart_Certificate_${id.substring(0, 8)}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('Smart Certificate generated and downloaded');
+        } catch (err) {
+            toast.error('Failed to generate smart document');
+            console.error(err);
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -261,7 +294,7 @@ const CertificatesPage = () => {
                             {data.registration_num}
                         </span>,
                     </p>
-                    
+
                     <p className="text-base">
                         is currently enrolled as a{' '}
                         <span className="font-bold text-gray-900">
@@ -285,7 +318,7 @@ const CertificatesPage = () => {
                     </p>
 
                     <p className="text-base italic text-gray-600 leading-relaxed">
-                        This certificate is issued upon the student's request for administrative 
+                        This certificate is issued upon the student's request for administrative
                         and official purposes. It serves as proof of active enrollment.
                     </p>
                 </div>
@@ -379,8 +412,8 @@ const CertificatesPage = () => {
                             Academic Certificates
                         </h1>
                         <p className="text-sm text-gray-500 mt-1">
-                            {isStudent 
-                                ? 'Request and track your enrollment certificates' 
+                            {isStudent
+                                ? 'Request and track your enrollment certificates'
                                 : 'Manage certificate requests from students'}
                         </p>
                     </div>
@@ -400,31 +433,31 @@ const CertificatesPage = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { 
-                        label: 'Total Requests', 
-                        value: stats.total, 
-                        icon: FileText, 
+                    {
+                        label: 'Total Requests',
+                        value: stats.total,
+                        icon: FileText,
                         color: 'bg-blue-50 text-blue-600',
                         bg: 'bg-blue-500'
                     },
-                    { 
-                        label: 'Pending', 
-                        value: stats.pending, 
-                        icon: Clock, 
+                    {
+                        label: 'Pending',
+                        value: stats.pending,
+                        icon: Clock,
                         color: 'bg-amber-50 text-amber-600',
                         bg: 'bg-amber-500'
                     },
-                    { 
-                        label: 'Approved', 
-                        value: stats.approved, 
-                        icon: CheckCheck, 
+                    {
+                        label: 'Approved',
+                        value: stats.approved,
+                        icon: CheckCheck,
                         color: 'bg-green-50 text-green-600',
                         bg: 'bg-green-500'
                     },
-                    { 
-                        label: 'Rejected', 
-                        value: stats.rejected, 
-                        icon: XCircle, 
+                    {
+                        label: 'Rejected',
+                        value: stats.rejected,
+                        icon: XCircle,
                         color: 'bg-red-50 text-red-600',
                         bg: 'bg-red-500'
                     }
@@ -458,8 +491,8 @@ const CertificatesPage = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             type="text"
-                            placeholder={isStudent 
-                                ? "Search by reference number..." 
+                            placeholder={isStudent
+                                ? "Search by reference number..."
                                 : "Search by student name or ID..."}
                             className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
                             value={searchQuery}
@@ -528,7 +561,7 @@ const CertificatesPage = () => {
                                     filteredRequests.map((request, index) => {
                                         const statusConfig = getStatusConfig(request.status);
                                         const StatusIcon = statusConfig.icon;
-                                        
+
                                         return (
                                             <motion.tr
                                                 key={request.id}
@@ -557,8 +590,8 @@ const CertificatesPage = () => {
                                                 )}
                                                 <td className="px-6 py-4">
                                                     <Badge variant="outline" className="text-xs">
-                                                        {request.type === 'ENROLLMENT' 
-                                                            ? 'Enrollment Certificate' 
+                                                        {request.type === 'ENROLLMENT'
+                                                            ? 'Enrollment Certificate'
                                                             : request.type}
                                                     </Badge>
                                                 </td>
@@ -594,8 +627,8 @@ const CertificatesPage = () => {
                                                             {statusConfig.label}
                                                         </div>
                                                         {request.remarks && request.status === 'REJECTED' && (
-                                                            <p className="text-xs text-gray-500 max-w-[200px] truncate" 
-                                                               title={request.remarks}>
+                                                            <p className="text-xs text-gray-500 max-w-[200px] truncate"
+                                                                title={request.remarks}>
                                                                 Reason: {request.remarks}
                                                             </p>
                                                         )}
@@ -638,19 +671,34 @@ const CertificatesPage = () => {
                                                             </>
                                                         )}
                                                         {request.status === 'APPROVED' && (
-                                                            <button
-                                                                onClick={() => handlePrint(request.id)}
-                                                                disabled={processing}
-                                                                className={cn(
-                                                                    "p-2 rounded-lg transition-all",
-                                                                    "text-blue-600 hover:text-white",
-                                                                    "hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed",
-                                                                    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                                                )}
-                                                                title="Print Certificate"
-                                                            >
-                                                                <Printer size={16} />
-                                                            </button>
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    onClick={() => handleDownload(request.id)}
+                                                                    disabled={processing}
+                                                                    className={cn(
+                                                                        "p-2 rounded-lg transition-all",
+                                                                        "text-indigo-600 hover:text-white",
+                                                                        "hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed",
+                                                                        "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                                    )}
+                                                                    title="Secure Download (PDF with QR)"
+                                                                >
+                                                                    <Download size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handlePrint(request.id)}
+                                                                    disabled={processing}
+                                                                    className={cn(
+                                                                        "p-2 rounded-lg transition-all",
+                                                                        "text-blue-600 hover:text-white",
+                                                                        "hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed",
+                                                                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                                    )}
+                                                                    title="Print Basic Certificate"
+                                                                >
+                                                                    <Printer size={16} />
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>
@@ -659,8 +707,8 @@ const CertificatesPage = () => {
                                     })
                                 ) : (
                                     <tr>
-                                        <td 
-                                            colSpan={isStudent ? 6 : 6} 
+                                        <td
+                                            colSpan={isStudent ? 6 : 6}
                                             className="px-6 py-16 text-center"
                                         >
                                             <div className="flex flex-col items-center">
@@ -713,7 +761,7 @@ const CertificatesPage = () => {
                                     Processing Time
                                 </p>
                                 <p className="text-xs text-blue-700 leading-relaxed">
-                                    Certificate requests are typically processed within 24-48 business hours. 
+                                    Certificate requests are typically processed within 24-48 business hours.
                                     You will receive a notification once your request is approved.
                                 </p>
                             </div>
@@ -783,9 +831,9 @@ const CertificatesPage = () => {
                             className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none min-h-[120px] resize-none"
                             placeholder="Please specify why this certificate request is being rejected..."
                             value={rejectionModal.remarks}
-                            onChange={(e) => setRejectionModal(prev => ({ 
-                                ...prev, 
-                                remarks: e.target.value 
+                            onChange={(e) => setRejectionModal(prev => ({
+                                ...prev,
+                                remarks: e.target.value
                             }))}
                         />
                         <p className="text-xs text-gray-500">
@@ -796,10 +844,10 @@ const CertificatesPage = () => {
                     <div className="flex gap-3 pt-4">
                         <Button
                             variant="outline"
-                            onClick={() => setRejectionModal({ 
-                                isOpen: false, 
-                                requestId: null, 
-                                remarks: '' 
+                            onClick={() => setRejectionModal({
+                                isOpen: false,
+                                requestId: null,
+                                remarks: ''
                             })}
                             className="flex-1"
                             disabled={processing}
