@@ -22,7 +22,9 @@ import {
     ChevronLeft,
     FolderOpen,
     Mail,
-    CheckSquare
+    CheckSquare,
+    CheckCircle2,
+    Rocket
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
