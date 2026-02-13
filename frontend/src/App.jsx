@@ -23,6 +23,7 @@ import ProfilePage from './pages/ProfilePage';
 import CertificatesPage from './pages/CertificatesPage';
 import MessagesPage from './pages/MessagesPage';
 import RolesPage from './pages/RolesPage';
+import TaskCenterPage from './pages/TaskCenterPage';
 
 const App = () => {
   return (
@@ -196,6 +197,8 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+
+            <Route path="tasks" element={<TaskCenterPage />} />
 
             <Route path="messages" element={<MessagesPage />} />
           </Route>

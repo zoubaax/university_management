@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
     Users,
     GraduationCap,
@@ -16,8 +17,10 @@ import {
     CheckCircle,
     AlertCircle,
     FileText,
-    Activity
+    Activity,
+    CheckSquare
 } from 'lucide-react';
+import taskService from '../api/services/taskService';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend
@@ -127,11 +130,23 @@ const DashboardOverview = () => {
         upcomingClasses: []
     });
 
+    const [tasks, setTasks] = useState([]);
+
     useEffect(() => {
         if (user?.role_name === 'SUPER_ADMIN') fetchAdminStats();
         if (user?.role_name === 'PROFESSOR' && user?.employee_id) fetchProfessorStats();
         if (user?.role_name === 'STUDENT' && user?.student_id) fetchStudentStats();
+        fetchTasks();
     }, [user]);
+
+    const fetchTasks = async () => {
+        try {
+            const data = await taskService.getTasks({ status: 'TODO', limit: 3 });
+            setTasks(data.slice(0, 3));
+        } catch (err) {
+            console.error('Failed to fetch tasks:', err);
+        }
+    };
 
     const fetchAdminStats = async () => {
         try {
@@ -314,12 +329,39 @@ const DashboardOverview = () => {
 
             {/* Bottom Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h3>
-                    <div className="space-y-3">
-                        {content.activities.map((a, i) => (
-                            <ActivityItem key={i} {...a} index={i} />
-                        ))}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900">My Tasks</h3>
+                            <Link to="/tasks" className="text-sm font-medium text-gray-400 hover:text-gray-900 flex items-center gap-1 transition-colors">
+                                View all <ArrowRight size={14} />
+                            </Link>
+                        </div>
+                        <div className="space-y-3">
+                            {tasks.length > 0 ? tasks.map((task, i) => (
+                                <div key={i} className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 hover:border-gray-200 transition-all group">
+                                    <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all">
+                                        <CheckSquare size={16} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{task.title}</p>
+                                        <p className="text-xs text-gray-500 truncate">{task.category} • Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-[10px] h-5">{task.priority}</Badge>
+                                </div>
+                            )) : (
+                                <p className="text-sm text-gray-500 text-center py-4">No pending tasks. You're all caught up!</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h3>
+                        <div className="space-y-3">
+                            {content.activities.map((a, i) => (
+                                <ActivityItem key={i} {...a} index={i} />
+                            ))}
+                        </div>
                     </div>
                 </div>
 
