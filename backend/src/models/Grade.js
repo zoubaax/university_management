@@ -3,7 +3,7 @@ const { query } = require('../config/db');
 class Grade {
     static async findByClassAndModule(classId, moduleId, academicYear) {
         const result = await query(
-            `SELECT g.*, s.first_name, s.last_name, s.registration_num
+            `SELECT g.*, s.id as student_id, s.first_name, s.last_name, s.registration_num
              FROM students s
              LEFT JOIN student_grades g ON s.id = g.student_id 
                 AND g.module_id = $2 
