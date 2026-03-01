@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
     CreditCard,
@@ -25,7 +26,8 @@ import {
     FileText,
     Percent,
     Banknote,
-    Receipt
+    Receipt,
+    Mail
 } from 'lucide-react';
 import financeService from '../api/services/financeService';
 import departmentService from '../api/services/departmentService';
@@ -39,6 +41,7 @@ import { cn } from '../utils/cn';
 
 const FinancePage = ({ defaultTab = 'students' }) => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const isFinanceAdmin = ['SUPER_ADMIN', 'FINANCIER'].includes(user?.role_name);
     const isManager = ['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'].includes(user?.role_name);
 
@@ -626,6 +629,13 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                                                     title="Edit finance profile"
                                                                 >
                                                                     <CreditCard size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => navigate('/messages')}
+                                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                                    title="Message student"
+                                                                >
+                                                                    <Mail size={18} />
                                                                 </button>
                                                             </div>
                                                         )}

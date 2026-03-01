@@ -59,6 +59,24 @@ exports.createPayment = async (req, res, next) => {
             verified_by: req.user.id
         };
         const payment = await Finance.createPayment(paymentData);
+
+        // Notify Student
+        try {
+            const Notification = require('../models/Notification');
+            const studentRes = await query('SELECT user_id, first_name FROM students WHERE id = $1', [req.body.student_id]);
+            if (studentRes.rows[0]) {
+                await Notification.create({
+                    user_id: studentRes.rows[0].user_id,
+                    type: 'general',
+                    title: 'Payment Recorded',
+                    message: `A payment of ${req.body.amount} MAD has been recorded to your account via ${req.body.payment_method}.`,
+                    link: '/finance'
+                });
+            }
+        } catch (warn) {
+            console.warn('Notification failed:', warn.message);
+        }
+
         res.status(201).json({ success: true, data: payment });
     } catch (err) {
         next(err);
@@ -71,6 +89,24 @@ exports.createPayment = async (req, res, next) => {
 exports.verifyPayment = async (req, res, next) => {
     try {
         const payment = await Finance.verifyPayment(req.params.id, req.user.id);
+
+        // Notify Student
+        try {
+            const Notification = require('../models/Notification');
+            const studentRes = await query('SELECT user_id FROM students WHERE id = $1', [payment.student_id]);
+            if (studentRes.rows[0]) {
+                await Notification.create({
+                    user_id: studentRes.rows[0].user_id,
+                    type: 'general',
+                    title: 'Payment Verified',
+                    message: `Your payment of ${payment.amount} MAD has been verified.`,
+                    link: '/finance'
+                });
+            }
+        } catch (warn) {
+            console.warn('Notification failed:', warn.message);
+        }
+
         res.status(200).json({ success: true, data: payment });
     } catch (err) {
         next(err);
