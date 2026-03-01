@@ -27,6 +27,17 @@ class SpecialityService {
         if (!speciality) {
             throw new ErrorResponse('Speciality not found', 404);
         }
+
+        // AUTO-FINANCE: If speciality price changed, sync all student profiles
+        if (data.yearly_price !== undefined) {
+            try {
+                const Finance = require('../models/Finance');
+                await Finance.syncSpecialityTuition(id);
+            } catch (err) {
+                console.error('⚠️ Failed to sync finance profiles after speciality price change:', err.message);
+            }
+        }
+
         return speciality;
     }
 

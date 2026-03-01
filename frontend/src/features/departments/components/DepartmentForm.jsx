@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Building2, Info, Type, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Building2, Info, Type, CheckCircle, AlertCircle, Loader2, DollarSign } from 'lucide-react';
 import Input from '../../../components/ui/Input';
 import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
@@ -15,6 +15,7 @@ const departmentSchema = z.object({
     description: z.string()
         .max(500, 'Description must be less than 500 characters')
         .optional(),
+    yearly_price: z.preprocess((val) => parseFloat(val), z.number().min(0, 'Price must be 0 or more')),
 });
 
 const DepartmentForm = ({ initialValues, onSubmit, onCancel }) => {
@@ -30,7 +31,8 @@ const DepartmentForm = ({ initialValues, onSubmit, onCancel }) => {
         resolver: zodResolver(departmentSchema),
         defaultValues: {
             name: '',
-            description: ''
+            description: '',
+            yearly_price: 0
         },
         mode: 'onChange'
     });
@@ -44,15 +46,17 @@ const DepartmentForm = ({ initialValues, onSubmit, onCancel }) => {
         if (initialValues) {
             setValue('name', initialValues.name, { shouldValidate: true });
             setValue('description', initialValues.description || '', { shouldValidate: true });
+            setValue('yearly_price', initialValues.yearly_price || 0, { shouldValidate: true });
         } else {
-            reset({ name: '', description: '' });
+            reset({ name: '', description: '', yearly_price: 0 });
         }
     }, [initialValues, setValue, reset]);
 
     const handleFormSubmit = (data) => {
         const payload = {
             ...data,
-            description: data.description?.trim() || null
+            description: data.description?.trim() || null,
+            yearly_price: parseFloat(data.yearly_price)
         };
         onSubmit(payload);
     };
@@ -119,6 +123,25 @@ const DepartmentForm = ({ initialValues, onSubmit, onCancel }) => {
                 />
                 <p className="text-xs text-gray-500">
                     Enter the official name of the department as it appears in institutional records.
+                </p>
+            </div>
+
+            {/* Department Yearly Price */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-gray-500" />
+                    Base Yearly Tuition ($)
+                    <span className="text-xs text-red-500 ml-1">*</span>
+                </label>
+                <Input
+                    type="number"
+                    placeholder="0.00"
+                    leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                    {...register('yearly_price')}
+                    error={errors.yearly_price?.message}
+                />
+                <p className="text-xs text-gray-400">
+                    This is the default price for all programs in this department.
                 </p>
             </div>
 

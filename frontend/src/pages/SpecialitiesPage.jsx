@@ -17,7 +17,8 @@ import {
     MoreVertical,
     X,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    DollarSign
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import specialityService from '../api/services/specialityService';
@@ -34,6 +35,7 @@ const specialitySchema = z.object({
         .min(2, 'Speciality name must be at least 2 characters')
         .max(100, 'Name is too long'),
     department_id: z.string().min(36, 'Please select a department'),
+    yearly_price: z.preprocess((val) => parseFloat(val || 0), z.number().min(0, 'Price must be 0 or more')),
 });
 
 const SpecialitiesPage = () => {
@@ -104,6 +106,7 @@ const SpecialitiesPage = () => {
         setEditingId(spec.id);
         setValue('name', spec.name);
         setValue('department_id', spec.department_id);
+        setValue('yearly_price', spec.yearly_price || 0);
         setModalOpen(true);
         setMenuOpen(null);
     };
@@ -389,6 +392,18 @@ const SpecialitiesPage = () => {
                         {...register('department_id')}
                         error={errors.department_id?.message}
                     />
+
+                    <Input
+                        label="Yearly Tuition ($)"
+                        type="number"
+                        placeholder="0.00"
+                        leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                        {...register('yearly_price')}
+                        error={errors.yearly_price?.message}
+                    />
+                    <p className="text-[10px] text-gray-400 -mt-4">
+                        Set to 0 to inherit department price.
+                    </p>
 
                     <div className="flex gap-3 pt-4 border-t border-gray-200">
                         <Button

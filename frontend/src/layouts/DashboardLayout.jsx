@@ -14,6 +14,7 @@ import {
     ShieldCheck,
     UserCircle,
     Building2,
+    CreditCard,
     FileText,
     BarChart3,
     Calendar,
@@ -24,7 +25,8 @@ import {
     Mail,
     CheckSquare,
     CheckCircle2,
-    Rocket
+    Rocket,
+    Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -98,6 +100,8 @@ const DashboardLayout = () => {
                 { name: 'Roles', icon: ShieldCheck, path: '/roles', roles: ['SUPER_ADMIN'], permissions: ['manage_roles'] },
                 { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH'], permissions: ['manage_absences', 'view_absences'] },
                 { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences', 'view_student_absences'] },
+                { name: 'Finance', icon: CreditCard, path: '/finance', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
+                { name: 'Program Pricing', icon: Percent, path: '/program-pricing', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
             ]
         },
         {
@@ -136,6 +140,9 @@ const DashboardLayout = () => {
 
                     const userRole = user?.role_name;
                     const userPermissions = user?.permissions || [];
+
+                    // Explicitly remove "Students" from sidebar for Financier (as requested)
+                    if (item.name === 'Students' && userRole === 'FINANCIER') return false;
 
                     // Always allow if role matches AND item has no permissions defined
                     // BUT if item HAS permissions defined, we should check them to allow dynamic removal

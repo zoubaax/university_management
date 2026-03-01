@@ -45,7 +45,17 @@ class StudentService {
             department_id: studentData.department_id
         });
 
-        return await Student.create({ ...studentData, user_id: newUser.id });
+        const student = await Student.create({ ...studentData, user_id: newUser.id });
+
+        // AUTO-FINANCE: Initialize finance profile automatically
+        try {
+            const Finance = require('../models/Finance');
+            await Finance.updateFinanceProfile(student.id, 'MONTHLY', null);
+        } catch (err) {
+            console.error('⚠️ Failed to initialize finance profile for student:', student.id, err.message);
+        }
+
+        return student;
     }
 
     static async updateStudent(id, data, user) {
@@ -66,6 +76,25 @@ class StudentService {
         }
 
         const student = await Student.update(id, data);
+
+        // AUTO-FINANCE: If speciality changed, recalculate tuition based on department hierarchy
+        if (data.speciality_id && data.speciality_id !== existingStudent.speciality_id) {
+            try {
+                const Finance = require('../models/Finance');
+                // Get existing plan & partnership to maintain continuity
+                const profiles = await Finance.getStudentProfiles({ studentId: id });
+                const currentProfile = profiles.find(p => p.student_id === id);
+
+                await Finance.updateFinanceProfile(
+                    id,
+                    currentProfile?.payment_plan || 'MONTHLY',
+                    currentProfile?.partnership_id || null
+                );
+            } catch (err) {
+                console.error('⚠️ Failed to sync finance profile after speciality change:', err.message);
+            }
+        }
+
         return student;
     }
 

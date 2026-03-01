@@ -16,18 +16,18 @@ class Department {
         return result.rows[0];
     }
 
-    static async create({ name, description }) {
+    static async create({ name, description, yearly_price }) {
         const result = await query(
-            'INSERT INTO departments (name, description) VALUES ($1, $2) RETURNING *',
-            [name, description]
+            'INSERT INTO departments (name, description, yearly_price) VALUES ($1, $2, $3) RETURNING *',
+            [name, description, yearly_price || 0.00]
         );
         return result.rows[0];
     }
 
-    static async update(id, { name, description }) {
+    static async update(id, { name, description, yearly_price }) {
         const result = await query(
-            'UPDATE departments SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 AND deleted_at IS NULL RETURNING *',
-            [name, description, id]
+            'UPDATE departments SET name = COALESCE($1, name), description = COALESCE($2, description), yearly_price = COALESCE($3, yearly_price), updated_at = CURRENT_TIMESTAMP WHERE id = $4 AND deleted_at IS NULL RETURNING *',
+            [name, description, yearly_price, id]
         );
         return result.rows[0];
     }

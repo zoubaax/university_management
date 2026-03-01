@@ -23,6 +23,17 @@ class DepartmentService {
         if (!department) {
             throw new ErrorResponse('Department not found', 404);
         }
+
+        // AUTO-FINANCE: If department price changed, sync all student profiles in this department
+        if (data.yearly_price !== undefined) {
+            try {
+                const Finance = require('../models/Finance');
+                await Finance.syncDepartmentTuition(id);
+            } catch (err) {
+                console.error('⚠️ Failed to sync finance profiles after department price change:', err.message);
+            }
+        }
+
         return department;
     }
 

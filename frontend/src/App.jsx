@@ -25,6 +25,7 @@ import MessagesPage from './pages/MessagesPage';
 import RolesPage from './pages/RolesPage';
 import TaskCenterPage from './pages/TaskCenterPage';
 import VerificationPage from './pages/VerificationPage';
+import FinancePage from './pages/FinancePage';
 
 const App = () => {
   return (
@@ -45,11 +46,10 @@ const App = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardOverview />} />
 
-            {/* Role-Protected Feature Routes */}
             <Route
               path="departments"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'FINANCIER']}>
                   <DepartmentsPage />
                 </ProtectedRoute>
               }
@@ -58,7 +58,7 @@ const App = () => {
             <Route
               path="specialities"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER']}>
                   <SpecialitiesPage />
                 </ProtectedRoute>
               }
@@ -198,6 +198,24 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
                   <RolesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="finance"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
+                  <FinancePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="program-pricing"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
+                  <FinancePage defaultTab="pricing" />
                 </ProtectedRoute>
               }
             />
