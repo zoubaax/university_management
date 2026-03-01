@@ -73,7 +73,14 @@ const StudentForm = ({
     roles = [],
     partnerships = []
 }) => {
-    const studentRole = roles.find(r => r.name === 'STUDENT')?.id;
+    const studentRole = roles.find(r => r.name?.toUpperCase() === 'STUDENT')?.id;
+
+    // Local schema to allow conditional validation based on isEditing
+    const studentFormSchema = studentSchema.extend({
+        password: isEditing
+            ? z.string().optional().refine(val => !val || val.length >= 6, 'Password must be at least 6 characters').or(z.literal(''))
+            : z.string().min(6, 'Temporary password is required for enrollment')
+    });
 
     const getDefaultValues = () => {
         if (!initialValues) {
@@ -87,8 +94,10 @@ const StudentForm = ({
                 birth_date: '',
                 partnership_id: '',
                 class_id: '',
-                department_id: '',
-                speciality_id: ''
+                department_id: departments.length === 1 ? departments[0].id : '',
+                speciality_id: (departments.length === 1 && specialities.filter(s => s.department_id === departments[0].id).length === 1)
+                    ? specialities.filter(s => s.department_id === departments[0].id)[0].id
+                    : ''
             };
         }
 
@@ -118,7 +127,7 @@ const StudentForm = ({
         trigger,
         reset
     } = useForm({
-        resolver: zodResolver(studentSchema),
+        resolver: zodResolver(studentFormSchema),
         defaultValues: getDefaultValues(),
         mode: 'onChange'
     });
@@ -170,7 +179,15 @@ const StudentForm = ({
         setError('');
     };
 
+
+
     const handleFormSubmit = async (data) => {
+        if (!studentRole) {
+            console.error('CRITICAL: STUDENT role not found in roles list');
+            alert('Academic system configuration error: "STUDENT" role not found. Please contact an administrator.');
+            return;
+        }
+
         const formData = new FormData();
 
         Object.keys(data).forEach(key => {
@@ -184,7 +201,7 @@ const StudentForm = ({
             }
         });
 
-        if (studentRole) formData.append('role_id', studentRole);
+        formData.append('role_id', studentRole);
 
         if (bacFile) formData.append('bac_document', bacFile);
         if (cinFile) formData.append('cin_document', cinFile);

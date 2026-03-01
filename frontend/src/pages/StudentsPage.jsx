@@ -78,7 +78,10 @@ const StudentsPage = () => {
                 financeService.getPartnerships()
             ]);
             setStudents(studentData || []);
-            setDepartments(deptData || []);
+            const filteredDepts = (user?.department_id && !['SUPER_ADMIN', 'RH', 'FINANCIER'].includes(user?.role_name))
+                ? (deptData || []).filter(d => d.id === user.department_id)
+                : (deptData || []);
+            setDepartments(filteredDepts);
             setSpecialities(specData || []);
             setClasses(classData || []);
             setRoles(roleData || []);

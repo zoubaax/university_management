@@ -25,12 +25,13 @@ const employeeSchema = z.object({
 
 const studentSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(6).optional().or(z.literal('')),
     role_id: z.string().uuid(),
     department_id: z.string().uuid(),
     speciality_id: z.string().uuid(),
-    class_id: z.string().uuid().optional(),
-    registration_num: z.string().min(5).max(50).optional(),
+    class_id: z.string().uuid().optional().or(z.literal('')),
+    partnership_id: z.string().uuid().optional().or(z.literal('')),
+    registration_num: z.string().max(50).optional().or(z.literal('')),
     first_name: z.string().min(2).max(100),
     last_name: z.string().min(2).max(100),
     cin: z.string().min(4).max(50),
