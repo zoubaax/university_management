@@ -19,11 +19,14 @@ import {
     Lock,
     ExternalLink,
     CreditCard,
-    BookOpen
+    BookOpen,
+    Receipt,
+    Download
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import studentService from '../api/services/studentService';
 import staffService from '../api/services/staffService';
+import financeService from '../api/services/financeService';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { cn } from '../utils/cn';
@@ -33,6 +36,7 @@ import { getCurrentAcademicYear } from '../utils/academicYearUtils';
 const ProfilePage = () => {
     const { user } = useAuth();
     const [profileData, setProfileData] = useState(null);
+    const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const isStudent = user?.role_name === 'STUDENT';
@@ -47,7 +51,12 @@ const ProfilePage = () => {
             setLoading(true);
             let data;
             if (isStudent && user?.student_id) {
-                data = await studentService.getProfile(user.student_id);
+                const [profData, payData] = await Promise.all([
+                    studentService.getProfile(user.student_id),
+                    financeService.getMyPayments().catch(() => [])
+                ]);
+                data = profData;
+                setPayments(payData || []);
             } else if (user?.employee_id) {
                 // Assuming staffService has getById
                 data = await staffService.getById(user.employee_id);
@@ -58,6 +67,16 @@ const ProfilePage = () => {
             setProfileData(user);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadReceipt = async (paymentId) => {
+        try {
+            toast.loading('Downloading receipt...', { id: 'receipt' });
+            await financeService.downloadReceipt(paymentId);
+            toast.success('Receipt downloaded', { id: 'receipt' });
+        } catch (err) {
+            toast.error('Failed to download receipt', { id: 'receipt' });
         }
     };
 
@@ -345,6 +364,63 @@ const ProfilePage = () => {
                                     )}
                                 </div>
                             </div>
+                        </motion.div>
+                    )}
+
+                    {/* Payment History Section */}
+                    {isStudent && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-xl font-bold text-gray-900 border-l-4 border-gray-900 pl-4">Payment History</h2>
+                                <Badge className="bg-blue-100 text-blue-700">{payments.length} Payments</Badge>
+                            </div>
+
+                            {payments.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    No payment history found.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {payments.map(payment => (
+                                        <div key={payment.id} className="p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                                                    <Receipt size={20} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-900">{parseFloat(payment.amount).toLocaleString()} MAD</p>
+                                                    <p className="text-xs text-gray-400">
+                                                        {new Date(payment.created_at).toLocaleDateString()} • {payment.payment_method}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <Badge className={
+                                                    payment.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
+                                                        payment.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                                                            'bg-red-100 text-red-700'
+                                                }>
+                                                    {payment.status}
+                                                </Badge>
+                                                {payment.status === 'VERIFIED' && (
+                                                    <button
+                                                        onClick={() => handleDownloadReceipt(payment.id)}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-blue-100"
+                                                        title="Download Receipt"
+                                                    >
+                                                        <Download size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </div>

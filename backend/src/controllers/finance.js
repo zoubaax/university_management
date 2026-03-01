@@ -272,3 +272,25 @@ exports.getPaymentReceipt = async (req, res, next) => {
         next(err);
     }
 };
+
+// @desc    Get logged in student's payments
+// @route   GET /api/v1/finance/my-payments
+// @access  Private (Student)
+exports.getMyPayments = async (req, res, next) => {
+    try {
+        const studentRes = await query('SELECT id FROM students WHERE user_id = $1', [req.user.id]);
+        if (!studentRes.rows[0]) {
+            return res.status(404).json({ success: false, message: 'Student profile not found' });
+        }
+
+        const result = await query(`
+            SELECT * FROM finance_payments 
+            WHERE student_id = $1
+            ORDER BY created_at DESC
+        `, [studentRes.rows[0].id]);
+
+        res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
+    } catch (err) {
+        next(err);
+    }
+};

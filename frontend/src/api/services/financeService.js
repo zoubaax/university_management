@@ -29,6 +29,14 @@ const financeService = {
     },
 
     /**
+     * Get student's own payments
+     */
+    getMyPayments: async () => {
+        const response = await api.get('/finance/my-payments');
+        return response.data.data;
+    },
+
+    /**
      * Record a new payment (Cash, Check, Transfer)
      */
     createPayment: async (data) => {
