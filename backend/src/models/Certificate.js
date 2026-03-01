@@ -39,6 +39,22 @@ class Certificate {
         return result.rows;
     }
 
+    static async findAll() {
+        const result = await query(
+            `SELECT cr.*, s.first_name, s.last_name, s.registration_num, 
+                    spec.name as speciality_name, c.name as class_name, c.level,
+                    d.name as department_name
+             FROM certificate_requests cr
+             JOIN students s ON cr.student_id = s.id
+             JOIN specialities spec ON s.speciality_id = spec.id
+             JOIN classes c ON s.class_id = c.id
+             JOIN departments d ON spec.department_id = d.id
+             ORDER BY cr.requested_at DESC`
+        );
+        return result.rows;
+    }
+
+
     static async updateStatus(id, { status, processed_by, remarks }) {
         const result = await query(
             `UPDATE certificate_requests

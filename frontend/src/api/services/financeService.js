@@ -13,6 +13,15 @@ const financeService = {
     },
 
     /**
+     * Get rich dashboard analytics for Financier role
+     */
+    getDashboardStats: async () => {
+        const response = await api.get('/finance/dashboard');
+        return response.data.data;
+    },
+
+
+    /**
      * Get all students with their finance profiles and balances
      */
     getStudents: async (params = {}) => {

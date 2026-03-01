@@ -13,6 +13,92 @@ exports.getStats = async (req, res, next) => {
     }
 };
 
+// @desc    Get rich finance dashboard analytics
+// @route   GET /api/v1/finance/dashboard
+// @access  Private (Financier/Admin)
+exports.getDashboardStats = async (req, res, next) => {
+    try {
+        // 1. Core totals
+        const totals = await query(`
+            SELECT 
+                COALESCE(SUM(total_amount_due), 0) as total_expected,
+                COALESCE(SUM(total_amount_due - remaining_balance), 0) as total_collected,
+                COALESCE(SUM(remaining_balance), 0) as total_outstanding,
+                COUNT(*) FILTER (WHERE remaining_balance <= 0) as fully_paid_count,
+                COUNT(*) FILTER (WHERE remaining_balance > 0) as with_debt_count,
+                COUNT(*) as total_students
+            FROM student_finance_profiles
+        `);
+
+        // 2. Monthly revenue trend (last 6 months)
+        const monthlyRevenue = await query(`
+            SELECT 
+                TO_CHAR(DATE_TRUNC('month', payment_date), 'Mon YY') as month,
+                COALESCE(SUM(amount) FILTER (WHERE status = 'VERIFIED'), 0) as revenue,
+                COUNT(*) FILTER (WHERE status = 'VERIFIED') as payment_count
+            FROM finance_payments
+            WHERE payment_date > NOW() - INTERVAL '6 months'
+            GROUP BY DATE_TRUNC('month', payment_date)
+            ORDER BY DATE_TRUNC('month', payment_date) ASC
+        `);
+
+        // 3. Payment method breakdown
+        const methodBreakdown = await query(`
+            SELECT 
+                payment_method as name,
+                COUNT(*) as count,
+                COALESCE(SUM(amount), 0) as total
+            FROM finance_payments
+            WHERE status = 'VERIFIED'
+            GROUP BY payment_method
+        `);
+
+        // 4. Outstanding debt by department
+        const debtByDept = await query(`
+            SELECT 
+                d.name as department,
+                COALESCE(SUM(sfp.remaining_balance), 0) as outstanding,
+                COALESCE(SUM(sfp.total_amount_due - sfp.remaining_balance), 0) as collected
+            FROM departments d
+            LEFT JOIN specialities sp ON sp.department_id = d.id
+            LEFT JOIN students s ON s.speciality_id = sp.id AND s.deleted_at IS NULL
+            LEFT JOIN student_finance_profiles sfp ON sfp.student_id = s.id
+            GROUP BY d.id, d.name
+            ORDER BY outstanding DESC
+        `);
+
+        // 5. Recent payments (last 5)
+        const recentPayments = await query(`
+            SELECT fp.id, fp.amount, fp.payment_method, fp.payment_date, fp.status,
+                   s.first_name, s.last_name
+            FROM finance_payments fp
+            JOIN students s ON fp.student_id = s.id
+            ORDER BY fp.created_at DESC
+            LIMIT 5
+        `);
+
+        // 6. Pending verifications count
+        const pendingVerif = await query(`
+            SELECT COUNT(*) as count FROM finance_payments WHERE status = 'PENDING'
+        `);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totals: totals.rows[0],
+                monthlyRevenue: monthlyRevenue.rows,
+                methodBreakdown: methodBreakdown.rows,
+                debtByDept: debtByDept.rows,
+                recentPayments: recentPayments.rows,
+                pendingVerifications: parseInt(pendingVerif.rows[0]?.count || 0)
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+
 // @desc    Get all student finance profiles
 // @route   GET /api/v1/finance/students
 // @access  Private (Financier/Admin)

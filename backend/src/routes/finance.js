@@ -1,6 +1,7 @@
 const express = require('express');
 const {
     getStats,
+    getDashboardStats,
     getStudentProfiles,
     getPayments,
     createPayment,
@@ -21,6 +22,7 @@ router.use(protect);
 
 // Stats, Payments, and Profiles are strictly for Financiers and Super Admins
 router.get('/stats', authorize('FINANCIER', 'SUPER_ADMIN'), getStats);
+router.get('/dashboard', authorize('FINANCIER', 'SUPER_ADMIN'), getDashboardStats);
 router.get('/students', authorize('FINANCIER', 'SUPER_ADMIN'), getStudentProfiles);
 router.get('/payments', authorize('FINANCIER', 'SUPER_ADMIN'), getPayments);
 router.post('/payments', authorize('FINANCIER', 'SUPER_ADMIN'), createPayment);

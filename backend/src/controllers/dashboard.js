@@ -22,6 +22,7 @@ exports.getAdminStats = async (req, res, next) => {
             FROM departments d
             LEFT JOIN students s ON d.id = s.department_id AND s.deleted_at IS NULL
             GROUP BY d.id, d.name
+            ORDER BY value DESC
         `);
 
         // 3. User distribution by Role
@@ -44,13 +45,47 @@ exports.getAdminStats = async (req, res, next) => {
             ORDER BY "student_attendance".date ASC
         `);
 
+        // 5. Monthly enrollment trends (Last 6 months)
+        const enrollmentTrends = await query(`
+            SELECT 
+                TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') as month,
+                COUNT(*) as count
+            FROM students
+            WHERE deleted_at IS NULL
+              AND created_at > NOW() - INTERVAL '6 months'
+            GROUP BY DATE_TRUNC('month', created_at)
+            ORDER BY DATE_TRUNC('month', created_at) ASC
+        `);
+
+        // 6. Finance summary (revenue by month, last 6 months)
+        let financeSummary = [];
+        try {
+            const finResult = await query(`
+                SELECT
+                    TO_CHAR(DATE_TRUNC('month', payment_date), 'Mon') as month,
+                    SUM(amount) as revenue
+                FROM finance
+                WHERE payment_date > NOW() - INTERVAL '6 months'
+                GROUP BY DATE_TRUNC('month', payment_date)
+                ORDER BY DATE_TRUNC('month', payment_date) ASC
+            `);
+            financeSummary = finResult.rows.map(r => ({
+                month: r.month,
+                revenue: parseFloat(r.revenue) || 0
+            }));
+        } catch (_) {
+            // finance table may not exist for all setups
+        }
+
         res.status(200).json({
             success: true,
             data: {
                 counts: counts.rows[0],
                 studentDistribution: studentDist.rows,
                 roleDistribution: roleDist.rows,
-                absenceTrends: absenceTrends.rows
+                absenceTrends: absenceTrends.rows,
+                enrollmentTrends: enrollmentTrends.rows,
+                financeSummary
             }
         });
     } catch (err) {

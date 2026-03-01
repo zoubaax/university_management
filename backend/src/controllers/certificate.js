@@ -84,13 +84,30 @@ exports.getMyRequests = asyncHandler(async (req, res, next) => {
 
 // @desc    Get department requests
 // @route   GET /api/v1/certificates/department-requests
-// @access  Private (Department Head)
+// @access  Private (Department Head / SUPER_ADMIN)
 exports.getDepartmentRequests = asyncHandler(async (req, res, next) => {
-    if (!req.user.department_id) {
-        return next(new ErrorResponse('Access denied', 403));
+    // SUPER_ADMIN can see all certificate requests regardless of department
+    if (req.user.role_name === 'SUPER_ADMIN') {
+        const requests = await Certificate.findAll();
+        return res.status(200).json({ success: true, data: requests });
     }
 
-    const requests = await Certificate.findByDepartment(req.user.department_id);
+    // Try department_id from users table first, then fall back to the employee's department
+    let departmentId = req.user.department_id;
+
+    if (!departmentId && req.user.employee_id) {
+        const empResult = await query(
+            'SELECT department_id FROM employees WHERE id = $1',
+            [req.user.employee_id]
+        );
+        departmentId = empResult.rows[0]?.department_id;
+    }
+
+    if (!departmentId) {
+        return next(new ErrorResponse('No department assigned to your account. Please contact an administrator.', 403));
+    }
+
+    const requests = await Certificate.findByDepartment(departmentId);
 
     res.status(200).json({
         success: true,
