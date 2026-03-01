@@ -3,11 +3,13 @@ const { z } = require('zod');
 const departmentSchema = z.object({
     name: z.string().min(2).max(100),
     description: z.string().max(500).optional(),
+    yearly_price: z.union([z.number(), z.string()]).optional(),
 });
 
 const specialitySchema = z.object({
     department_id: z.string().uuid(),
     name: z.string().min(2).max(100),
+    yearly_price: z.union([z.number(), z.string()]).optional(),
 });
 
 const employeeSchema = z.object({

@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
-const Select = React.forwardRef(({ label, error, options = [], leftIcon, className, ...props }, ref) => {
+const Select = React.forwardRef(({ label, error, helperText, options = [], leftIcon, className, ...props }, ref) => {
     return (
         <div className="space-y-1.5 w-full">
             {label && (
@@ -33,6 +33,11 @@ const Select = React.forwardRef(({ label, error, options = [], leftIcon, classNa
                     ))}
                 </select>
             </div>
+            {helperText && !error && (
+                <p className="text-[10px] text-slate-500 ml-1 leading-relaxed">
+                    {helperText}
+                </p>
+            )}
             {error && (
                 <p className="text-xs font-bold text-red-500 ml-1 animate-in fade-in slide-in-from-top-1">
                     {error}

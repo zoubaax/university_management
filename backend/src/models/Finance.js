@@ -243,6 +243,22 @@ class Finance {
 
         return await Promise.all(promises);
     }
+
+    // 8. Management: Partnerships
+    static async getPartnerships() {
+        const result = await query('SELECT * FROM partnerships ORDER BY company_name ASC');
+        return result.rows;
+    }
+
+    static async createPartnership(data) {
+        const { company_name, discount_percentage, contact_info } = data;
+        const result = await query(`
+            INSERT INTO partnerships (company_name, discount_percentage, contact_info)
+            VALUES ($1, $2, $3)
+            RETURNING *
+        `, [company_name, discount_percentage || 20.00, contact_info]);
+        return result.rows[0];
+    }
 }
 
 module.exports = Finance;

@@ -44,11 +44,13 @@ const studentSchema = z.object({
         .email('Please enter a valid institutional email address')
         .refine(email => email.includes('@'), 'Email must be a valid institutional address'),
     password: z.string()
-        .min(6, 'Password must be at least 6 characters')
-        .max(100, 'Password is too long'),
+        .optional()
+        .refine(val => !val || val.length >= 6, 'Password must be at least 6 characters')
+        .or(z.literal('')),
     department_id: z.string().uuid('Please select a department'),
     speciality_id: z.string().uuid('Please select a speciality'),
-    class_id: z.string().uuid().optional(),
+    class_id: z.string().uuid().optional().or(z.literal('')),
+    partnership_id: z.string().uuid().optional().or(z.literal('')),
     birth_date: z.string()
         .optional()
         .refine(date => {
@@ -68,9 +70,44 @@ const StudentForm = ({
     departments = [],
     specialities = [],
     classes = [],
-    roles = []
+    roles = [],
+    partnerships = []
 }) => {
     const studentRole = roles.find(r => r.name === 'STUDENT')?.id;
+
+    const getDefaultValues = () => {
+        if (!initialValues) {
+            return {
+                role_id: studentRole,
+                first_name: '',
+                last_name: '',
+                cin: '',
+                email: '',
+                password: '',
+                birth_date: '',
+                partnership_id: '',
+                class_id: '',
+                department_id: '',
+                speciality_id: ''
+            };
+        }
+
+        return {
+            ...initialValues,
+            // Normalize dates for input type="date"
+            birth_date: initialValues.birth_date ? new Date(initialValues.birth_date).toISOString().split('T')[0] : '',
+            // Normalize optional UUIDs from null to empty strings for selects
+            partnership_id: initialValues.partnership_id || '',
+            class_id: initialValues.class_id || '',
+            registration_num: initialValues.registration_num || '',
+            email: initialValues.user_email || initialValues.email || '',
+            // Ensure password doesn't cause validation error by defaulting to empty string
+            password: ''
+        };
+    };
+
+    // DEBUG: Log form errors if in development
+    // useEffect(() => { if (Object.keys(errors).length > 0) console.log('Form Errors:', errors); }, [errors]);
 
     const {
         register,
@@ -79,12 +116,10 @@ const StudentForm = ({
         setValue,
         formState: { errors, isSubmitting, isValid, isDirty, touchedFields },
         trigger,
+        reset
     } = useForm({
         resolver: zodResolver(studentSchema),
-        defaultValues: initialValues || {
-            role_id: studentRole,
-            birth_date: '',
-        },
+        defaultValues: getDefaultValues(),
         mode: 'onChange'
     });
 
@@ -98,6 +133,11 @@ const StudentForm = ({
 
     const filteredSpecs = specialities.filter(s => s.department_id === selectedDeptId);
     const filteredClasses = classes.filter(c => c.speciality_id === selectedSpecId);
+
+    // Synchronize form values when initialValues change
+    useEffect(() => {
+        reset(getDefaultValues());
+    }, [initialValues, reset]);
 
     const [bacFile, setBacFile] = useState(null);
     const [cinFile, setCinFile] = useState(null);
@@ -134,7 +174,14 @@ const StudentForm = ({
         const formData = new FormData();
 
         Object.keys(data).forEach(key => {
-            if (data[key]) formData.append(key, data[key]);
+            // Only append if it's not null/undefined. 
+            // We want to keep empty strings for IDs so we can clear them.
+            if (data[key] !== null && data[key] !== undefined) {
+                // For password, only append if it's not empty when editing
+                if (key === 'password' && isEditing && !data[key]) return;
+
+                formData.append(key, data[key]);
+            }
         });
 
         if (studentRole) formData.append('role_id', studentRole);
@@ -260,8 +307,8 @@ const StudentForm = ({
                             label="Department"
                             placeholder="Select department"
                             leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
-                            options={departments.map(d => ({ 
-                                value: d.id, 
+                            options={departments.map(d => ({
+                                value: d.id,
                                 label: d.name,
                                 description: d.description ? d.description.substring(0, 60) + '...' : ''
                             }))}
@@ -281,9 +328,9 @@ const StudentForm = ({
                                 label="Academic Program"
                                 placeholder="Select academic program"
                                 leftIcon={<Layers className="w-4 h-4 text-gray-400" />}
-                                options={filteredSpecs.map(s => ({ 
-                                    value: s.id, 
-                                    label: s.name 
+                                options={filteredSpecs.map(s => ({
+                                    value: s.id,
+                                    label: s.name
                                 }))}
                                 {...register('speciality_id', {
                                     onChange: () => {
@@ -300,8 +347,8 @@ const StudentForm = ({
                                 label="Class Assignment"
                                 placeholder="Select class (optional)"
                                 leftIcon={<FileText className="w-4 h-4 text-gray-400" />}
-                                options={filteredClasses.map(c => ({ 
-                                    value: c.id, 
+                                options={filteredClasses.map(c => ({
+                                    value: c.id,
                                     label: `${c.name} - ${c.academic_year}`,
                                     description: `Level: ${c.level}`
                                 }))}
@@ -309,6 +356,20 @@ const StudentForm = ({
                                 error={errors.class_id?.message}
                             />
                         )}
+
+                        <Select
+                            label="Corporate Partnership (Optional)"
+                            placeholder="Select corporate partner"
+                            leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
+                            options={partnerships.map(p => ({
+                                value: p.id,
+                                label: p.company_name,
+                                description: `${p.discount_percentage}% discount partner`
+                            }))}
+                            {...register('partnership_id')}
+                            error={errors.partnership_id?.message}
+                            helperText="Linking a student to a partner applies corporate discounts automatically"
+                        />
                     </div>
                 </div>
 
@@ -392,8 +453,8 @@ const StudentForm = ({
                             <div className={cn(
                                 "border-2 border-dashed rounded-lg p-4 transition-colors",
                                 bacFile ? "border-green-300 bg-green-50" :
-                                bacError ? "border-red-300 bg-red-50" :
-                                "border-gray-300 hover:border-gray-400"
+                                    bacError ? "border-red-300 bg-red-50" :
+                                        "border-gray-300 hover:border-gray-400"
                             )}>
                                 <input
                                     type="file"
@@ -407,8 +468,8 @@ const StudentForm = ({
                                         <div className={cn(
                                             "p-2 rounded",
                                             bacFile ? "bg-green-100 text-green-600" :
-                                            bacError ? "bg-red-100 text-red-600" :
-                                            "bg-gray-100 text-gray-400"
+                                                bacError ? "bg-red-100 text-red-600" :
+                                                    "bg-gray-100 text-gray-400"
                                         )}>
                                             {bacFile ? <CheckCircle size={16} /> : <Upload size={16} />}
                                         </div>
@@ -441,8 +502,8 @@ const StudentForm = ({
                             <div className={cn(
                                 "border-2 border-dashed rounded-lg p-4 transition-colors",
                                 cinFile ? "border-green-300 bg-green-50" :
-                                cinError ? "border-red-300 bg-red-50" :
-                                "border-gray-300 hover:border-gray-400"
+                                    cinError ? "border-red-300 bg-red-50" :
+                                        "border-gray-300 hover:border-gray-400"
                             )}>
                                 <input
                                     type="file"
@@ -456,8 +517,8 @@ const StudentForm = ({
                                         <div className={cn(
                                             "p-2 rounded",
                                             cinFile ? "bg-green-100 text-green-600" :
-                                            cinError ? "bg-red-100 text-red-600" :
-                                            "bg-gray-100 text-gray-400"
+                                                cinError ? "bg-red-100 text-red-600" :
+                                                    "bg-gray-100 text-gray-400"
                                         )}>
                                             {cinFile ? <CheckCircle size={16} /> : <Upload size={16} />}
                                         </div>
@@ -498,6 +559,8 @@ const StudentForm = ({
                                     {errors.speciality_id && <li>• Academic program: {errors.speciality_id.message}</li>}
                                     {errors.password && <li>• Password: {errors.password.message}</li>}
                                     {errors.birth_date && <li>• Date of birth: {errors.birth_date.message}</li>}
+                                    {errors.partnership_id && <li>• Partnership selection is invalid</li>}
+                                    {errors.class_id && <li>• Class selection is invalid</li>}
                                 </ul>
                             </div>
                         </div>
@@ -520,7 +583,7 @@ const StudentForm = ({
                     type="submit"
                     variant="primary"
                     isLoading={isSubmitting}
-                    disabled={isSubmitting || !isValid || (isEditing && !isDirty && !bacFile && !cinFile)}
+                    disabled={isSubmitting}
                     className="flex-1 bg-gray-900 hover:bg-gray-800"
                     icon={isEditing ? Save : Plus}
                 >

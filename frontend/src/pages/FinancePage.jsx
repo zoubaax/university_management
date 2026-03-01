@@ -64,6 +64,7 @@ const FinancePage = ({ defaultTab = 'students' }) => {
     const [paymentToVerify, setPaymentToVerify] = useState(null);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+    const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
     // New Payment Form state
     const [paymentForm, setPaymentForm] = useState({
@@ -83,6 +84,12 @@ const FinancePage = ({ defaultTab = 'students' }) => {
 
     const [priceForm, setPriceForm] = useState({
         yearly_price: ''
+    });
+
+    const [partnerForm, setPartnerForm] = useState({
+        company_name: '',
+        discount_percentage: '20',
+        contact_info: ''
     });
 
     useEffect(() => {
@@ -173,11 +180,31 @@ const FinancePage = ({ defaultTab = 'students' }) => {
         e.preventDefault();
         try {
             await financeService.updateStudentProfile(selectedStudent.student_id, profileForm);
-            toast.success('Finance profile updated');
+
+            // Helpful toast for three parts plan
+            if (profileForm.payment_plan === 'THREE_PARTS') {
+                toast.success('Plan set: 3 parts (Sep, Jan, Apr)');
+            } else {
+                toast.success('Finance profile updated');
+            }
+
             setIsProfileModalOpen(false);
             fetchData();
         } catch (err) {
             toast.error('Failed to update profile');
+        }
+    };
+
+    const handleCreatePartner = async (e) => {
+        e.preventDefault();
+        try {
+            await financeService.createPartnership(partnerForm);
+            toast.success('New partner registered');
+            setIsPartnerModalOpen(false);
+            setPartnerForm({ company_name: '', discount_percentage: '20', contact_info: '' });
+            fetchData();
+        } catch (err) {
+            toast.error('Failed to add partner');
         }
     };
 
@@ -188,6 +215,37 @@ const FinancePage = ({ defaultTab = 'students' }) => {
             partnership_id: student.partnership_id || ''
         });
         setIsProfileModalOpen(true);
+    };
+
+    const openPaymentModal = (student = null) => {
+        let suggestedAmount = '';
+        if (student) {
+            const total = parseFloat(student.total_amount_due) || 0;
+            const remaining = parseFloat(student.remaining_balance) || 0;
+            if (student.payment_plan === 'THREE_PARTS') {
+                suggestedAmount = (total / 3).toFixed(2);
+            } else if (student.payment_plan === 'MONTHLY') {
+                suggestedAmount = (total / 10).toFixed(2);
+            } else {
+                suggestedAmount = remaining.toFixed(2);
+            }
+            if (parseFloat(suggestedAmount) > remaining) {
+                suggestedAmount = remaining.toFixed(2);
+            }
+        } else {
+            // If opening fresh, clear any remnants 
+            suggestedAmount = '';
+        }
+
+        setPaymentForm({
+            student_id: student?.student_id || '',
+            amount: suggestedAmount,
+            payment_method: 'CASH',
+            check_number: '',
+            bank_name: '',
+            notes: ''
+        });
+        setIsPaymentModalOpen(true);
     };
 
     const getPartnerships = () => {
@@ -273,33 +331,34 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                     <p className="text-sm text-gray-500 mt-1">Manage tuition, corporate partnerships, and payment status</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                    {isFinanceAdmin && defaultTab !== 'pricing' && (
+                    {isFinanceAdmin && (
                         <>
                             <Button
-                                onClick={() => setIsFilterModalOpen(true)}
-                                icon={Filter}
+                                onClick={() => setIsPartnerModalOpen(true)}
+                                icon={Building2}
                                 variant="outline"
-                                className="order-2 sm:order-1"
                             >
-                                Filters
+                                Add Partner
                             </Button>
-                            <Button
-                                onClick={() => {
-                                    setPaymentForm({
-                                        student_id: '',
-                                        amount: '',
-                                        payment_method: 'CASH',
-                                        check_number: '',
-                                        bank_name: '',
-                                        notes: ''
-                                    });
-                                    setIsPaymentModalOpen(true);
-                                }}
-                                icon={Plus}
-                                className="bg-gray-900 hover:bg-gray-800 text-white order-1 sm:order-2"
-                            >
-                                New Payment
-                            </Button>
+                            {defaultTab !== 'pricing' && (
+                                <>
+                                    <Button
+                                        onClick={() => setIsFilterModalOpen(true)}
+                                        icon={Filter}
+                                        variant="outline"
+                                        className="order-2 sm:order-1"
+                                    >
+                                        Filters
+                                    </Button>
+                                    <Button
+                                        onClick={() => openPaymentModal()}
+                                        icon={Plus}
+                                        className="bg-gray-900 hover:bg-gray-800 text-white order-1 sm:order-2"
+                                    >
+                                        New Payment
+                                    </Button>
+                                </>
+                            )}
                         </>
                     )}
                 </div>
@@ -313,7 +372,7 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                             <div>
                                 <p className="text-sm text-gray-500">Total Expected</p>
                                 <p className="text-2xl font-semibold text-gray-900 mt-1">
-                                    ${stats?.total_expected?.toLocaleString() || '0'}
+                                    {stats?.total_expected?.toLocaleString() || '0'} MAD
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">+12% from last month</p>
                             </div>
@@ -327,7 +386,7 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                             <div>
                                 <p className="text-sm text-gray-500">Collected Revenue</p>
                                 <p className="text-2xl font-semibold text-gray-900 mt-1">
-                                    ${stats?.total_collected?.toLocaleString() || '0'}
+                                    {stats?.total_collected?.toLocaleString() || '0'} MAD
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">82% collection rate</p>
                             </div>
@@ -341,7 +400,7 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                             <div>
                                 <p className="text-sm text-gray-500">Outstanding Debt</p>
                                 <p className="text-2xl font-semibold text-gray-900 mt-1">
-                                    ${stats?.total_outstanding?.toLocaleString() || '0'}
+                                    {stats?.total_outstanding?.toLocaleString() || '0'} MAD
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">{stats?.students_with_debt || 0} students pending</p>
                             </div>
@@ -531,11 +590,11 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right text-gray-900 font-medium">
-                                                        ${parseFloat(student.total_amount_due).toLocaleString()}
+                                                        {parseFloat(student.total_amount_due).toLocaleString()} MAD
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <span className={`font-mono font-semibold ${getBalanceColor(student.remaining_balance)}`}>
-                                                            ${parseFloat(student.remaining_balance).toLocaleString()}
+                                                            {parseFloat(student.remaining_balance).toLocaleString()} MAD
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
@@ -553,13 +612,22 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
                                                         {isFinanceAdmin && (
-                                                            <button
-                                                                onClick={() => openProfileModal(student)}
-                                                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                                                title="Edit finance profile"
-                                                            >
-                                                                <CreditCard size={18} />
-                                                            </button>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <button
+                                                                    onClick={() => openPaymentModal(student)}
+                                                                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                                    title="Record payment"
+                                                                >
+                                                                    <Receipt size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => openProfileModal(student)}
+                                                                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                                                    title="Edit finance profile"
+                                                                >
+                                                                    <CreditCard size={18} />
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </motion.tr>
@@ -629,7 +697,7 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right font-mono font-semibold text-gray-900">
-                                                        ${parseFloat(payment.amount).toLocaleString()}
+                                                        {parseFloat(payment.amount).toLocaleString()} MAD
                                                     </td>
                                                     <td className="px-6 py-4 text-sm text-gray-600">
                                                         {new Date(payment.payment_date).toLocaleDateString()}
@@ -691,7 +759,35 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                             required
                             className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
                             value={paymentForm.student_id}
-                            onChange={(e) => setPaymentForm({ ...paymentForm, student_id: e.target.value })}
+                            onChange={(e) => {
+                                const studentId = e.target.value;
+                                const student = students.find(s => s.student_id === studentId);
+                                let suggestedAmount = '';
+
+                                if (student) {
+                                    const total = parseFloat(student.total_amount_due) || 0;
+                                    const remaining = parseFloat(student.remaining_balance) || 0;
+
+                                    if (student.payment_plan === 'THREE_PARTS') {
+                                        suggestedAmount = (total / 3).toFixed(2);
+                                    } else if (student.payment_plan === 'MONTHLY') {
+                                        suggestedAmount = (total / 10).toFixed(2);
+                                    } else {
+                                        suggestedAmount = Math.max(0, remaining).toFixed(2);
+                                    }
+
+                                    // Cap at remaining balance and prevent negatives
+                                    if (parseFloat(suggestedAmount) > remaining) {
+                                        suggestedAmount = Math.max(0, remaining).toFixed(2);
+                                    }
+                                }
+
+                                setPaymentForm({
+                                    ...paymentForm,
+                                    student_id: studentId,
+                                    amount: suggestedAmount
+                                });
+                            }}
                         >
                             <option value="">Choose a student...</option>
                             {students.map(s => (
@@ -700,21 +796,66 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                 </option>
                             ))}
                         </select>
+
+                        {paymentForm.student_id && (
+                            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Financial Status</p>
+                                    <div className="flex gap-4">
+                                        <div>
+                                            <p className="text-[10px] text-gray-500">Total Due</p>
+                                            <p className="text-xs font-bold text-gray-900">
+                                                {parseFloat(students.find(s => s.student_id === paymentForm.student_id)?.total_amount_due || 0).toLocaleString()} MAD
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-gray-500">Paid</p>
+                                            <p className="text-xs font-bold text-green-600">
+                                                {(parseFloat(students.find(s => s.student_id === paymentForm.student_id)?.total_amount_due || 0) -
+                                                    parseFloat(students.find(s => s.student_id === paymentForm.student_id)?.remaining_balance || 0)).toLocaleString()} MAD
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-gray-500">Remaining</p>
+                                            <p className={`text-xs font-bold ${getBalanceColor(students.find(s => s.student_id === paymentForm.student_id)?.remaining_balance)}`}>
+                                                {parseFloat(students.find(s => s.student_id === paymentForm.student_id)?.remaining_balance || 0).toLocaleString()} MAD
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    className="text-[10px] h-auto p-0 font-bold"
+                                    onClick={() => {
+                                        const s = students.find(s => s.student_id === paymentForm.student_id);
+                                        if (s) setPaymentForm({ ...paymentForm, amount: Math.max(0, parseFloat(s.remaining_balance)).toFixed(2) });
+                                    }}
+                                >
+                                    Pay Balance
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Amount ($)</label>
+                            <label className="text-sm font-medium text-gray-700">Amount (MAD)</label>
                             <input
                                 type="number"
                                 required
-                                min="0.01"
+                                min="0.00"
                                 step="0.01"
                                 value={paymentForm.amount}
                                 onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none font-bold text-gray-900"
                                 placeholder="0.00"
                             />
+                            {paymentForm.student_id && (
+                                <p className="text-[8px] text-gray-400 italic">
+                                    Suggested installment based on {students.find(s => s.student_id === paymentForm.student_id)?.payment_plan?.replace('_', ' ')} plan.
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700">Method</label>
@@ -804,15 +945,21 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                     type="button"
                                     onClick={() => setProfileForm({ ...profileForm, payment_plan: plan })}
                                     className={cn(
-                                        "py-3 text-xs font-medium rounded-lg border transition-all",
+                                        "relative py-4 px-2 text-[10px] font-bold rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1",
                                         profileForm.payment_plan === plan
-                                            ? "bg-gray-900 border-gray-900 text-white"
-                                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-400"
+                                            ? "bg-gray-900 border-gray-900 text-white shadow-lg shadow-gray-900/20"
+                                            : "bg-white border-gray-100 text-gray-500 hover:border-gray-200 hover:bg-gray-50/50"
                                     )}
                                 >
-                                    {plan.replace('_', ' ')}
+                                    <span className="uppercase tracking-widest">{plan.replace('_', ' ')}</span>
                                     {plan === 'FULL' && (
-                                        <span className="block text-[10px] text-green-500 font-normal">-5% discount</span>
+                                        <Badge className="bg-green-500/10 text-green-500 border-none text-[8px] px-1.5 py-0">-5% Discount</Badge>
+                                    )}
+                                    {plan === 'THREE_PARTS' && (
+                                        <span className="text-[8px] opacity-70 font-medium">Sep, Jan, Apr</span>
+                                    )}
+                                    {plan === 'MONTHLY' && (
+                                        <span className="text-[8px] opacity-70 font-medium">10 Installments</span>
                                     )}
                                 </button>
                             ))}
@@ -862,13 +1009,71 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                 </form>
             </Modal>
 
+            {/* Add Partner Modal */}
+            <Modal
+                isOpen={isPartnerModalOpen}
+                onClose={() => setIsPartnerModalOpen(false)}
+                title="Register University Partner"
+                subtitle="Add a new company for corporate discounts"
+                size="md"
+            >
+                <form onSubmit={handleCreatePartner} className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Company Name</label>
+                        <div className="relative">
+                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                required
+                                type="text"
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                                value={partnerForm.company_name}
+                                onChange={(e) => setPartnerForm({ ...partnerForm, company_name: e.target.value })}
+                                placeholder="e.g., Global Tech Corp"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Discount Percentage (%)</label>
+                        <div className="relative">
+                            <Percent className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                required
+                                type="number"
+                                min="0"
+                                max="100"
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                                value={partnerForm.discount_percentage}
+                                onChange={(e) => setPartnerForm({ ...partnerForm, discount_percentage: e.target.value })}
+                                placeholder="Default is 20"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Contact / Notes</label>
+                        <textarea
+                            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none h-20 resize-none"
+                            value={partnerForm.contact_info}
+                            onChange={(e) => setPartnerForm({ ...partnerForm, contact_info: e.target.value })}
+                            placeholder="HR Contact email, phone, or partnership terms..."
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsPartnerModalOpen(false)}>Cancel</Button>
+                        <Button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-gray-900/10">Register Partner</Button>
+                    </div>
+                </form>
+            </Modal>
+
             {/* Verify Payment Confirmation Modal */}
             <ConfirmModal
                 isOpen={!!paymentToVerify}
                 onClose={() => setPaymentToVerify(null)}
                 onConfirm={handleVerifyPayment}
                 title="Verify Payment"
-                message={`Are you sure you want to verify this payment of $${paymentToVerify?.amount} from ${paymentToVerify?.student_first_name} ${paymentToVerify?.student_last_name}?`}
+                message={`Are you sure you want to verify this payment of ${paymentToVerify?.amount} MAD from ${paymentToVerify?.student_first_name} ${paymentToVerify?.student_last_name}?`}
                 confirmText="Verify Payment"
                 variant="success"
                 isLoading={isVerifying}
@@ -901,7 +1106,7 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                         <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 font-semibold text-gray-900">{dept.name}</td>
                                             <td className="px-6 py-4 font-mono font-bold text-gray-700">
-                                                ${parseFloat(dept.yearly_price || 0).toLocaleString()}
+                                                {parseFloat(dept.yearly_price || 0).toLocaleString()} MAD
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <button
@@ -949,14 +1154,14 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                             <td className="px-6 py-4">
                                                 {parseFloat(spec.yearly_price || 0) > 0 ? (
                                                     <div className="font-mono font-bold text-indigo-600">
-                                                        ${parseFloat(spec.yearly_price).toLocaleString()}
+                                                        {parseFloat(spec.yearly_price).toLocaleString()} MAD
                                                         <span className="block text-[8px] uppercase tracking-tighter opacity-70">Custom Price</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col">
                                                         <span className="text-xs text-gray-400 italic">Inherited from Dept</span>
                                                         <span className="font-mono text-xs font-medium text-gray-500">
-                                                            ${parseFloat(departments.find(d => d.id === spec.department_id)?.yearly_price || 0).toLocaleString()}
+                                                            {parseFloat(departments.find(d => d.id === spec.department_id)?.yearly_price || 0).toLocaleString()} MAD
                                                         </span>
                                                     </div>
                                                 )}
@@ -992,9 +1197,9 @@ const FinancePage = ({ defaultTab = 'students' }) => {
             >
                 <form onSubmit={handleUpdatePrice} className="space-y-4">
                     <div className="space-y-1">
-                        <label className="text-sm font-semibold text-gray-700">Yearly Tuition ($)</label>
+                        <label className="text-sm font-semibold text-gray-700">Yearly Tuition (MAD)</label>
                         <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                             <input
                                 type="number"
                                 required

@@ -101,3 +101,15 @@ exports.updateProfile = async (req, res, next) => {
         next(err);
     }
 };
+
+// @desc    Create a new partnership
+// @route   POST /api/v1/finance/partnerships
+// @access  Private (Financier/Admin)
+exports.createPartnership = async (req, res, next) => {
+    try {
+        const partnership = await Finance.createPartnership(req.body);
+        res.status(201).json({ success: true, data: partnership });
+    } catch (err) {
+        next(err);
+    }
+};

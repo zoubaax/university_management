@@ -394,10 +394,10 @@ const SpecialitiesPage = () => {
                     />
 
                     <Input
-                        label="Yearly Tuition ($)"
+                        label="Yearly Tuition (MAD)"
                         type="number"
                         placeholder="0.00"
-                        leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                        leftIcon={<Banknote className="w-4 h-4 text-gray-400" />}
                         {...register('yearly_price')}
                         error={errors.yearly_price?.message}
                     />

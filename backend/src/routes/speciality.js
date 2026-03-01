@@ -20,7 +20,7 @@ router
     .route('/')
     .get(getSpecialities)
     .post(
-        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT'),
+        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER'),
         checkResourcePermission('specialities'),
         validate(specialitySchema),
         createSpeciality
@@ -30,13 +30,13 @@ router
     .route('/:id')
     .get(getSpeciality)
     .put(
-        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT'),
+        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER'),
         checkResourcePermission('specialities'),
-        validate(specialitySchema),
+        validate(specialitySchema.partial()),
         updateSpeciality
     )
     .delete(
-        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT'),
+        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER'),
         checkResourcePermission('specialities'),
         deleteSpeciality
     );

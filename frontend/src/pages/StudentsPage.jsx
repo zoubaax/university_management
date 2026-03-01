@@ -28,6 +28,7 @@ import { cn } from '../utils/cn';
 import studentService from '../api/services/studentService';
 import specialityService from '../api/services/specialityService';
 import departmentService from '../api/services/departmentService';
+import financeService from '../api/services/financeService';
 import classService from '../api/services/classService';
 import roleService from '../api/services/roleService';
 import moduleService from '../api/services/moduleService';
@@ -48,6 +49,7 @@ const StudentsPage = () => {
     const [specialities, setSpecialities] = useState([]);
     const [classes, setClasses] = useState([]);
     const [roles, setRoles] = useState([]);
+    const [partnerships, setPartnerships] = useState([]);
     const [modules, setModules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
@@ -66,13 +68,14 @@ const StudentsPage = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [studentData, deptData, specData, classData, roleData, moduleData] = await Promise.all([
+            const [studentData, deptData, specData, classData, roleData, moduleData, partnersData] = await Promise.all([
                 studentService.getAll(),
                 departmentService.getAll(),
                 specialityService.getAll(),
                 classService.getAll(),
                 roleService.getAll(),
-                moduleService.getAll()
+                moduleService.getAll(),
+                financeService.getPartnerships()
             ]);
             setStudents(studentData || []);
             setDepartments(deptData || []);
@@ -80,6 +83,7 @@ const StudentsPage = () => {
             setClasses(classData || []);
             setRoles(roleData || []);
             setModules(moduleData || []);
+            setPartnerships(partnersData || []);
         } catch (err) {
             toast.error('Failed to load student data');
             console.error('Fetch error:', err);
@@ -473,6 +477,7 @@ const StudentsPage = () => {
                     specialities={specialities}
                     classes={classes}
                     roles={roles}
+                    partnerships={partnerships}
                 />
             </Modal>
 

@@ -6,6 +6,7 @@ const ROLES = {
     SECRETARY: 'SECRETARY',
     PROFESSOR: 'PROFESSOR',
     STUDENT: 'STUDENT',
+    FINANCIER: 'FINANCIER',
 };
 
 // Map of which role can create which other role/resource
@@ -27,6 +28,13 @@ const PERMISSIONS = {
     [ROLES.RESPONSABLE_DEPARTMENT]: {
         canCreateRoles: [ROLES.STUDENT],
         canManageResources: ['specialities', 'students', 'classes'],
+    },
+    [ROLES.DIRECTOR_DEPARTMENT]: {
+        canCreateRoles: [ROLES.STUDENT, ROLES.SECRETARY],
+        canManageResources: ['departments', 'specialities', 'students', 'classes'],
+    },
+    [ROLES.FINANCIER]: {
+        canManageResources: ['departments', 'specialities'],
     },
 };
 

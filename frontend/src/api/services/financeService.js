@@ -58,6 +58,14 @@ const financeService = {
     updateStudentProfile: async (studentId, data) => {
         const response = await api.put(`/finance/students/${studentId}/profile`, data);
         return response.data.data;
+    },
+
+    /**
+     * Create a new corporate partnership
+     */
+    createPartnership: async (data) => {
+        const response = await api.post('/finance/partnerships', data);
+        return response.data.data;
     }
 };
 

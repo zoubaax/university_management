@@ -20,7 +20,7 @@ router
     .route('/')
     .get(getDepartments)
     .post(
-        authorize('SUPER_ADMIN', 'RH'),
+        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER'),
         checkResourcePermission('departments'),
         validate(departmentSchema),
         createDepartment
@@ -30,13 +30,13 @@ router
     .route('/:id')
     .get(getDepartment)
     .put(
-        authorize('SUPER_ADMIN', 'RH'),
+        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER'),
         checkResourcePermission('departments'),
-        validate(departmentSchema),
+        validate(departmentSchema.partial()),
         updateDepartment
     )
     .delete(
-        authorize('SUPER_ADMIN', 'RH'),
+        authorize('SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER'),
         checkResourcePermission('departments'),
         deleteDepartment
     );
