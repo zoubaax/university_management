@@ -27,7 +27,8 @@ import {
     Percent,
     Banknote,
     Receipt,
-    Mail
+    Mail,
+    Download
 } from 'lucide-react';
 import financeService from '../api/services/financeService';
 import departmentService from '../api/services/departmentService';
@@ -156,6 +157,16 @@ const FinancePage = ({ defaultTab = 'students' }) => {
             toast.error('Verification failed');
         } finally {
             setIsVerifying(false);
+        }
+    };
+
+    const handleDownloadReceipt = async (paymentId) => {
+        try {
+            toast.loading('Generating receipt...', { id: 'receipt' });
+            await financeService.downloadReceipt(paymentId);
+            toast.success('Receipt downloaded successfully', { id: 'receipt' });
+        } catch (err) {
+            toast.error('Failed to download receipt', { id: 'receipt' });
         }
     };
 
@@ -726,6 +737,15 @@ const FinancePage = ({ defaultTab = 'students' }) => {
                                                             >
                                                                 Verify
                                                             </Button>
+                                                        )}
+                                                        {payment.status === 'VERIFIED' && (
+                                                            <button
+                                                                onClick={() => handleDownloadReceipt(payment.id)}
+                                                                className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center justify-center mx-auto"
+                                                                title="Download Receipt"
+                                                            >
+                                                                <Download size={18} />
+                                                            </button>
                                                         )}
                                                     </td>
                                                 </motion.tr>

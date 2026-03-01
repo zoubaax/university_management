@@ -7,7 +7,8 @@ const {
     verifyPayment,
     getPartnerships,
     createPartnership,
-    updateProfile
+    updateProfile,
+    getPaymentReceipt
 } = require('../controllers/finance');
 
 const router = express.Router();
@@ -23,6 +24,7 @@ router.get('/students', authorize('FINANCIER', 'SUPER_ADMIN'), getStudentProfile
 router.get('/payments', authorize('FINANCIER', 'SUPER_ADMIN'), getPayments);
 router.post('/payments', authorize('FINANCIER', 'SUPER_ADMIN'), createPayment);
 router.put('/payments/:id/verify', authorize('FINANCIER', 'SUPER_ADMIN'), verifyPayment);
+router.get('/payments/:id/receipt', authorize('FINANCIER', 'SUPER_ADMIN', 'STUDENT'), getPaymentReceipt);
 router.put('/students/:id/profile', authorize('FINANCIER', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'), updateProfile);
 
 // Partnerships list: Accessible by Managers/Dept Heads for student linking/enrollment
