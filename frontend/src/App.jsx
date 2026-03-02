@@ -26,6 +26,7 @@ import RolesPage from './pages/RolesPage';
 import TaskCenterPage from './pages/TaskCenterPage';
 import VerificationPage from './pages/VerificationPage';
 import FinancePage from './pages/FinancePage';
+import PayrollPage from './pages/PayrollPage';
 
 const App = () => {
   return (
@@ -207,6 +208,15 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
                   <FinancePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="payroll"
+              element={
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
+                  <PayrollPage />
                 </ProtectedRoute>
               }
             />

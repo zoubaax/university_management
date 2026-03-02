@@ -101,6 +101,7 @@ const DashboardLayout = () => {
                 { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH'], permissions: ['manage_absences', 'view_absences'] },
                 { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences', 'view_student_absences'] },
                 { name: 'Finance', icon: CreditCard, path: '/finance', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
+                { name: 'Payroll', icon: BarChart3, path: '/payroll', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
                 { name: 'Program Pricing', icon: Percent, path: '/program-pricing', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
             ]
         },

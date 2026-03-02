@@ -77,10 +77,12 @@ const StaffList = ({ pageTitle, pageDescription, filterRoleName }) => {
                 department_id: editingMember.department_id,
                 email: editingMember.user_email || '',
                 role_id: editingMember.role_id || '',
+                base_salary: editingMember.base_salary || 0,
+                deduction_per_absence: editingMember.deduction_per_absence || 0,
             };
         }
 
-        const defaults = { type: 'PROFESSOR' };
+        const defaults = { type: 'PROFESSOR', base_salary: 0, deduction_per_absence: 0 };
         if (filterRoleName && roles.length > 0) {
             const targetRole = roles.find(r => r.name === filterRoleName);
             if (targetRole) {

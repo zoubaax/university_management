@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { BadgeCheck, UserPlus, Shield, Mail, Lock, User, Briefcase } from 'lucide-react';
+import { BadgeCheck, UserPlus, Shield, Mail, Lock, User, Briefcase, DollarSign, HandCoins } from 'lucide-react';
 
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -16,6 +16,8 @@ const getStaffSchema = (isEditing) => z.object({
     email: z.string().email('Invalid email').optional().or(z.literal('')),
     password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
     role_id: z.string().optional(),
+    base_salary: z.coerce.number().min(0, 'Base salary must be positive').optional().default(0),
+    deduction_per_absence: z.coerce.number().min(0, 'Deduction must be positive').optional().default(0),
 }).refine((data) => {
     if (isEditing) return true; // Less restrictive on edit
     const NO_LOGIN_TYPES = ['CLEANER', 'SECURITY', 'MAINTENANCE'];
@@ -130,6 +132,24 @@ const StaffForm = ({ onSubmit, departments, roles, onCancel, initialValues, isEd
                         {...register('department_id')}
                         error={errors.department_id?.message}
                     />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Base Salary (DA)"
+                            type="number"
+                            placeholder="0.00"
+                            leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                            {...register('base_salary')}
+                            error={errors.base_salary?.message}
+                        />
+                        <Input
+                            label="Deduction per Absence (DA)"
+                            type="number"
+                            placeholder="0.00"
+                            leftIcon={<HandCoins className="w-4 h-4 text-gray-400" />}
+                            {...register('deduction_per_absence')}
+                            error={errors.deduction_per_absence?.message}
+                        />
+                    </div>
                 </div>
             </div>
 

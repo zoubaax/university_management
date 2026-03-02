@@ -103,6 +103,7 @@ app.use('/api/v1/notifications', require('./routes/notifications'));
 app.use('/api/v1/tasks', require('./routes/tasks'));
 app.use('/api/v1/verify', require('./routes/verify'));
 app.use('/api/v1/finance', require('./routes/finance'));
+app.use('/api/v1/payroll', require('./routes/payroll'));
 
 // Health check
 app.get('/health', (req, res) => {
