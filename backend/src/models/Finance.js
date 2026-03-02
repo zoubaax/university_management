@@ -74,16 +74,16 @@ class Finance {
                 check_number,
                 bank_name,
                 receipt_url,
-                payment_method === 'CASH' ? 'VERIFIED' : 'PENDING',
+                ['CASH', 'BANK_TRANSFER'].includes(payment_method) ? 'VERIFIED' : 'PENDING',
                 notes,
-                payment_method === 'CASH' ? verified_by : null,
-                payment_method === 'CASH' ? new Date() : null
+                ['CASH', 'BANK_TRANSFER'].includes(payment_method) ? verified_by : null,
+                ['CASH', 'BANK_TRANSFER'].includes(payment_method) ? new Date() : null
             ]);
 
             const payment = paymentResult.rows[0];
 
-            // If it's cash, update the student balance immediately
-            if (payment_method === 'CASH') {
+            // If it's cash or bank transfer, update the student balance immediately
+            if (['CASH', 'BANK_TRANSFER'].includes(payment_method)) {
                 await client.query(`
                     UPDATE student_finance_profiles
                     SET remaining_balance = remaining_balance - $1,
