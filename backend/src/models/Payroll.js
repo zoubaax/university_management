@@ -42,18 +42,22 @@ class Payroll {
 
         for (const emp of employees) {
             // 2. Count absence DAYS for this employee in this month
-            // We sum the duration (end_date - start_date + 1) for all approved absences
+            // Robust check using date_trunc and converting month string to first of month
             const absencesResult = await query(
                 `SELECT COALESCE(SUM(end_date - start_date + 1), 0) as total_days
                  FROM absences 
                  WHERE employee_id = $1 
-                   AND TO_CHAR(start_date, 'YYYY-MM') = $2
+                   AND date_trunc('month', start_date) = date_trunc('month', ($2 || '-01')::date)
                    AND status = 'APPROVED'`,
                 [emp.id, month]
             );
+
             const totalAbsences = parseInt(absencesResult.rows[0].total_days);
             const totalDeductions = totalAbsences * parseFloat(emp.deduction_per_absence || 0);
             const netSalary = parseFloat(emp.base_salary || 0) - totalDeductions;
+
+            // Log for debugging (visible in terminal)
+            console.log(`Processing Payroll: Emp=${emp.id}, Month=${month}, Abs=${totalAbsences}, Ded=${totalDeductions}`);
 
             // 3. Upsert into payroll table
             const upsertResult = await query(
