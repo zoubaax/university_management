@@ -21,6 +21,7 @@ import { toast } from 'react-hot-toast';
 import aiStudyService from '../api/services/aiStudyService';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import AIQuizModal from '../components/ui/AIQuizModal';
 import { cn } from '../utils/cn';
 
 const StudyHistoryPage = () => {
@@ -28,6 +29,8 @@ const StudyHistoryPage = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('all');
+    const [selectedQuiz, setSelectedQuiz] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         fetchHistory();
@@ -45,15 +48,20 @@ const StudyHistoryPage = () => {
         }
     };
 
+    const handleReview = (quiz) => {
+        setSelectedQuiz(quiz);
+        setIsModalOpen(true);
+    };
+
     const filteredHistory = history.filter(item => {
         const matchesSearch = item.resource_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.module_name.toLowerCase().includes(searchQuery.toLowerCase());
-        
+
         const matchesFilter = selectedFilter === 'all' ||
             (selectedFilter === 'excellent' && (item.score / item.total_questions) >= 0.8) ||
             (selectedFilter === 'good' && (item.score / item.total_questions) >= 0.5 && (item.score / item.total_questions) < 0.8) ||
             (selectedFilter === 'needs-work' && (item.score / item.total_questions) < 0.5);
-        
+
         return matchesSearch && matchesFilter;
     });
 
@@ -238,7 +246,7 @@ const StudyHistoryPage = () => {
                                                                             className={cn(
                                                                                 "h-full rounded-full transition-all duration-500",
                                                                                 (item.score / item.total_questions) >= 0.8 ? "bg-green-500" :
-                                                                                (item.score / item.total_questions) >= 0.5 ? "bg-amber-500" : "bg-red-500"
+                                                                                    (item.score / item.total_questions) >= 0.5 ? "bg-amber-500" : "bg-red-500"
                                                                             )}
                                                                             style={{ width: `${(item.score / item.total_questions) * 100}%` }}
                                                                         />
@@ -255,23 +263,26 @@ const StudyHistoryPage = () => {
                                                             <Clock size={14} className="text-gray-400" />
                                                             <div>
                                                                 <span className="text-sm text-gray-700 font-medium">
-                                                                    {new Date(item.created_at).toLocaleDateString('en-US', { 
-                                                                        month: 'short', 
-                                                                        day: 'numeric', 
-                                                                        year: 'numeric' 
+                                                                    {new Date(item.created_at).toLocaleDateString('en-US', {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        year: 'numeric'
                                                                     })}
                                                                 </span>
                                                                 <span className="text-xs text-gray-400 ml-2">
-                                                                    {new Date(item.created_at).toLocaleTimeString('en-US', { 
-                                                                        hour: '2-digit', 
-                                                                        minute: '2-digit' 
+                                                                    {new Date(item.created_at).toLocaleTimeString('en-US', {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
                                                                     })}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <button className="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 transition-colors ml-auto">
+                                                        <button
+                                                            onClick={() => handleReview(item)}
+                                                            className="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1 transition-colors ml-auto"
+                                                        >
                                                             Review
                                                             <ChevronRight size={14} />
                                                         </button>
@@ -319,6 +330,20 @@ const StudyHistoryPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Quiz Review Modal */}
+            {selectedQuiz && (
+                <AIQuizModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    quizData={selectedQuiz.quiz_data}
+                    resourceTitle={selectedQuiz.resource_title}
+                    resourceId={selectedQuiz.resource_id}
+                    initialAnswers={selectedQuiz.user_answers}
+                    initialScore={selectedQuiz.score}
+                    initialTime={selectedQuiz.time_spent}
+                />
+            )}
         </div>
     );
 };

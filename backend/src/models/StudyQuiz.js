@@ -2,12 +2,12 @@ const { query } = require('../config/db');
 
 class StudyQuiz {
     static async create(data) {
-        const { student_id, resource_id, quiz_data, score, total_questions } = data;
+        const { student_id, resource_id, quiz_data, score, total_questions, answers, time_spent } = data;
         const result = await query(
-            `INSERT INTO study_quizzes (student_id, resource_id, quiz_data, score, total_questions)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO study_quizzes (student_id, resource_id, quiz_data, score, total_questions, user_answers, time_spent)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              RETURNING *`,
-            [student_id, resource_id, quiz_data, score, total_questions]
+            [student_id, resource_id, quiz_data, score, total_questions, JSON.stringify(answers), time_spent]
         );
         return result.rows[0];
     }
@@ -33,6 +33,8 @@ class StudyQuiz {
                 student_id UUID REFERENCES users(id) ON DELETE CASCADE,
                 resource_id UUID REFERENCES course_resources(id) ON DELETE CASCADE,
                 quiz_data JSONB NOT NULL,
+                user_answers JSONB,
+                time_spent VARCHAR(50),
                 score INTEGER DEFAULT 0,
                 total_questions INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

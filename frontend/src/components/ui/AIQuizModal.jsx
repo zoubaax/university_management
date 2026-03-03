@@ -22,15 +22,36 @@ import { cn } from '../../utils/cn';
 import aiStudyService from '../../api/services/aiStudyService';
 import { toast } from 'react-hot-toast';
 
-const AIQuizModal = ({ isOpen, onClose, quizData, resourceTitle, resourceId }) => {
+const AIQuizModal = ({
+    isOpen,
+    onClose,
+    quizData,
+    resourceTitle,
+    resourceId,
+    initialAnswers = null,
+    initialScore = 0,
+    initialTime = '0 min'
+}) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [score, setScore] = useState(0);
-    const [showResults, setShowResults] = useState(false);
-    const [answers, setAnswers] = useState([]);
+    const [score, setScore] = useState(initialAnswers ? initialScore : 0);
+    const [showResults, setShowResults] = useState(!!initialAnswers);
+    const [answers, setAnswers] = useState(initialAnswers || []);
     const [startTime] = useState(Date.now());
-    const [timeSpent, setTimeSpent] = useState('0 min');
+    const [timeSpent, setTimeSpent] = useState(initialTime);
+
+    // Update state when initialAnswers changes (e.g. when opening a different review)
+    React.useEffect(() => {
+        if (isOpen && initialAnswers) {
+            setAnswers(initialAnswers);
+            setScore(initialScore);
+            setShowResults(true);
+            setTimeSpent(initialTime);
+        } else if (isOpen && !initialAnswers) {
+            handleReset();
+        }
+    }, [isOpen, initialAnswers, initialScore, initialTime]);
 
     if (!quizData) return null;
 
@@ -69,7 +90,7 @@ const AIQuizModal = ({ isOpen, onClose, quizData, resourceTitle, resourceId }) =
                 // Calculate time spent
                 const elapsed = Math.floor((Date.now() - startTime) / 60000);
                 setTimeSpent(elapsed < 1 ? '<1 min' : `~${elapsed} min${elapsed > 1 ? 's' : ''}`);
-                
+
                 // SAVE RESULT TO HISTORY
                 saveToHistory();
                 setShowResults(true);
@@ -83,7 +104,9 @@ const AIQuizModal = ({ isOpen, onClose, quizData, resourceTitle, resourceId }) =
                 resourceId,
                 quizData,
                 score,
-                totalQuestions
+                totalQuestions,
+                answers,    // STORE ANSWERS FOR REVIEW
+                timeSpent  // STORE TIME SPENT
             });
             console.log('Quiz history saved successfully');
         } catch (err) {
@@ -331,7 +354,7 @@ const AIQuizModal = ({ isOpen, onClose, quizData, resourceTitle, resourceId }) =
                                             </div>
                                             <Badge className={cn(
                                                 "text-xs",
-                                                answer.isCorrect 
+                                                answer.isCorrect
                                                     ? "bg-green-100 text-green-700 border-green-200"
                                                     : "bg-red-100 text-red-700 border-red-200"
                                             )}>

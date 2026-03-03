@@ -136,14 +136,16 @@ exports.generateQuizFromResource = async (req, res, next) => {
 // @access  Private
 exports.saveQuizResult = async (req, res, next) => {
     try {
-        const { resourceId, quizData, score, totalQuestions } = req.body;
+        const { resourceId, quizData, score, totalQuestions, answers, timeSpent } = req.body;
 
         const quiz = await StudyQuiz.create({
             student_id: req.user.id,
             resource_id: resourceId,
             quiz_data: quizData,
             score,
-            total_questions: totalQuestions
+            total_questions: totalQuestions,
+            answers,
+            time_spent: timeSpent
         });
 
         res.status(201).json({
