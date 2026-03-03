@@ -43,43 +43,45 @@ const ChatWidget = () => {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    const suggestions = [
-        {
-            text: "What is my schedule for today?",
-            icon: Calendar,
-            color: "text-blue-600"
-        },
-        {
-            text: "How much money do I still have to pay?",
-            icon: DollarSign,
-            color: "text-green-600"
-        },
-        {
-            text: "Can I get a certificate?",
-            icon: FileText,
-            color: "text-amber-600"
-        },
-        {
-            text: "Show my outstanding balance",
-            icon: DollarSign,
-            color: "text-green-600"
-        },
-        {
-            text: "Upcoming assignments",
-            icon: FileText,
-            color: "text-amber-600"
-        },
-        {
-            text: "Contact my professor",
-            icon: User,
-            color: "text-purple-600"
-        },
-        {
-            text: "View my grades",
-            icon: CheckCircle,
-            color: "text-emerald-600"
+    const getRoleSuggestions = () => {
+        const role = user?.role_name;
+
+        const common = [
+            { text: "What is my schedule for today?", icon: Calendar, color: "text-blue-600" },
+            { text: "Add a task for tomorrow", icon: CheckCircle, color: "text-indigo-600" }
+        ];
+
+        if (role === 'STUDENT') {
+            return [
+                ...common,
+                { text: "How much money do I still have to pay?", icon: DollarSign, color: "text-green-600" },
+                { text: "Can I get a certificate?", icon: FileText, color: "text-amber-600" },
+                { text: "View my recent grades", icon: CheckCircle, color: "text-emerald-600" }
+            ];
         }
-    ];
+
+        if (role === 'PROFESSOR') {
+            return [
+                ...common,
+                { text: "Show my teaching schedule", icon: Calendar, color: "text-blue-600" },
+                { text: "Manage course materials", icon: FileText, color: "text-purple-600" },
+                { text: "How many students in my classes?", icon: User, color: "text-orange-600" }
+            ];
+        }
+
+        if (role === 'RESPONSABLE_DEPARTMENT' || role === 'DIRECTOR_DEPARTMENT') {
+            return [
+                ...common,
+                { text: "Status of my department", icon: Bot, color: "text-indigo-600" },
+                { text: "Pending certificates to approve", icon: FileText, color: "text-amber-600" },
+                { text: "How many students in the department?", icon: User, color: "text-blue-600" }
+            ];
+        }
+
+        return common;
+    };
+
+    const suggestions = getRoleSuggestions();
 
     useEffect(() => {
         if (isOpen && !isMinimized) {
@@ -244,8 +246,8 @@ const ChatWidget = () => {
                                                 )}>
                                                     <div className={cn(
                                                         "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                                                        msg.sender === 'user' 
-                                                            ? "bg-gray-900 text-white" 
+                                                        msg.sender === 'user'
+                                                            ? "bg-gray-900 text-white"
                                                             : "bg-white border border-gray-200 text-gray-600"
                                                     )}>
                                                         {msg.sender === 'user' ? <User size={14} /> : <Bot size={14} />}
@@ -287,7 +289,7 @@ const ChatWidget = () => {
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     <div ref={messagesEndRef} />
                                 </div>
 

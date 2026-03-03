@@ -5,6 +5,7 @@ const Absence = require('../models/Absence');
 const Grade = require('../models/Grade');
 const Certificate = require('../models/Certificate');
 const Task = require('../models/Task');
+const Department = require('../models/Department');
 const { query } = require('../config/db');
 
 // @desc    Chat with AI Assistant
@@ -70,6 +71,37 @@ exports.chatWithAssistant = async (req, res, next) => {
                 User Identity: Professor named ${prof.first_name} ${prof.last_name}.
                 Academic Data:
                 - Your Schedule: ${JSON.stringify(schedules)}
+                `;
+            }
+        } else if (user.role_name === 'RESPONSABLE_DEPARTMENT' || user.role_name === 'DIRECTOR_DEPARTMENT') {
+            // Get Department Head Details
+            const employeeRes = await query('SELECT * FROM employees WHERE user_id = $1', [user.id]);
+            const head = employeeRes.rows[0];
+
+            if (head && head.department_id) {
+                const dept = await Department.findById(head.department_id);
+                // Fetch stats for the department
+                const studentCountRes = await query(`
+                    SELECT COUNT(*) FROM students s 
+                    JOIN specialities spec ON s.speciality_id = spec.id 
+                    WHERE spec.department_id = $1`, [head.department_id]);
+
+                const pendingCertsRes = await query(`
+                    SELECT COUNT(*) FROM certificate_requests cr
+                    JOIN students s ON cr.student_id = s.id
+                    JOIN specialities spec ON s.speciality_id = spec.id
+                    WHERE spec.department_id = $1 AND cr.status = 'PENDING'`, [head.department_id]);
+
+                context = `
+                User Identity: Department Head (${user.role_name}) named ${head.first_name} ${head.last_name}.
+                Department Info: ${dept ? dept.name : 'Unknown Department'}.
+                Administrative Context:
+                - Total Students in your Department: ${studentCountRes.rows[0].count}
+                - Pending Certificate Requests to process: ${pendingCertsRes.rows[0].count}
+                
+                Policy for Department Heads:
+                - You can ask about the number of students or pending certificates.
+                - You should remind them to check the "Certificates" section to approve pending requests.
                 `;
             }
         }
