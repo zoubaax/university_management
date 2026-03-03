@@ -47,6 +47,24 @@ export const useSchedules = (classId) => {
         }
     };
 
+    const generateSchedule = async (apply = false) => {
+        setLoading(true);
+        try {
+            const result = await scheduleService.generate(classId, apply);
+            if (apply) {
+                toast.success('AI Schedule generated and applied!');
+                fetchSchedules();
+            }
+            return result;
+        } catch (err) {
+            const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to generate schedule';
+            toast.error(msg);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchSchedules();
     }, [fetchSchedules]);
@@ -57,6 +75,7 @@ export const useSchedules = (classId) => {
         error,
         upsertSchedule,
         deleteSchedule,
+        generateSchedule,
         refresh: fetchSchedules
     };
 };

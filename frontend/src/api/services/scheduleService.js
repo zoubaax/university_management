@@ -28,6 +28,11 @@ const scheduleService = {
         if (classId) params.append('classId', classId);
         const response = await api.get(`/schedules/check-room?${params.toString()}`);
         return response.data.data;
+    },
+
+    generate: async (classId, apply = false) => {
+        const response = await api.post(`/schedules/generate/${classId}`, { apply });
+        return response.data;
     }
 };
 

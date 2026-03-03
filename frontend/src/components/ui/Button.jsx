@@ -2,7 +2,8 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
-const Button = ({ children, variant = 'primary', className, isLoading, icon: Icon, iconPosition = 'left', disabled, ...props }) => {
+const Button = ({ children, variant = 'primary', className, isLoading, loading, icon: Icon, iconPosition = 'left', disabled, ...props }) => {
+    const isActuallyLoading = isLoading || loading;
     const variants = {
         primary: "btn-primary shadow-2xl shadow-primary-600/30 text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98]",
         secondary: "border border-slate-200 text-slate-500 font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-50 transition-all hover:scale-[1.02] active:scale-[0.98]",
@@ -14,16 +15,16 @@ const Button = ({ children, variant = 'primary', className, isLoading, icon: Ico
         <button
             className={cn(
                 "flex items-center justify-center gap-3 transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
-                variants[variant],
+                variants[variant] || variants.primary,
                 className
             )}
-            disabled={isLoading || disabled}
+            disabled={isActuallyLoading || disabled}
             {...props}
         >
-            {isLoading && <Loader2 className="animate-spin" size={16} />}
-            {!isLoading && Icon && iconPosition === 'left' && <Icon size={20} />}
+            {isActuallyLoading && <Loader2 className="animate-spin" size={16} />}
+            {!isActuallyLoading && Icon && iconPosition === 'left' && <Icon size={20} />}
             {children}
-            {!isLoading && Icon && iconPosition === 'right' && <Icon size={20} />}
+            {!isActuallyLoading && Icon && iconPosition === 'right' && <Icon size={20} />}
         </button>
     );
 };

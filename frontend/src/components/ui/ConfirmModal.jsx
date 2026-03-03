@@ -107,7 +107,7 @@ const ConfirmModal = ({
 
                             {/* Message */}
                             <div className="mb-6">
-                                <p className="text-sm text-gray-600 leading-relaxed">{message}</p>
+                                <div className="text-sm text-gray-600 leading-relaxed">{message}</div>
                             </div>
 
                             {/* Actions */}

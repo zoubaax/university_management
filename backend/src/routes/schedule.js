@@ -4,7 +4,8 @@ const {
     getProfessorSchedules,
     upsertSchedule,
     deleteSchedule,
-    checkRoomAvailability
+    checkRoomAvailability,
+    generateSchedule
 } = require('../controllers/schedule');
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get('/check-room', checkRoomAvailability);
 router.use(authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'));
 
 router.post('/', upsertSchedule);
+router.post('/generate/:classId', generateSchedule);
 router.delete('/:id', deleteSchedule);
 
 module.exports = router;

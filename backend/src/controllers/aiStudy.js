@@ -4,7 +4,7 @@ const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const CourseResource = require('../models/CourseResource');
 const StudyQuiz = require('../models/StudyQuiz');
-const ErrorResponse = require('../utils/errorResponse');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 // Initialize table
 StudyQuiz.initTable().catch(err => console.error('Failed to init study_quizzes table:', err));

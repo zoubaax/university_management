@@ -33,8 +33,15 @@ import {
     Grid,
     List,
     RefreshCw,
+    Brain,
     X,
-    Edit2
+    Edit2,
+    Award,
+    BarChart2,
+    Target,
+    Sparkles,
+    Cpu,
+    Bot
 } from 'lucide-react';
 import classService from '../api/services/classService';
 import moduleService from '../api/services/moduleService';
@@ -113,8 +120,35 @@ const SchedulesPage = () => {
         schedules,
         loading: schedulesLoading,
         upsertSchedule,
-        deleteSchedule
+        deleteSchedule,
+        generateSchedule
     } = useSchedules(selectedClass);
+
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+    const [aiSuggestions, setAiSuggestions] = useState(null);
+
+    const loadingSteps = [
+        "Analyzing curriculum requirements...",
+        "Optimizing professor availability...",
+        "Checking room capacities...",
+        "Resolving schedule conflicts...",
+        "Balancing weekly distribution...",
+        "Finalizing smart schedule..."
+    ];
+    const [stepIndex, setStepIndex] = useState(0);
+
+    useEffect(() => {
+        let interval;
+        if (isGenerating) {
+            interval = setInterval(() => {
+                setStepIndex((prev) => (prev + 1) % loadingSteps.length);
+            }, 2500);
+        } else {
+            setStepIndex(0);
+        }
+        return () => clearInterval(interval);
+    }, [isGenerating]);
 
     // Room availability check
     useEffect(() => {
@@ -135,8 +169,8 @@ const SchedulesPage = () => {
                 setRoomConflict({
                     available: result.available,
                     message: result.available
-                        ? '✓ Room available for this time slot'
-                        : `✗ Already reserved for "${result.conflict?.class_name || 'another class'}"`,
+                        ? 'Room available for this time slot'
+                        : `Already reserved for ${result.conflict?.class_name || 'another class'}`,
                     conflict: result.conflict
                 });
             } catch (err) {
@@ -231,6 +265,23 @@ const SchedulesPage = () => {
             toast.error('Failed to load modules for this class');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerate = async (apply = false) => {
+        try {
+            setIsGenerating(true);
+            const result = await generateSchedule(apply);
+            if (!apply) {
+                setAiSuggestions(result.data);
+            } else {
+                setIsGenerateModalOpen(false);
+                setAiSuggestions(null);
+            }
+        } catch (err) {
+            console.error('Generation error:', err);
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -363,85 +414,80 @@ const SchedulesPage = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Academic Scheduling</h1>
-                        <div className="flex items-center gap-3 mt-1">
-                            <p className="text-sm text-gray-500">
-                                {isProfessor
-                                    ? 'Manage your teaching schedule and track attendance'
-                                    : 'Select a class to view or configure its weekly timetable'}
-                            </p>
-                            {isProfessor && (
-                                <>
-                                    <span className="text-gray-300">|</span>
-                                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-                                        <button
-                                            onClick={() => setWeekOffset(prev => prev - 1)}
-                                            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
-                                            title="Previous week"
-                                        >
-                                            <ChevronLeft size={16} />
-                                        </button>
-                                        <span className="text-xs font-medium text-gray-900 min-w-[100px] text-center">
-                                            {weekOffset === 0 ? 'This Week' :
-                                                weekOffset === 1 ? 'Next Week' :
-                                                    weekOffset === -1 ? 'Last Week' : formatWeekRange()}
-                                        </span>
-                                        <button
-                                            onClick={() => setWeekOffset(prev => prev + 1)}
-                                            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
-                                            title="Next week"
-                                        >
-                                            <ChevronRight size={16} />
-                                        </button>
-                                        {weekOffset !== 0 && (
-                                            <button
-                                                onClick={() => setWeekOffset(0)}
-                                                className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-blue-600 border-l border-gray-100 ml-1"
-                                                title="Back to current week"
-                                            >
-                                                <RotateCcw size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {isProfessor
+                                ? 'Manage your teaching schedule and track attendance'
+                                : 'Select a class to view or configure its weekly timetable'}
+                        </p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         {!isProfessor && (
-                            <div className="w-full md:w-64">
-                                <Select
-                                    placeholder="Filter by speciality"
-                                    leftIcon={<Layers className="w-4 h-4 text-gray-400" />}
-                                    options={[
-                                        { value: 'all', label: 'All Specialities' },
-                                        ...specialities.map(s => ({ value: s.id, label: s.name }))
-                                    ]}
+                            <div className="relative">
+                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                <select
                                     value={selectedSpeciality}
                                     onChange={(e) => setSelectedSpeciality(e.target.value)}
-                                />
+                                    className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                                >
+                                    <option value="all">All Specialities</option>
+                                    {specialities.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         )}
 
                         {isProfessor && (
-                            <Button
-                                onClick={handlePrint}
-                                variant="outline"
-                                icon={Printer}
-                                className="border-gray-200"
-                            >
-                                Print Schedule
-                            </Button>
+                            <>
+                                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+                                    <button
+                                        onClick={() => setWeekOffset(prev => prev - 1)}
+                                        className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
+                                        title="Previous week"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                    <span className="text-xs font-medium text-gray-900 min-w-[120px] text-center">
+                                        {weekOffset === 0 ? 'This Week' :
+                                            weekOffset === 1 ? 'Next Week' :
+                                                weekOffset === -1 ? 'Last Week' : formatWeekRange()}
+                                    </span>
+                                    <button
+                                        onClick={() => setWeekOffset(prev => prev + 1)}
+                                        className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
+                                        title="Next week"
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                    {weekOffset !== 0 && (
+                                        <button
+                                            onClick={() => setWeekOffset(0)}
+                                            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-600 border-l border-gray-200 ml-1"
+                                            title="Back to current week"
+                                        >
+                                            <RotateCcw size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                <Button
+                                    onClick={handlePrint}
+                                    variant="outline"
+                                    icon={Printer}
+                                >
+                                    Print
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>
 
                 {/* Professor Personal Schedule View */}
                 {isProfessor ? (
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 bg-gray-50">
                             <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-100 rounded-lg">
+                                <div className="p-2 bg-blue-50 rounded-lg">
                                     <User className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <div>
@@ -467,7 +513,7 @@ const SchedulesPage = () => {
                                                 Time / Day
                                             </th>
                                             {DAYS.map(day => (
-                                                <th key={day} className="px-4 py-3 bg-gray-50 border-b border-r border-gray-200 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[200px]">
+                                                <th key={day} className="px-4 py-3 bg-gray-50 border-b border-r border-gray-200 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px]">
                                                     {day}
                                                 </th>
                                             ))}
@@ -490,12 +536,12 @@ const SchedulesPage = () => {
                                                     return (
                                                         <td key={day} className="p-3 border-b border-r border-gray-200 align-top">
                                                             {schedule ? (
-                                                                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 hover:shadow-sm transition-all">
-                                                                    <div className="flex items-start justify-between mb-2">
-                                                                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0.5">
+                                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:shadow-sm transition-all">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px]">
                                                                             {schedule.room}
                                                                         </Badge>
-                                                                        <span className="text-[10px] text-blue-500 font-medium">
+                                                                        <span className="text-[10px] text-blue-600 font-medium">
                                                                             {schedule.class_name}
                                                                         </span>
                                                                     </div>
@@ -504,32 +550,30 @@ const SchedulesPage = () => {
                                                                         {schedule.module_name}
                                                                     </h4>
 
-                                                                    <div className="flex items-center gap-2 text-xs text-blue-700 mb-2">
+                                                                    <div className="flex items-center gap-2 text-xs text-blue-700 mb-3">
                                                                         <School className="w-3 h-3" />
                                                                         <span className="truncate">{schedule.speciality_name}</span>
                                                                     </div>
 
-                                                                    <div className="flex gap-2 mt-2">
+                                                                    <div className="flex gap-2">
                                                                         <button
                                                                             onClick={() => setAttendanceSlot(schedule)}
                                                                             className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
-                                                                            title="Mark Today's Attendance"
                                                                         >
-                                                                            <Users size={12} />
+                                                                            <Users size={11} />
                                                                             Mark
                                                                         </button>
                                                                         <button
                                                                             onClick={() => navigate('/attendance-report', { state: { classId: schedule.class_id } })}
                                                                             className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
-                                                                            title="View Attendance History"
                                                                         >
-                                                                            <Clock size={12} />
+                                                                            <Clock size={11} />
                                                                             History
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div className="h-28 bg-gray-50/50 rounded-lg border border-dashed border-gray-200 flex items-center justify-center">
+                                                                <div className="h-32 bg-gray-50 rounded-lg border border-dashed border-gray-200 flex items-center justify-center">
                                                                     <span className="text-xs text-gray-400">No class</span>
                                                                 </div>
                                                             )}
@@ -545,7 +589,7 @@ const SchedulesPage = () => {
                     </div>
                 ) : (
                     /* Class Selection Grid */
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {loading ? (
                             <div className="col-span-full h-64 flex flex-col items-center justify-center">
                                 <Loader2 className="w-8 h-8 text-gray-600 animate-spin mb-3" />
@@ -562,10 +606,10 @@ const SchedulesPage = () => {
                                     onClick={() => setSelectedClass(cls.id)}
                                 >
                                     <div className="flex items-start justify-between mb-4">
-                                        <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
-                                            <School className="w-6 h-6 text-blue-600" />
+                                        <div className="p-3 bg-gray-100 rounded-lg group-hover:bg-gray-900 transition-colors">
+                                            <School className="w-6 h-6 text-gray-600 group-hover:text-white" />
                                         </div>
-                                        <Badge variant="outline" className="text-xs">
+                                        <Badge className="text-xs bg-gray-100 text-gray-700 border-gray-200">
                                             {cls.academic_year}
                                         </Badge>
                                     </div>
@@ -575,7 +619,7 @@ const SchedulesPage = () => {
 
                                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                         <span className="text-xs font-medium text-gray-400">{cls.level}</span>
-                                        <div className="flex items-center text-blue-600 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                                        <div className="flex items-center text-gray-700 text-sm font-medium group-hover:text-gray-900 group-hover:translate-x-1 transition-all">
                                             View Schedule
                                             <ArrowRight className="w-4 h-4 ml-1" />
                                         </div>
@@ -632,8 +676,8 @@ const SchedulesPage = () => {
                         <Button
                             variant="ghost"
                             onClick={() => setSelectedClass(null)}
-                            className="p-2 hover:bg-gray-100 border border-transparent hover:border-gray-200"
                             icon={ChevronLeft}
+                            className="text-gray-600"
                         >
                             Back
                         </Button>
@@ -651,18 +695,23 @@ const SchedulesPage = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {isManager && (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                            <Settings className="w-3 h-3 mr-1" />
-                            Management Mode
-                        </Badge>
+                    {isManager && selectedClass && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsGenerateModalOpen(true)}
+                            icon={Brain}
+                            className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                            loading={isGenerating}
+                        >
+                            AI Generate
+                        </Button>
                     )}
                     <Button
                         variant="outline"
                         onClick={handlePrint}
                         icon={Printer}
                     >
-                        Print Schedule
+                        Print
                     </Button>
                 </div>
             </div>
@@ -740,7 +789,7 @@ const SchedulesPage = () => {
                         <Clock className="w-5 h-5 text-gray-400" />
                     </div>
                     {DAYS.map(day => (
-                        <div key={day} className="p-4 text-center bg-gray-50/50">
+                        <div key={day} className="p-4 text-center bg-gray-50">
                             <span className="text-sm font-semibold text-gray-700">{day}</span>
                         </div>
                     ))}
@@ -792,55 +841,53 @@ const SchedulesPage = () => {
                                 >
                                     {schedule ? (
                                         <div className="h-full flex flex-col">
-                                            {/* Room Badge */}
-                                            {schedule.room && (
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0.5">
-                                                        {schedule.room}
-                                                    </Badge>
+                                            {/* Header with Room and Menu */}
+                                            <div className="flex items-center justify-between mb-2">
+                                                <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px]">
+                                                    {schedule.room}
+                                                </Badge>
 
-                                                    {isManager && (
-                                                        <div className="relative">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setMenuOpen(menuOpen === schedule.id ? null : schedule.id);
-                                                                }}
-                                                                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                                                            >
-                                                                <MoreVertical size={14} />
-                                                            </button>
+                                                {isManager && (
+                                                    <div className="relative">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setMenuOpen(menuOpen === schedule.id ? null : schedule.id);
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                                        >
+                                                            <MoreVertical size={14} />
+                                                        </button>
 
-                                                            {menuOpen === schedule.id && (
-                                                                <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleSlotClick(day, slot.id, schedule);
-                                                                            setMenuOpen(null);
-                                                                        }}
-                                                                        className="w-full px-3 py-2 text-xs text-left text-gray-700 hover:bg-gray-50 flex items-center gap-1.5"
-                                                                    >
-                                                                        <Edit2 size={12} />
-                                                                        Edit
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setSlotToDelete(schedule);
-                                                                            setMenuOpen(null);
-                                                                        }}
-                                                                        className="w-full px-3 py-2 text-xs text-left text-red-600 hover:bg-red-50 flex items-center gap-1.5"
-                                                                    >
-                                                                        <Trash2 size={12} />
-                                                                        Remove
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                                        {menuOpen === schedule.id && (
+                                                            <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleSlotClick(day, slot.id, schedule);
+                                                                        setMenuOpen(null);
+                                                                    }}
+                                                                    className="w-full px-3 py-2 text-xs text-left text-gray-700 hover:bg-gray-50 flex items-center gap-1.5"
+                                                                >
+                                                                    <Edit2 size={12} />
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSlotToDelete(schedule);
+                                                                        setMenuOpen(null);
+                                                                    }}
+                                                                    className="w-full px-3 py-2 text-xs text-left text-red-600 hover:bg-red-50 flex items-center gap-1.5"
+                                                                >
+                                                                    <Trash2 size={12} />
+                                                                    Remove
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             {/* Module Info */}
                                             <h4 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -870,8 +917,7 @@ const SchedulesPage = () => {
                                                             e.stopPropagation();
                                                             setAttendanceSlot(schedule);
                                                         }}
-                                                        className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
-                                                        title="Mark Today's Attendance"
+                                                        className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-[10px] font-medium hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all flex items-center justify-center gap-1"
                                                     >
                                                         <Users size={11} />
                                                         Mark
@@ -881,8 +927,7 @@ const SchedulesPage = () => {
                                                             e.stopPropagation();
                                                             navigate('/attendance-report', { state: { classId: schedule.class_id } });
                                                         }}
-                                                        className="flex-1 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-md text-[10px] font-medium hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-1"
-                                                        title="View Attendance History"
+                                                        className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md text-[10px] font-medium hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all flex items-center justify-center gap-1"
                                                     >
                                                         <Clock size={11} />
                                                         History
@@ -937,34 +982,37 @@ const SchedulesPage = () => {
                     setSlotToEdit(null);
                     setFormData({ module_id: '', professor_id: '', room: '' });
                 }}
-                title={slotToEdit ? 'Edit Schedule Assignment' : 'Schedule Assignment'}
+                title={slotToEdit ? 'Edit Schedule' : 'Schedule Module'}
                 subtitle={`${selectedSlot?.day} • ${SLOTS.find(s => s.id === selectedSlot?.slotType)?.label}`}
                 size="md"
             >
                 <form onSubmit={handleSave} className="space-y-5">
-                    <Select
-                        label="Module"
-                        placeholder="Select module"
-                        leftIcon={<BookOpen className="w-4 h-4 text-gray-400" />}
-                        options={classModules.map(m => ({
-                            value: m.module_id,
-                            label: `${m.module_code} - ${m.module_name}`,
-                            description: `Credits: ${m.credits || 'N/A'} • Coefficient: ${m.coefficient || '1.0'}`
-                        }))}
-                        value={formData.module_id}
-                        onChange={(e) => {
-                            const mod = classModules.find(m => m.module_id === e.target.value);
-                            setFormData({
-                                ...formData,
-                                module_id: e.target.value,
-                                professor_id: mod?.professor_id || ''
-                            });
-                        }}
-                        required
-                    />
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700">Module</label>
+                        <select
+                            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                            value={formData.module_id}
+                            onChange={(e) => {
+                                const mod = classModules.find(m => m.module_id === e.target.value);
+                                setFormData({
+                                    ...formData,
+                                    module_id: e.target.value,
+                                    professor_id: mod?.professor_id || ''
+                                });
+                            }}
+                            required
+                        >
+                            <option value="">Select module...</option>
+                            {classModules.map(m => (
+                                <option key={m.module_id} value={m.module_id}>
+                                    {m.module_code} - {m.module_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     {formData.module_id && (
-                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                             <div className="flex items-center gap-2">
                                 <div className="p-1.5 bg-white rounded-lg">
                                     <User className="w-3.5 h-3.5 text-blue-600" />
@@ -975,30 +1023,37 @@ const SchedulesPage = () => {
                                         {classModules.find(m => m.module_id === formData.module_id)?.professor_last_name}
                                     </p>
                                     <p className="text-[10px] text-blue-700">
-                                        Assigned professor for this module
+                                        Assigned professor
                                     </p>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <Select
-                        label="Room"
-                        placeholder="Select room"
-                        leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
-                        options={getRoomOptions()}
-                        value={formData.room}
-                        onChange={(e) => setFormData({ ...formData, room: e.target.value })}
-                        required
-                    />
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700">Room</label>
+                        <select
+                            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                            value={formData.room}
+                            onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                            required
+                        >
+                            <option value="">Select room...</option>
+                            {getRoomOptions().map(room => (
+                                <option key={room.value} value={room.value}>
+                                    {room.label} - {room.description}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     {/* Room Availability Status */}
                     {formData.room && roomConflict && (
                         <div className={cn(
-                            "flex items-center gap-2 p-3 rounded-lg text-sm",
+                            "flex items-center gap-2 p-3 rounded-lg text-sm border",
                             roomConflict.available
-                                ? "bg-green-50 border border-green-200 text-green-700"
-                                : "bg-red-50 border border-red-200 text-red-700"
+                                ? "bg-green-50 border-green-200 text-green-700"
+                                : "bg-red-50 border-red-200 text-red-700"
                         )}>
                             {roomConflict.available ? (
                                 <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
@@ -1024,11 +1079,10 @@ const SchedulesPage = () => {
                         </Button>
                         <Button
                             type="submit"
-                            variant="primary"
                             disabled={!formData.module_id || !formData.room || roomConflict?.available === false}
-                            className="flex-1 bg-gray-900 hover:bg-gray-800"
+                            className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
                         >
-                            {slotToEdit ? 'Update Assignment' : 'Assign Schedule'}
+                            {slotToEdit ? 'Update' : 'Assign'}
                         </Button>
                     </div>
                 </form>
@@ -1039,8 +1093,8 @@ const SchedulesPage = () => {
                 isOpen={!!slotToDelete}
                 onClose={() => setSlotToDelete(null)}
                 onConfirm={handleConfirmDelete}
-                title="Remove Schedule Entry"
-                message={`Are you sure you want to remove "${slotToDelete?.module_name}" from the schedule? This action cannot be undone.`}
+                title="Remove Schedule"
+                message={`Are you sure you want to remove "${slotToDelete?.module_name}" from the schedule?`}
                 confirmText="Remove"
                 variant="danger"
             />
@@ -1052,6 +1106,99 @@ const SchedulesPage = () => {
                 schedule={attendanceSlot}
                 date={attendanceSlot ? getSessionDate(attendanceSlot.day_of_week) : null}
             />
+
+            {/* AI Generation Confirmation Modal */}
+            <ConfirmModal
+                isOpen={isGenerateModalOpen && !isGenerating}
+                onClose={() => {
+                    setIsGenerateModalOpen(false);
+                    setAiSuggestions(null);
+                }}
+                onConfirm={() => handleGenerate(true)}
+                title="AI Schedule Generation"
+                message={
+                    <div className="space-y-4">
+                        <p className="text-sm text-gray-600">
+                            The AI will intelligently distribute modules across the week, avoiding conflicts.
+                        </p>
+                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                            <div className="flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="text-xs text-amber-800 space-y-2">
+                                    <p className="font-semibold">Important Notes:</p>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li>This will clear the existing schedule</li>
+                                        <li>Respects current appointments</li>
+                                        <li>Takes ~10-15 seconds to calculate</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                confirmText="Generate Now"
+                confirmVariant="primary"
+            />
+
+            {/* Premium AI Loading Overlay */}
+            <AnimatePresence>
+                {isGenerating && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-white p-8 rounded-xl shadow-xl border border-gray-200 max-w-sm w-full text-center"
+                        >
+                            <div className="relative mb-6">
+                                <div className="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mx-auto">
+                                    <Brain className="w-8 h-8 text-purple-600 animate-pulse" />
+                                </div>
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                    className="absolute -top-1 -right-1"
+                                >
+                                    <Sparkles className="w-4 h-4 text-amber-500" />
+                                </motion.div>
+                            </div>
+
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Generating Smart Schedule</h3>
+                            
+                            <div className="h-8 flex items-center justify-center mb-4">
+                                <AnimatePresence mode="wait">
+                                    <motion.p
+                                        key={stepIndex}
+                                        initial={{ y: 10, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: -10, opacity: 0 }}
+                                        className="text-sm text-purple-600 font-medium"
+                                    >
+                                        {loadingSteps[stepIndex]}
+                                    </motion.p>
+                                </AnimatePresence>
+                            </div>
+
+                            <div className="flex justify-center gap-1.5 mb-4">
+                                {[0, 1, 2].map((i) => (
+                                    <motion.div
+                                        key={i}
+                                        animate={{ y: [0, -5, 0] }}
+                                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.2 }}
+                                        className="w-2 h-2 bg-purple-600 rounded-full"
+                                    />
+                                ))}
+                            </div>
+
+                            <p className="text-[10px] text-gray-400">Powered by AI • This may take a moment</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
