@@ -4,6 +4,7 @@ const Finance = require('../models/Finance');
 const Absence = require('../models/Absence');
 const Grade = require('../models/Grade');
 const Certificate = require('../models/Certificate');
+const Task = require('../models/Task');
 const { query } = require('../config/db');
 
 // @desc    Chat with AI Assistant
@@ -50,9 +51,12 @@ exports.chatWithAssistant = async (req, res, next) => {
                 - Certificate History: ${JSON.stringify(certs)}
 
                 University Policy on Certificates:
-                - Students can request Enrollment Certificates (ENROLLMENT).
-                - IMPORTANT RULE: Enrollment certificates are ONLY approved if the 'remaining_balance' in Financial Status is 0 (fully paid).
-                - Process: If they ask to request one, tell them if they are eligible (based on balance) and tell them to go to the 'Certificates' section in the sidebar.
+                - There are two main types of documents a student can request:
+                    1. Academic Certificates: Enrollment Certificates (ENROLLMENT) or Grade Transcripts. 
+                       RULE: Enrollment certificates are ONLY approved if 'remaining_balance' is 0 or less (fully paid).
+                    2. Payment History: A financial document showing all payments made and the current balance.
+                       RULE: Any student can request this at any time to see their transaction history.
+                - Process: If they ask about either, tell them their eligibility and guide them to the 'Certificates' section in the sidebar.
                 `;
             }
         } else if (user.role_name === 'PROFESSOR') {
@@ -90,12 +94,45 @@ exports.chatWithAssistant = async (req, res, next) => {
         User Context:
         ${context}
 
+        Capabilities:
+        - If the user asks you to remind them of something or create a task (e.g., "Remind me to study", "Add a task for my exam"), you can do it.
+        - To create a task, add this EXACT line at the VERY END of your response: [ACTION:CREATE_TASK][TITLE:Task Title][DUE:YYYY-MM-DD]
+        - Title should be short. Due date should be a valid date based on the system time. If no date is given, use tomorrow.
+
         Student/User Question:
         "${message}"
         `;
 
         const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        let responseText = result.response.text();
+
+        // 3. Handle Actions (Function Calling)
+        if (responseText.includes('[ACTION:CREATE_TASK]')) {
+            try {
+                const titleMatch = responseText.match(/\[TITLE:(.*?)\]/);
+                const dueMatch = responseText.match(/\[DUE:(.*?)\]/);
+
+                const title = titleMatch ? titleMatch[1] : "New Task from AI";
+                const dueDate = dueMatch ? dueMatch[1] : new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+                await Task.create({
+                    title,
+                    description: `Automatically created by AI Assistant at user request: "${message}"`,
+                    status: 'TODO',
+                    priority: 'MEDIUM',
+                    category: 'PERSONAL',
+                    due_date: dueDate,
+                    assigned_to: user.id,
+                    created_by: user.id
+                });
+
+                // Clean up the response text so the user doesn't see the tags
+                responseText = responseText.replace(/\[ACTION:.*?\]|\[TITLE:.*?\]|\[DUE:.*?\]/g, '').trim();
+                responseText += `\n\n✅ Done! I've added "${title}" to your tasks list for ${dueDate}.`;
+            } catch (taskErr) {
+                console.error('Task Action Error:', taskErr);
+            }
+        }
 
         res.status(200).json({
             success: true,
