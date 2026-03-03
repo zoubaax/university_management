@@ -31,6 +31,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 import NotificationBell from '../components/NotificationBell';
+import ChatWidget from '../components/ui/ChatWidget';
 
 const DashboardLayout = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -380,6 +381,7 @@ const DashboardLayout = () => {
                     <Outlet />
                 </div>
             </main>
+            <ChatWidget />
         </div>
     );
 };
