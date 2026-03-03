@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
-const Button = ({ children, variant = 'primary', className, isLoading, icon: Icon, disabled, ...props }) => {
+const Button = ({ children, variant = 'primary', className, isLoading, icon: Icon, iconPosition = 'left', disabled, ...props }) => {
     const variants = {
         primary: "btn-primary shadow-2xl shadow-primary-600/30 text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98]",
         secondary: "border border-slate-200 text-slate-500 font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-50 transition-all hover:scale-[1.02] active:scale-[0.98]",
@@ -21,8 +21,9 @@ const Button = ({ children, variant = 'primary', className, isLoading, icon: Ico
             {...props}
         >
             {isLoading && <Loader2 className="animate-spin" size={16} />}
-            {!isLoading && Icon && <Icon size={20} />}
+            {!isLoading && Icon && iconPosition === 'left' && <Icon size={20} />}
             {children}
+            {!isLoading && Icon && iconPosition === 'right' && <Icon size={20} />}
         </button>
     );
 };

@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import courseResourceService from '../api/services/courseResourceService';
+import aiStudyService from '../api/services/aiStudyService';
 import classService from '../api/services/classService';
 import moduleService from '../api/services/moduleService';
 import Button from '../components/ui/Button';
@@ -40,7 +41,9 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import AIQuizModal from '../components/ui/AIQuizModal';
 import { cn } from '../utils/cn';
+import { Brain, Sparkles } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -67,6 +70,12 @@ const CourseResourcesPage = () => {
     const [resourceToEdit, setResourceToEdit] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [menuOpen, setMenuOpen] = useState(null);
+
+    // AI Study states
+    const [isQuizModalOpen, setQuizModalOpen] = useState(false);
+    const [generatingQuiz, setGeneratingQuiz] = useState(false);
+    const [activeQuiz, setActiveQuiz] = useState(null);
+    const [activeResource, setActiveResource] = useState(null);
 
     // Form states
     const [formData, setFormData] = useState({
@@ -212,43 +221,58 @@ const CourseResourcesPage = () => {
         });
     };
 
+    const handleGenerateQuiz = async (resource) => {
+        try {
+            setGeneratingQuiz(true);
+            setActiveResource(resource);
+            const response = await aiStudyService.generateQuiz(resource.id);
+            setActiveQuiz(response.data);
+            setQuizModalOpen(true);
+            setMenuOpen(null);
+        } catch (err) {
+            toast.error(err.message || 'Failed to generate quiz');
+        } finally {
+            setGeneratingQuiz(false);
+        }
+    };
+
     const filteredResources = useMemo(() => {
         return resources.filter(res => {
-            const matchesSearch = !searchQuery || 
+            const matchesSearch = !searchQuery ||
                 res.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 res.module_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (res.description && res.description.toLowerCase().includes(searchQuery.toLowerCase()));
-            
+
             const matchesType = selectedType === 'ALL' || res.type === selectedType;
             const matchesModule = !selectedModule || res.module_id === selectedModule;
-            
+
             return matchesSearch && matchesType && matchesModule;
         });
     }, [resources, searchQuery, selectedType, selectedModule]);
 
     const getFileIcon = (fileName, type) => {
         const ext = fileName?.split('.').pop().toLowerCase();
-        
+
         // Document types
         if (['pdf'].includes(ext)) return <FileText className="w-5 h-5 text-red-500" />;
         if (['doc', 'docx'].includes(ext)) return <FileText className="w-5 h-5 text-blue-600" />;
         if (['ppt', 'pptx'].includes(ext)) return <FileText className="w-5 h-5 text-orange-500" />;
         if (['xls', 'xlsx'].includes(ext)) return <FileText className="w-5 h-5 text-green-600" />;
-        
+
         // Media types
         if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) return <Video className="w-5 h-5 text-purple-500" />;
         if (['mp3', 'wav'].includes(ext)) return <FileText className="w-5 h-5 text-pink-500" />;
-        
+
         // Archive types
         if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return <FileArchive className="w-5 h-5 text-amber-500" />;
-        
+
         // Code files
         if (['js', 'py', 'java', 'cpp', 'html', 'css', 'php'].includes(ext)) return <FileCode className="w-5 h-5 text-blue-500" />;
-        
+
         // Default by type
         if (type === 'TP') return <Layers className="w-5 h-5 text-indigo-500" />;
         if (type === 'EXAM') return <FileText className="w-5 h-5 text-amber-500" />;
-        
+
         return <BookOpen className="w-5 h-5 text-blue-500" />;
     };
 
@@ -399,7 +423,7 @@ const CourseResourcesPage = () => {
                                 ))}
                             </select>
                         )}
-                        
+
                         {modulesInResources.length > 0 && (
                             <select
                                 value={selectedModule}
@@ -418,8 +442,8 @@ const CourseResourcesPage = () => {
                                 onClick={() => setViewMode('grid')}
                                 className={cn(
                                     "p-2 transition-colors",
-                                    viewMode === 'grid' 
-                                        ? "bg-gray-900 text-white" 
+                                    viewMode === 'grid'
+                                        ? "bg-gray-900 text-white"
                                         : "bg-white text-gray-500 hover:bg-gray-50"
                                 )}
                             >
@@ -434,8 +458,8 @@ const CourseResourcesPage = () => {
                                 onClick={() => setViewMode('list')}
                                 className={cn(
                                     "p-2 transition-colors",
-                                    viewMode === 'list' 
-                                        ? "bg-gray-900 text-white" 
+                                    viewMode === 'list'
+                                        ? "bg-gray-900 text-white"
                                         : "bg-white text-gray-500 hover:bg-gray-50"
                                 )}
                             >
@@ -500,7 +524,7 @@ const CourseResourcesPage = () => {
                                         <div className="p-3 bg-gray-50 rounded-lg">
                                             {getFileIcon(res.file_name, res.type)}
                                         </div>
-                                        
+
                                         <div className="relative">
                                             <button
                                                 onClick={() => setMenuOpen(menuOpen === res.id ? null : res.id)}
@@ -508,9 +532,20 @@ const CourseResourcesPage = () => {
                                             >
                                                 <MoreVertical size={16} />
                                             </button>
-                                            
+
                                             {menuOpen === res.id && (
-                                                <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                                    {isStudent && res.file_name?.toLowerCase().endsWith('.pdf') && (
+                                                        <button
+                                                            onClick={() => handleGenerateQuiz(res)}
+                                                            className="w-full px-4 py-2.5 text-sm text-left text-blue-600 hover:bg-blue-50 flex items-center gap-2 border-b border-gray-100"
+                                                        >
+                                                            <div className="p-1 bg-blue-100 rounded">
+                                                                <Brain size={12} />
+                                                            </div>
+                                                            Study with AI Quiz
+                                                        </button>
+                                                    )}
                                                     <a
                                                         href={`${API_BASE_URL}${res.file_path}`}
                                                         target="_blank"
@@ -552,16 +587,16 @@ const CourseResourcesPage = () => {
                                                 {formatFileSize(res.file_size)}
                                             </span>
                                         </div>
-                                        
+
                                         <h3 className="font-medium text-gray-900 line-clamp-2" title={res.title}>
                                             {res.title}
                                         </h3>
-                                        
+
                                         <div className="flex items-center gap-2 text-xs text-gray-500">
                                             <BookOpen size={12} className="flex-shrink-0" />
                                             <span className="truncate">{res.module_name}</span>
                                         </div>
-                                        
+
                                         {res.description && (
                                             <p className="text-xs text-gray-500 line-clamp-2">
                                                 {res.description}
@@ -639,6 +674,15 @@ const CourseResourcesPage = () => {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    {isStudent && res.file_name?.toLowerCase().endsWith('.pdf') && (
+                                                        <button
+                                                            onClick={() => handleGenerateQuiz(res)}
+                                                            className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="Study with AI Quiz"
+                                                        >
+                                                            <Brain size={16} />
+                                                        </button>
+                                                    )}
                                                     <a
                                                         href={`${API_BASE_URL}${res.file_path}`}
                                                         target="_blank"
@@ -678,7 +722,7 @@ const CourseResourcesPage = () => {
                     <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
                         {searchQuery || selectedType !== 'ALL' || selectedModule
                             ? 'Try adjusting your search filters'
-                            : isProfessor 
+                            : isProfessor
                                 ? 'Upload your first course resource to share with students'
                                 : 'No resources have been uploaded for this class yet'}
                     </p>
@@ -713,8 +757,8 @@ const CourseResourcesPage = () => {
                         <Select
                             label="Class"
                             placeholder="Select class"
-                            options={classes.map(c => ({ 
-                                value: c.id, 
+                            options={classes.map(c => ({
+                                value: c.id,
                                 label: `${c.name} - ${c.level}`,
                                 description: c.speciality_name
                             }))}
@@ -883,6 +927,29 @@ const CourseResourcesPage = () => {
                 variant="danger"
                 isLoading={isDeleting}
             />
+            {/* AI Quiz Modal */}
+            <AIQuizModal
+                isOpen={isQuizModalOpen}
+                onClose={() => setQuizModalOpen(false)}
+                quizData={activeQuiz}
+                resourceTitle={activeResource?.title}
+            />
+
+            {/* Loading Overlay for AI */}
+            {generatingQuiz && (
+                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center">
+                    <div className="relative">
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full"
+                        />
+                        <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-blue-600 animate-pulse" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mt-6 tracking-tight">AI is Reading your Course...</h2>
+                    <p className="text-sm text-gray-500 mt-2 animate-pulse">Generating your personalized study quiz</p>
+                </div>
+            )}
         </div>
     );
 };
