@@ -27,11 +27,11 @@ const PERMISSIONS = {
     },
     [ROLES.RESPONSABLE_DEPARTMENT]: {
         canCreateRoles: [ROLES.STUDENT],
-        canManageResources: ['specialities', 'students', 'classes'],
+        canManageResources: ['specialities', 'students', 'classes', 'modules'],
     },
     [ROLES.DIRECTOR_DEPARTMENT]: {
         canCreateRoles: [ROLES.STUDENT, ROLES.SECRETARY],
-        canManageResources: ['departments', 'specialities', 'students', 'classes'],
+        canManageResources: ['departments', 'specialities', 'students', 'classes', 'modules', 'employees'],
     },
     [ROLES.FINANCIER]: {
         canManageResources: ['departments', 'specialities'],
