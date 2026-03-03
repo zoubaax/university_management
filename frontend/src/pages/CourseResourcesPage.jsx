@@ -933,6 +933,7 @@ const CourseResourcesPage = () => {
                 onClose={() => setQuizModalOpen(false)}
                 quizData={activeQuiz}
                 resourceTitle={activeResource?.title}
+                resourceId={activeResource?.id}
             />
 
             {/* Loading Overlay for AI */}

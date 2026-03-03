@@ -26,7 +26,8 @@ import {
     CheckSquare,
     CheckCircle2,
     Rocket,
-    Percent
+    Percent,
+    History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -118,6 +119,7 @@ const DashboardLayout = () => {
                 { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['view_reports'] },
                 { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_grades', 'view_grades'] },
                 { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_certificates', 'request_certificate'] },
+                { name: 'Study History', icon: History, path: '/study-history', roles: ['STUDENT'], permissions: ['view_resources'] },
             ]
         },
         {

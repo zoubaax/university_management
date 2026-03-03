@@ -3,7 +3,11 @@ const path = require('path');
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const CourseResource = require('../models/CourseResource');
+const StudyQuiz = require('../models/StudyQuiz');
 const ErrorResponse = require('../utils/errorResponse');
+
+// Initialize table
+StudyQuiz.initTable().catch(err => console.error('Failed to init study_quizzes table:', err));
 
 // @desc    Generate a Quiz from a PDF resource
 // @route   POST /api/v1/ai/generate-quiz/:resourceId
@@ -124,5 +128,44 @@ exports.generateQuizFromResource = async (req, res, next) => {
             message: 'AI Study Error: ' + err.message,
             details: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
+    }
+};
+
+// @desc    Save Quiz Result
+// @route   POST /api/v1/ai-study/save-result
+// @access  Private
+exports.saveQuizResult = async (req, res, next) => {
+    try {
+        const { resourceId, quizData, score, totalQuestions } = req.body;
+
+        const quiz = await StudyQuiz.create({
+            student_id: req.user.id,
+            resource_id: resourceId,
+            quiz_data: quizData,
+            score,
+            total_questions: totalQuestions
+        });
+
+        res.status(201).json({
+            success: true,
+            data: quiz
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get Study History for current student
+// @route   GET /api/v1/ai-study/history
+// @access  Private
+exports.getStudyHistory = async (req, res, next) => {
+    try {
+        const history = await StudyQuiz.findByStudent(req.user.id);
+        res.status(200).json({
+            success: true,
+            data: history
+        });
+    } catch (err) {
+        next(err);
     }
 };

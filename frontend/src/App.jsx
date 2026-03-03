@@ -27,6 +27,7 @@ import TaskCenterPage from './pages/TaskCenterPage';
 import VerificationPage from './pages/VerificationPage';
 import FinancePage from './pages/FinancePage';
 import PayrollPage from './pages/PayrollPage';
+import StudyHistoryPage from './pages/StudyHistoryPage';
 
 const App = () => {
   return (
@@ -230,6 +231,14 @@ const App = () => {
               }
             />
 
+            <Route
+              path="study-history"
+              element={
+                <ProtectedRoute allowedRoles={['STUDENT']}>
+                  <StudyHistoryPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="tasks" element={<TaskCenterPage />} />
             <Route path="messages" element={<MessagesPage />} />
           </Route>
