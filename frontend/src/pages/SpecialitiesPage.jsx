@@ -18,7 +18,8 @@ import {
     X,
     CheckCircle,
     AlertCircle,
-    DollarSign
+    DollarSign,
+    Banknote
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import specialityService from '../api/services/specialityService';
@@ -131,11 +132,12 @@ const SpecialitiesPage = () => {
         }
     };
 
-    const isResponsable = user?.role_name === 'RESPONSABLE_DEPARTMENT';
+    const isResponsableButNeedsDepartmentLocked = user?.role_name === 'RESPONSABLE_DEPARTMENT';
+    const hasManagePermission = user?.role_name === 'SUPER_ADMIN' || (user?.permissions && user.permissions.includes('manage_specialities'));
 
     // Filter specialities
     const filteredSpecs = specialities.filter(s => {
-        const matchesRole = isResponsable ? s.department_id === user?.department_id : true;
+        const matchesRole = isResponsableButNeedsDepartmentLocked ? s.department_id === user?.department_id : true;
         const search = filterQuery.toLowerCase();
         const matchesSearch = s.name.toLowerCase().includes(search) ||
             s.department_name?.toLowerCase().includes(search);
@@ -155,12 +157,12 @@ const SpecialitiesPage = () => {
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Academic Programs</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage specialities and academic pathways across departments</p>
                 </div>
-                {(isResponsable || ['RH', 'SUPER_ADMIN'].includes(user?.role_name)) && (
+                {(hasManagePermission) && (
                     <Button
                         onClick={() => {
                             reset();
                             setEditingId(null);
-                            if (isResponsable) setValue('department_id', user.department_id);
+                            if (isResponsableButNeedsDepartmentLocked) setValue('department_id', user.department_id);
                             setModalOpen(true);
                         }}
                         icon={Plus}
@@ -339,12 +341,12 @@ const SpecialitiesPage = () => {
                                     ? 'Try adjusting your filters'
                                     : 'Get started by creating your first academic program'}
                             </p>
-                            {!filterQuery && selectedDepartment === 'all' && (isResponsable || ['RH', 'SUPER_ADMIN'].includes(user?.role_name)) && (
+                            {!filterQuery && selectedDepartment === 'all' && (hasManagePermission) && (
                                 <Button
                                     onClick={() => {
                                         reset();
                                         setEditingId(null);
-                                        if (isResponsable) setValue('department_id', user.department_id);
+                                        if (isResponsableButNeedsDepartmentLocked) setValue('department_id', user.department_id);
                                         setModalOpen(true);
                                     }}
                                     icon={Plus}
@@ -384,7 +386,7 @@ const SpecialitiesPage = () => {
                         label="Department"
                         placeholder="Select department"
                         leftIcon={<Building2 className="w-4 h-4 text-gray-400" />}
-                        disabled={isResponsable}
+                        disabled={isResponsableButNeedsDepartmentLocked}
                         options={departments.map(d => ({
                             value: d.id,
                             label: d.name

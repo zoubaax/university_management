@@ -4,9 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 /**
  * High-level component to protect routes from unauthenticated users.
- * Optionally checks for allowed roles.
+ * Checks for allowed allowedPermissions or allowedRoles.
  */
-export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+export const ProtectedRoute = ({ children, allowedRoles = [], allowedPermissions = [] }) => {
     const { isAuthenticated, user, loading } = useAuth();
     const location = useLocation();
 
@@ -23,8 +23,33 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role_name)) {
-        // If user doesn't have the required role, redirect to dashboard or unauthorized page
+    // Determine access based on role OR permission
+    let hasAccess = false;
+
+    if (user?.role_name === 'SUPER_ADMIN') {
+        hasAccess = true; // SUPER_ADMIN always has access
+    } else {
+        if (allowedPermissions.length > 0) {
+            // Check if user has AT LEAST ONE of the required permissions
+            const userPermissions = user?.permissions || [];
+            hasAccess = allowedPermissions.some(p => userPermissions.includes(p));
+
+            // Fallback for legacy hardcoded roles if permissions aren't set up yet
+            if (!hasAccess && allowedRoles.length > 0) {
+                const legacyRoles = ['STUDENT', 'PROFESSOR', 'CLUB_PRESIDENT'];
+                if (legacyRoles.includes(user?.role_name)) {
+                    hasAccess = allowedRoles.includes(user?.role_name);
+                }
+            }
+        } else if (allowedRoles.length > 0) {
+            hasAccess = allowedRoles.includes(user?.role_name);
+        } else {
+            // No restrictions specified (like Dashboard or Profile)
+            hasAccess = true;
+        }
+    }
+
+    if (!hasAccess) {
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -32,14 +57,33 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 };
 
 /**
- * Granular component to show/hide UI elements based on roles.
+ * Granular component to show/hide UI elements based on roles or permissions.
  */
-export const RoleGate = ({ children, allowedRoles }) => {
+export const RoleGate = ({ children, allowedRoles = [], allowedPermissions = [] }) => {
     const { user } = useAuth();
 
-    if (!user || !allowedRoles.includes(user.role_name)) {
-        return null;
+    if (!user) return null;
+
+    if (user.role_name === 'SUPER_ADMIN') return <>{children}</>;
+
+    let hasAccess = false;
+
+    if (allowedPermissions.length > 0) {
+        const userPermissions = user.permissions || [];
+        hasAccess = allowedPermissions.some(p => userPermissions.includes(p));
+        if (!hasAccess && allowedRoles.length > 0) {
+            const legacyRoles = ['STUDENT', 'PROFESSOR', 'CLUB_PRESIDENT'];
+            if (legacyRoles.includes(user.role_name)) {
+                hasAccess = allowedRoles.includes(user.role_name);
+            }
+        }
+    } else if (allowedRoles.length > 0) {
+        hasAccess = allowedRoles.includes(user.role_name);
+    } else {
+        hasAccess = true;
     }
+
+    if (!hasAccess) return null;
 
     return <>{children}</>;
 };

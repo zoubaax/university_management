@@ -6,7 +6,6 @@ const PERMISSIONS_LIST = [
     {
         category: 'User Management', items: [
             { id: 'manage_students', label: 'Manage Students' },
-            { id: 'view_students', label: 'View Students' },
             { id: 'manage_staff', label: 'Manage Human Resources' },
             { id: 'manage_departments', label: 'Manage Departments' },
         ]
@@ -14,36 +13,36 @@ const PERMISSIONS_LIST = [
     {
         category: 'Academic', items: [
             { id: 'manage_specialities', label: 'Manage Specialities' },
-            { id: 'view_specialities', label: 'View Specialities' },
             { id: 'manage_classes', label: 'Manage Classes' },
-            { id: 'view_classes', label: 'View Classes' },
             { id: 'manage_modules', label: 'Manage Modules' },
-            { id: 'view_modules', label: 'View Modules' },
             { id: 'manage_grades', label: 'Manage Grades' },
-            { id: 'view_grades', label: 'View Grades' },
             { id: 'manage_certificates', label: 'Manage Certificates' },
             { id: 'request_certificate', label: 'Request Certificates' },
-            { id: 'upload_resources', label: 'Upload Course Materials' },
-            { id: 'view_resources', label: 'View Course Materials' },
+            { id: 'upload_resources', label: 'Manage Course Materials' },
         ]
     },
     {
         category: 'Attendance & Planning', items: [
             { id: 'manage_absences', label: 'Manage Staff Absences' },
-            { id: 'view_absences', label: 'View Staff Absences' },
             { id: 'manage_student_absences', label: 'Manage Student Absences' },
-            { id: 'view_student_absences', label: 'View Student Absences' },
             { id: 'manage_schedules', label: 'Manage Schedules' },
-            { id: 'view_schedules', label: 'View Schedules' },
             { id: 'manage_rooms', label: 'Manage Rooms' },
-            { id: 'view_rooms', label: 'View Rooms' },
         ]
     },
     {
         category: 'System & Reports', items: [
             { id: 'manage_roles', label: 'Manage Roles' },
             { id: 'manage_system', label: 'Manage System Settings' },
-            { id: 'view_reports', label: 'View Attendance Reports' },
+        ]
+    },
+    {
+        category: 'Finance & Administration', items: [
+            { id: 'manage_finance', label: 'Manage Finance & Accounting' },
+        ]
+    },
+    {
+        category: 'Clubs & Student Life', items: [
+            { id: 'manage_clubs', label: 'Manage Clubs & Societies' },
         ]
     }
 ];

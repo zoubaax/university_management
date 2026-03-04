@@ -53,7 +53,7 @@ const App = () => {
             <Route
               path="departments"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'FINANCIER']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'FINANCIER']} allowedPermissions={['manage_departments']}>
                   <DepartmentsPage />
                 </ProtectedRoute>
               }
@@ -62,7 +62,7 @@ const App = () => {
             <Route
               path="specialities"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'FINANCIER']} allowedPermissions={['manage_specialities']}>
                   <SpecialitiesPage />
                 </ProtectedRoute>
               }
@@ -71,7 +71,7 @@ const App = () => {
             <Route
               path="classes"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']} allowedPermissions={['manage_classes']}>
                   <ClassesPage />
                 </ProtectedRoute>
               }
@@ -79,7 +79,7 @@ const App = () => {
             <Route
               path="modules"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']} allowedPermissions={['manage_modules']}>
                   <ModulesPage />
                 </ProtectedRoute>
               }
@@ -88,7 +88,7 @@ const App = () => {
             <Route
               path="rooms"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']} allowedPermissions={['manage_rooms']}>
                   <RoomsPage />
                 </ProtectedRoute>
               }
@@ -97,7 +97,7 @@ const App = () => {
             <Route
               path="staff"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']} allowedPermissions={['manage_staff']}>
                   <StaffPage />
                 </ProtectedRoute>
               }
@@ -106,7 +106,7 @@ const App = () => {
             <Route
               path="students"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT']} allowedPermissions={['manage_students']}>
                   <StudentsPage />
                 </ProtectedRoute>
               }
@@ -115,7 +115,7 @@ const App = () => {
             <Route
               path="absences"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH']} allowedPermissions={['manage_absences']}>
                   <AbsencesPage />
                 </ProtectedRoute>
               }
@@ -124,7 +124,7 @@ const App = () => {
             <Route
               path="student-absences"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']} allowedPermissions={['manage_student_absences']}>
                   <StudentAbsencesPage />
                 </ProtectedRoute>
               }
@@ -133,7 +133,7 @@ const App = () => {
             <Route
               path="attendance-report"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT']} allowedPermissions={['manage_system']}>
                   <AttendanceReportPage />
                 </ProtectedRoute>
               }
@@ -142,7 +142,7 @@ const App = () => {
             <Route
               path="schedule"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT']} allowedPermissions={['manage_schedules']}>
                   <SchedulesPage />
                 </ProtectedRoute>
               }
@@ -151,7 +151,7 @@ const App = () => {
             <Route
               path="resources"
               element={
-                <ProtectedRoute allowedRoles={['PROFESSOR', 'STUDENT']}>
+                <ProtectedRoute allowedRoles={['PROFESSOR', 'STUDENT']} allowedPermissions={['upload_resources']}>
                   <CourseResourcesPage />
                 </ProtectedRoute>
               }
@@ -160,7 +160,7 @@ const App = () => {
             <Route
               path="grades"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT']} allowedPermissions={['manage_grades']}>
                   <GradesPage />
                 </ProtectedRoute>
               }
@@ -169,7 +169,7 @@ const App = () => {
             <Route
               path="rh-management"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN']} allowedPermissions={['manage_system']}>
                   <StaffPage
                     pageTitle="RH Management"
                     pageDescription="Manage Human Resources administrators and their access."
@@ -191,7 +191,7 @@ const App = () => {
             <Route
               path="certificates"
               element={
-                <ProtectedRoute allowedRoles={['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SUPER_ADMIN']} allowedPermissions={['manage_certificates', 'request_certificate']}>
                   <CertificatesPage />
                 </ProtectedRoute>
               }
@@ -200,7 +200,7 @@ const App = () => {
             <Route
               path="roles"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN']} allowedPermissions={['manage_roles']}>
                   <RolesPage />
                 </ProtectedRoute>
               }
@@ -209,7 +209,7 @@ const App = () => {
             <Route
               path="finance"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']} allowedPermissions={['manage_finance']}>
                   <FinancePage />
                 </ProtectedRoute>
               }
@@ -218,7 +218,7 @@ const App = () => {
             <Route
               path="payroll"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']} allowedPermissions={['manage_finance']}>
                   <PayrollPage />
                 </ProtectedRoute>
               }
@@ -227,7 +227,7 @@ const App = () => {
             <Route
               path="program-pricing"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']}>
+                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'FINANCIER']} allowedPermissions={['manage_finance']}>
                   <FinancePage defaultTab="pricing" />
                 </ProtectedRoute>
               }
@@ -245,7 +245,10 @@ const App = () => {
             <Route
               path="clubs"
               element={
-                <ProtectedRoute allowedRoles={['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT']}>
+                <ProtectedRoute
+                  allowedRoles={['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT']}
+                  allowedPermissions={['manage_clubs']}
+                >
                   <ClubsPage />
                 </ProtectedRoute>
               }
@@ -254,7 +257,10 @@ const App = () => {
             <Route
               path="my-club"
               element={
-                <ProtectedRoute allowedRoles={['CLUB_PRESIDENT']}>
+                <ProtectedRoute
+                  allowedRoles={['CLUB_PRESIDENT']}
+                  allowedPermissions={['manage_clubs']}
+                >
                   <ClubManagementPage />
                 </ProtectedRoute>
               }

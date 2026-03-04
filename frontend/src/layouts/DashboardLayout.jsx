@@ -109,10 +109,10 @@ const DashboardLayout = () => {
                 { name: 'System', icon: ShieldCheck, path: '/rh-management', roles: [], permissions: ['manage_system'] },
                 { name: 'Human Resources', icon: Users, path: '/staff', roles: ['RH', 'SUPER_ADMIN'], permissions: ['manage_staff'] },
                 { name: 'Departments', icon: Building2, path: '/departments', roles: ['RH'], permissions: ['manage_departments'] },
-                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_students', 'view_students'] },
+                { name: 'Students', icon: GraduationCap, path: '/students', roles: ['RESPONSABLE_DEPARTMENT', 'SECRETARY', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_students'] },
                 { name: 'Roles', icon: ShieldCheck, path: '/roles', roles: ['SUPER_ADMIN'], permissions: ['manage_roles'] },
-                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH'], permissions: ['manage_absences', 'view_absences'] },
-                { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences', 'view_student_absences'] },
+                { name: 'Absences', icon: Calendar, path: '/absences', roles: ['RH'], permissions: ['manage_absences'] },
+                { name: 'Student Absences', icon: Calendar, path: '/student-absences', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'], permissions: ['manage_student_absences'] },
                 { name: 'Finance', icon: CreditCard, path: '/finance', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
                 { name: 'Payroll', icon: BarChart3, path: '/payroll', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
                 { name: 'Program Pricing', icon: Percent, path: '/program-pricing', roles: ['FINANCIER', 'SUPER_ADMIN'], permissions: ['manage_finance'] },
@@ -121,16 +121,16 @@ const DashboardLayout = () => {
         {
             category: 'Academic',
             items: [
-                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_specialities', 'view_specialities'] },
-                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_classes', 'view_classes'] },
-                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_modules', 'view_modules'] },
-                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_rooms', 'view_rooms'] },
-                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['view_schedules', 'manage_schedules'] },
-                { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT'], permissions: ['upload_resources', 'view_resources'] },
-                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['view_reports'] },
-                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_grades', 'view_grades'] },
+                { name: 'Specialities', icon: BookOpen, path: '/specialities', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_specialities'] },
+                { name: 'Classes', icon: School, path: '/classes', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_classes'] },
+                { name: 'Modules', icon: FileText, path: '/modules', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_modules'] },
+                { name: 'Rooms', icon: Building2, path: '/rooms', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_rooms'] },
+                { name: 'Schedule', icon: Calendar, path: '/schedule', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_schedules'] },
+                { name: 'Course Materials', icon: FolderOpen, path: '/resources', roles: ['PROFESSOR', 'STUDENT'], permissions: ['upload_resources'] },
+                { name: 'Attendance Report', icon: BarChart3, path: '/attendance-report', roles: ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_system'] },
+                { name: 'Grades', icon: BarChart3, path: '/grades', roles: ['PROFESSOR', 'STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_grades'] },
                 { name: 'Certificates', icon: FileText, path: '/certificates', roles: ['STUDENT', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT'], permissions: ['manage_certificates', 'request_certificate'] },
-                { name: 'Study History', icon: History, path: '/study-history', roles: ['STUDENT'], permissions: ['view_resources'] },
+                { name: 'Study History', icon: History, path: '/study-history', roles: ['STUDENT'], permissions: [] },
             ]
         },
         {
@@ -145,7 +145,8 @@ const DashboardLayout = () => {
         {
             category: 'Student Life',
             items: [
-                { name: 'Clubs & Societies', icon: Users, path: '/clubs', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'] },
+                { name: 'Clubs & Societies', icon: Users, path: '/clubs', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'], permissions: ['manage_clubs'] },
+                { name: 'My Club', icon: ShieldCheck, path: '/my-club', roles: ['CLUB_PRESIDENT', 'SUPER_ADMIN'], permissions: ['manage_clubs'] },
             ]
         },
     ];
@@ -165,35 +166,34 @@ const DashboardLayout = () => {
                     // Explicitly remove "Students" from sidebar for Financier (as requested)
                     if (item.name === 'Students' && userRole === 'FINANCIER') return false;
 
-                    // Always allow if role matches AND item has no permissions defined
-                    // BUT if item HAS permissions defined, we should check them to allow dynamic removal
-                    // EXCEPT if user is SUPER_ADMIN, they usually override?
-                    // Let's enforce permissions if defined.
+                    // Hide "My Club" from administration/department roles
+                    if (item.name === 'My Club' && ['RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'RH'].includes(userRole)) return false;
 
-                    if (item.permissions && item.permissions.length > 0) {
-                        // Check if user has AT LEAST ONE of the required permissions
-                        const hasPermission = item.permissions.some(p => userPermissions.includes(p));
-                        if (hasPermission) return true;
+                    // Check permission or Role match
+                    let hasAccess = false;
 
-                        // If user doesn't have permission, check if they are SUPER_ADMIN (fallback)
-                        if (userRole === 'SUPER_ADMIN') return true;
+                    if (userRole === 'SUPER_ADMIN') {
+                        hasAccess = true;
+                    } else {
+                        if (item.permissions && item.permissions.length > 0) {
+                            // Check if user has ANY of the required permissions
+                            hasAccess = item.permissions.some(p => userPermissions.includes(p));
 
-                        // Otherwise, strictly hide if permissions are defined but missing?
-                        // This allows "removing" a permission to hide the link.
-                        // However, legacy roles (Student/Professor) might not have permissions populated in DB yet!
-                        // My populate script only updated Admin roles.
-                        // So for Student/Professor, we must fallback to Role check.
-
-                        const legacyRoles = ['STUDENT', 'PROFESSOR'];
-                        if (legacyRoles.includes(userRole)) {
-                            return item.roles.includes(userRole);
+                            // Fallback to legacy hardcoded roles
+                            if (!hasAccess && item.roles && item.roles.length > 0) {
+                                const legacyRoles = ['STUDENT', 'PROFESSOR', 'CLUB_PRESIDENT'];
+                                if (legacyRoles.includes(userRole)) {
+                                    hasAccess = item.roles.includes(userRole);
+                                }
+                            }
+                        } else if (item.roles && item.roles.length > 0) {
+                            hasAccess = item.roles.includes(userRole);
+                        } else {
+                            hasAccess = true;
                         }
-
-                        return false;
                     }
 
-                    // Fallback for items with no permissions defined (Overview, Personal)
-                    return item.roles.includes(userRole);
+                    return hasAccess;
                 })
             }))
             .filter(category => category.items.length > 0);
