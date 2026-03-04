@@ -1,0 +1,12 @@
+--- GALLERY ENTRIES ---
+[
+  {
+    "image_url": "/uploads/gallery/image-1772658866039.png"
+  }
+]
+--- CLUB LOGO ENTRIES ---
+[
+  {
+    "logo_url": "/uploads/clubs/club_logo-1772646730353.png"
+  }
+]

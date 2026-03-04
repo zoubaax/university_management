@@ -93,6 +93,29 @@ class ClubService {
         const response = await api.post(`/clubs/events/${eventId}/rsvp`);
         return response.data;
     }
+
+    async getEventRSVPs(eventId) {
+        const response = await api.get(`/clubs/events/${eventId}/rsvps`);
+        return response.data;
+    }
+
+    // --- Gallery ---
+    async getClubGallery(clubId) {
+        const response = await api.get(`/clubs/${clubId}/gallery`);
+        return response.data;
+    }
+
+    async addGalleryPhoto(clubId, formData) {
+        const response = await api.post(`/clubs/${clubId}/gallery`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    }
+
+    async deleteGalleryPhoto(clubId, photoId) {
+        const response = await api.delete(`/clubs/${clubId}/gallery/${photoId}`);
+        return response.data;
+    }
 }
 
 export default new ClubService();

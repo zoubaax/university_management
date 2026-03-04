@@ -15,10 +15,16 @@ const {
     joinClub,
     getClubEvents,
     createClubEvent,
+    updateClubEvent,
+    deleteClubEvent,
     rsvpEvent,
+    getEventRSVPs,
     broadcastMessage,
     getClubBroadcasts,
-    updateMemberRole
+    updateMemberRole,
+    getClubGallery,
+    addClubGalleryItem,
+    deleteClubGalleryItem
 } = require('../controllers/clubs');
 
 // Private route to view all clubs
@@ -47,8 +53,16 @@ router.post('/:id/join', protect, authorize('STUDENT'), joinClub);
 // --- Event Management ---
 router.get('/:id/events', protect, getClubEvents);
 router.post('/:id/events', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), createClubEvent);
+router.put('/:id/events/:eventId', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), updateClubEvent);
+router.delete('/:id/events/:eventId', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), deleteClubEvent);
 router.post('/events/:id/rsvp', protect, authorize('STUDENT'), rsvpEvent);
+router.get('/events/:id/rsvps', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), getEventRSVPs);
 router.post('/:id/broadcast', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), broadcastMessage);
 router.get('/:id/broadcasts', protect, getClubBroadcasts);
+
+// --- Gallery ---
+router.get('/:id/gallery', protect, getClubGallery);
+router.post('/:id/gallery', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), upload.single('image'), addClubGalleryItem);
+router.delete('/:id/gallery/:photoId', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), deleteClubGalleryItem);
 
 module.exports = router;

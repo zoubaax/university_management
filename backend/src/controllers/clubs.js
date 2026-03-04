@@ -2,6 +2,7 @@ const Club = require('../models/Club');
 const ClubMember = require('../models/ClubMember');
 const ClubEvent = require('../models/ClubEvent');
 const ClubBroadcast = require('../models/ClubBroadcast');
+const ClubGallery = require('../models/ClubGallery');
 const Message = require('../models/Message');
 const Notification = require('../models/Notification');
 const AppError = require('../utils/ErrorResponse');
@@ -87,7 +88,7 @@ exports.createClub = async (req, res, next) => {
         // Build the logo URL from the uploaded file (if any)
         let logo_url = null;
         if (req.file) {
-            logo_url = `/${req.file.path.replace(/\\/g, '/')}`;
+            logo_url = `/uploads/clubs/${req.file.filename}`;
         }
 
         const newClub = await Club.create({
@@ -236,12 +237,45 @@ exports.createClubEvent = async (req, res, next) => {
     }
 };
 
+// @desc    Update club event
+// @route   PUT /api/v1/clubs/:id/events/:eventId
+exports.updateClubEvent = async (req, res, next) => {
+    try {
+        const event = await ClubEvent.update(req.params.eventId, req.body);
+        res.status(200).json({ success: true, data: event });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Delete club event
+// @route   DELETE /api/v1/clubs/:id/events/:eventId
+exports.deleteClubEvent = async (req, res, next) => {
+    try {
+        await ClubEvent.delete(req.params.eventId);
+        res.status(200).json({ success: true, data: {} });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // @desc    RSVP to club event
 // @route   POST /api/v1/clubs/events/:id/rsvp
 exports.rsvpEvent = async (req, res, next) => {
     try {
         const rsvp = await ClubEvent.rsvp(req.params.id, req.user.id);
         res.status(201).json({ success: true, data: rsvp });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get RSVPs for club event
+// @route   GET /api/v1/clubs/events/:id/rsvps
+exports.getEventRSVPs = async (req, res, next) => {
+    try {
+        const rsvps = await ClubEvent.getRSVPs(req.params.id);
+        res.status(200).json({ success: true, data: rsvps });
     } catch (err) {
         next(err);
     }
@@ -332,6 +366,50 @@ exports.getClubBroadcasts = async (req, res, next) => {
             count: broadcasts.length,
             data: broadcasts
         });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// --- Gallery Management ---
+
+// @desc    Get club gallery photos
+// @route   GET /api/v1/clubs/:id/gallery
+exports.getClubGallery = async (req, res, next) => {
+    try {
+        const photos = await ClubGallery.findByClubId(req.params.id);
+        res.status(200).json({ success: true, data: photos });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Add photo to club gallery
+// @route   POST /api/v1/clubs/:id/gallery
+exports.addClubGalleryItem = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return next(new AppError('Please upload an image', 400));
+        }
+
+        const photo = await ClubGallery.create({
+            club_id: req.params.id,
+            image_url: `/uploads/gallery/${req.file.filename}`,
+            caption: req.body.caption
+        });
+
+        res.status(201).json({ success: true, data: photo });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Delete photo from club gallery
+// @route   DELETE /api/v1/clubs/:id/gallery/:photoId
+exports.deleteClubGalleryItem = async (req, res, next) => {
+    try {
+        await ClubGallery.delete(req.params.photoId);
+        res.status(200).json({ success: true, data: {} });
     } catch (err) {
         next(err);
     }

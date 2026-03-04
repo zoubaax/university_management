@@ -11,6 +11,7 @@ const storage = multer.diskStorage({
         if (file.fieldname === 'bac_document' || file.fieldname === 'cin_document') folder = 'public/uploads/students';
         if (file.fieldname === 'resource') folder = 'public/uploads/resources';
         if (file.fieldname === 'club_logo') folder = 'public/uploads/clubs';
+        if (file.fieldname === 'image') folder = 'public/uploads/gallery';
 
         // Create folder if it doesn't exist
         if (!fs.existsSync(folder)) {

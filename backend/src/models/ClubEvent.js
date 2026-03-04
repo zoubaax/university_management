@@ -3,7 +3,12 @@ const { query } = require('../config/db');
 class ClubEvent {
     static async findByClubId(clubId) {
         const result = await query(
-            `SELECT * FROM club_events WHERE club_id = $1 ORDER BY start_time ASC`,
+            `SELECT ce.*, COUNT(cer.student_user_id)::int as rsvp_count 
+             FROM club_events ce
+             LEFT JOIN club_event_rsvps cer ON ce.id = cer.event_id
+             WHERE ce.club_id = $1 
+             GROUP BY ce.id
+             ORDER BY ce.start_time ASC`,
             [clubId]
         );
         return result.rows;
@@ -46,6 +51,22 @@ class ClubEvent {
             [eventId, studentUserId]
         );
         return result.rows[0];
+    }
+
+    static async getRSVPs(eventId) {
+        const result = await query(
+            `SELECT cer.*, 
+                    COALESCE(s.first_name, e.first_name, '') as first_name, 
+                    COALESCE(s.last_name, e.last_name, '') as last_name, 
+                    u.email 
+             FROM club_event_rsvps cer
+             JOIN users u ON cer.student_user_id = u.id
+             LEFT JOIN students s ON u.id = s.user_id
+             LEFT JOIN employees e ON u.id = e.user_id
+             WHERE cer.event_id = $1`,
+            [eventId]
+        );
+        return result.rows;
     }
 }
 
