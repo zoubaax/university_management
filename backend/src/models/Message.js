@@ -6,20 +6,20 @@ class Message {
         let queryStr = `
             SELECT m.*,
                    CASE 
-                       WHEN m.sender_type = 'employee' THEN e.first_name || ' ' || e.last_name
-                       WHEN m.sender_type = 'student' THEN s.first_name || ' ' || s.last_name
+                       WHEN m.sender_type = 'employee' THEN COALESCE(e.first_name || ' ' || e.last_name, u_gen.email)
+                       WHEN m.sender_type = 'student' THEN COALESCE(s.first_name || ' ' || s.last_name, u_gen.email)
+                       ELSE u_gen.email
                    END as sender_name,
+                   COALESCE(ue.email, us.email, u_gen.email) as sender_email,
                    CASE 
-                       WHEN m.sender_type = 'employee' THEN ue.email
-                       WHEN m.sender_type = 'student' THEN us.email
-                   END as sender_email,
-                   CASE 
-                       WHEN m.sender_type = 'employee' THEN r.name
-                       ELSE 'Student'
+                       WHEN m.sender_type = 'employee' THEN COALESCE(r.name, 'Staff')
+                       WHEN m.sender_type = 'student' THEN 'Student'
+                       ELSE 'User'
                    END as sender_role
             FROM messages m
             LEFT JOIN employees e ON m.sender_id = e.id AND m.sender_type = 'employee'
             LEFT JOIN students s ON m.sender_id = s.id AND m.sender_type = 'student'
+            LEFT JOIN users u_gen ON m.sender_id = u_gen.id
             LEFT JOIN users ue ON e.user_id = ue.id
             LEFT JOIN users us ON s.user_id = us.id
             LEFT JOIN roles r ON ue.role_id = r.id
@@ -47,16 +47,15 @@ class Message {
         const queryStr = `
             SELECT m.*,
                    CASE 
-                       WHEN m.recipient_type = 'employee' THEN e.first_name || ' ' || e.last_name
-                       WHEN m.recipient_type = 'student' THEN s.first_name || ' ' || s.last_name
+                       WHEN m.recipient_type = 'employee' THEN COALESCE(e.first_name || ' ' || e.last_name, u_gen.email)
+                       WHEN m.recipient_type = 'student' THEN COALESCE(s.first_name || ' ' || s.last_name, u_gen.email)
+                       ELSE u_gen.email
                    END as recipient_name,
-                   CASE 
-                       WHEN m.recipient_type = 'employee' THEN ue.email
-                       WHEN m.recipient_type = 'student' THEN us.email
-                   END as recipient_email
+                   COALESCE(ue.email, us.email, u_gen.email) as recipient_email
             FROM messages m
             LEFT JOIN employees e ON m.recipient_id = e.id AND m.recipient_type = 'employee'
             LEFT JOIN students s ON m.recipient_id = s.id AND m.recipient_type = 'student'
+            LEFT JOIN users u_gen ON m.recipient_id = u_gen.id
             LEFT JOIN users ue ON e.user_id = ue.id
             LEFT JOIN users us ON s.user_id = us.id
             WHERE m.sender_id = $1 
@@ -75,26 +74,24 @@ class Message {
         const queryStr = `
             SELECT m.*,
                    CASE 
-                       WHEN m.sender_type = 'employee' THEN se.first_name || ' ' || se.last_name
-                       WHEN m.sender_type = 'student' THEN ss.first_name || ' ' || ss.last_name
+                       WHEN m.sender_type = 'employee' THEN COALESCE(se.first_name || ' ' || se.last_name, use_gen.email)
+                       WHEN m.sender_type = 'student' THEN COALESCE(ss.first_name || ' ' || ss.last_name, use_gen.email)
+                       ELSE use_gen.email
                    END as sender_name,
+                   COALESCE(use.email, uss.email, use_gen.email) as sender_email,
                    CASE 
-                       WHEN m.sender_type = 'employee' THEN use.email
-                       WHEN m.sender_type = 'student' THEN uss.email
-                   END as sender_email,
-                   CASE 
-                       WHEN m.recipient_type = 'employee' THEN re.first_name || ' ' || re.last_name
-                       WHEN m.recipient_type = 'student' THEN rs.first_name || ' ' || rs.last_name
+                       WHEN m.recipient_type = 'employee' THEN COALESCE(re.first_name || ' ' || re.last_name, ure_gen.email)
+                       WHEN m.recipient_type = 'student' THEN COALESCE(rs.first_name || ' ' || rs.last_name, ure_gen.email)
+                       ELSE ure_gen.email
                    END as recipient_name,
-                   CASE 
-                       WHEN m.recipient_type = 'employee' THEN ure.email
-                       WHEN m.recipient_type = 'student' THEN urs.email
-                   END as recipient_email
+                   COALESCE(ure.email, urs.email, ure_gen.email) as recipient_email
             FROM messages m
             LEFT JOIN employees se ON m.sender_id = se.id AND m.sender_type = 'employee'
             LEFT JOIN students ss ON m.sender_id = ss.id AND m.sender_type = 'student'
             LEFT JOIN employees re ON m.recipient_id = re.id AND m.recipient_type = 'employee'
             LEFT JOIN students rs ON m.recipient_id = rs.id AND m.recipient_type = 'student'
+            LEFT JOIN users use_gen ON m.sender_id = use_gen.id
+            LEFT JOIN users ure_gen ON m.recipient_id = ure_gen.id
             LEFT JOIN users use ON se.user_id = use.id
             LEFT JOIN users uss ON ss.user_id = uss.id
             LEFT JOIN users ure ON re.user_id = ure.id

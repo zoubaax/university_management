@@ -106,6 +106,7 @@ app.use('/api/v1/finance', require('./routes/finance'));
 app.use('/api/v1/payroll', require('./routes/payroll'));
 app.use('/api/v1/ai', require('./routes/ai'));
 app.use('/api/v1/ai-study', require('./routes/aiStudy'));
+app.use('/api/v1/clubs', require('./routes/clubs'));
 
 // Health check
 app.get('/health', (req, res) => {

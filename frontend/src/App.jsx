@@ -28,6 +28,8 @@ import VerificationPage from './pages/VerificationPage';
 import FinancePage from './pages/FinancePage';
 import PayrollPage from './pages/PayrollPage';
 import StudyHistoryPage from './pages/StudyHistoryPage';
+import ClubsPage from './pages/ClubsPage';
+import ClubManagementPage from './pages/ClubManagementPage';
 
 const App = () => {
   return (
@@ -236,6 +238,24 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['STUDENT']}>
                   <StudyHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Clubs Route */}
+            <Route
+              path="clubs"
+              element={
+                <ProtectedRoute allowedRoles={['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT']}>
+                  <ClubsPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Club President Management Route */}
+            <Route
+              path="my-club"
+              element={
+                <ProtectedRoute allowedRoles={['CLUB_PRESIDENT']}>
+                  <ClubManagementPage />
                 </ProtectedRoute>
               }
             />

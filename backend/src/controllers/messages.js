@@ -5,7 +5,7 @@ const Message = require('../models/Message');
 // @access  Private
 exports.getInbox = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
 
         console.log('User info:', {
@@ -16,13 +16,6 @@ exports.getInbox = async (req, res) => {
             student_id: req.user.student_id,
             id: req.user.id
         });
-
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID not found. Please ensure you are properly authenticated.'
-            });
-        }
 
         const { limit, offset, unreadOnly } = req.query;
 
@@ -75,7 +68,7 @@ exports.getSent = async (req, res) => {
 // @access  Private
 exports.getMessage = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
         const { id } = req.params;
 
@@ -107,7 +100,7 @@ exports.getMessage = async (req, res) => {
 // @access  Private
 exports.sendMessage = async (req, res) => {
     try {
-        const senderId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const senderId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const senderType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
         const { recipient_id, recipient_type, subject, body } = req.body;
 
@@ -141,9 +134,7 @@ exports.sendMessage = async (req, res) => {
         const Notification = require('../models/Notification');
         const { query } = require('../config/db');
 
-        const senderName = req.user.role_name === 'STUDENT'
-            ? `${req.user.first_name} ${req.user.last_name}`
-            : `${req.user.first_name} ${req.user.last_name}`;
+        const senderName = req.user.first_name ? `${req.user.first_name} ${req.user.last_name}` : req.user.email;
 
         // Look up the actual User ID for the notification because recipient_id is student/employee ID
         let recipientUserId = null;
@@ -181,7 +172,7 @@ exports.sendMessage = async (req, res) => {
 // @access  Private
 exports.markAsRead = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
         const { id } = req.params;
 
@@ -206,7 +197,7 @@ exports.markAsRead = async (req, res) => {
 // @access  Private
 exports.toggleStar = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
         const { id } = req.params;
 
@@ -231,7 +222,7 @@ exports.toggleStar = async (req, res) => {
 // @access  Private
 exports.deleteMessage = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
         const { id } = req.params;
 
@@ -256,7 +247,7 @@ exports.deleteMessage = async (req, res) => {
 // @access  Private
 exports.getUnreadCount = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
         const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
 
         if (!userId) {

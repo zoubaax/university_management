@@ -126,9 +126,21 @@ const DashboardLayout = () => {
             category: 'Personal',
             items: [
                 { name: 'Tasks', icon: CheckSquare, path: '/tasks', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER'] },
-                { name: 'Messages', icon: Mail, path: '/messages', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER'] },
-                { name: 'My Profile', icon: UserCircle, path: '/profile', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER'] },
+                { name: 'Messages', icon: Mail, path: '/messages', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'] },
+                { name: 'My Profile', icon: UserCircle, path: '/profile', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'] },
                 { name: 'Settings', icon: Settings, path: '/settings', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER'] },
+            ]
+        },
+        {
+            category: 'Student Life',
+            items: [
+                { name: 'Clubs & Societies', icon: Users, path: '/clubs', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'] },
+            ]
+        },
+        {
+            category: 'Club Management',
+            items: [
+                { name: 'My Club Dashboard', icon: LayoutDashboard, path: '/my-club', roles: ['CLUB_PRESIDENT'] },
             ]
         }
     ];
