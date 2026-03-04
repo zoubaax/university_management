@@ -36,6 +36,9 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import clubService from '../../../api/services/clubService';
 import CreateClubModal from './CreateClubModal';
+import ClubAnnouncements from './ClubAnnouncements';
+import ClubEvents from './ClubEvents';
+import ClubGallery from './ClubGallery';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
@@ -515,124 +518,17 @@ const ClubList = () => {
                                 <>
                                     {/* Announcements */}
                                     {viewMode === 'announcements' && (
-                                        <div className="space-y-4">
-                                            {clubBroadcasts.length === 0 ? (
-                                                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                                    <Megaphone className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                                    <p className="text-sm text-gray-500">No announcements yet</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Stay tuned for updates!</p>
-                                                </div>
-                                            ) : (
-                                                clubBroadcasts.map((broadcast) => (
-                                                    <motion.div
-                                                        key={broadcast.id}
-                                                        initial={{ opacity: 0, y: 10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition-colors"
-                                                    >
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <h4 className="text-sm font-semibold text-gray-900">{broadcast.subject}</h4>
-                                                            <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-md">
-                                                                {new Date(broadcast.created_at).toLocaleDateString()}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                                                            {broadcast.body}
-                                                        </p>
-                                                    </motion.div>
-                                                ))
-                                            )}
-                                        </div>
+                                        <ClubAnnouncements broadcasts={clubBroadcasts} />
                                     )}
 
                                     {/* Events */}
                                     {viewMode === 'schedule' && (
-                                        <div className="space-y-4">
-                                            {clubEvents.length === 0 ? (
-                                                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                                    <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                                    <p className="text-sm text-gray-500">No events scheduled</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Check back soon!</p>
-                                                </div>
-                                            ) : (
-                                                clubEvents.map((event) => (
-                                                    <motion.div
-                                                        key={event.id}
-                                                        initial={{ opacity: 0, y: 10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        className="p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition-colors"
-                                                    >
-                                                        <div className="flex gap-4">
-                                                            <div className="flex flex-col items-center justify-center w-16 h-16 bg-blue-50 rounded-lg border border-blue-200">
-                                                                <span className="text-[10px] font-bold text-blue-600 uppercase">
-                                                                    {new Date(event.start_time).toLocaleString('default', { month: 'short' })}
-                                                                </span>
-                                                                <span className="text-xl font-bold text-blue-700 leading-none">
-                                                                    {new Date(event.start_time).getDate()}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <h4 className="text-sm font-semibold text-gray-900">{event.title}</h4>
-                                                                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Clock size={12} />
-                                                                        {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <MapPin size={12} />
-                                                                        {event.location}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Users size={12} />
-                                                                        {event.rsvp_count || 0} attending
-                                                                    </div>
-                                                                </div>
-                                                                <Button
-                                                                    size="xs"
-                                                                    className="mt-3"
-                                                                    onClick={() => clubService.rsvpToEvent(event.id).then(() => toast.success('RSVP confirmed!'))}
-                                                                >
-                                                                    RSVP
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                ))
-                                            )}
-                                        </div>
+                                        <ClubEvents events={clubEvents} />
                                     )}
 
                                     {/* Gallery */}
                                     {viewMode === 'gallery' && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {clubGallery.length === 0 ? (
-                                                <div className="col-span-2 text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                                    <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                                    <p className="text-sm text-gray-500">No photos yet</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Check back for club memories!</p>
-                                                </div>
-                                            ) : (
-                                                clubGallery.map((photo) => (
-                                                    <motion.div
-                                                        key={photo.id}
-                                                        initial={{ opacity: 0, scale: 0.95 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200"
-                                                    >
-                                                        <img
-                                                            src={`${import.meta.env.VITE_API_URL}${photo.image_url}`}
-                                                            alt={photo.caption}
-                                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                                        />
-                                                        {photo.caption && (
-                                                            <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                                                                <p className="text-[10px] text-white truncate">{photo.caption}</p>
-                                                            </div>
-                                                        )}
-                                                    </motion.div>
-                                                ))
-                                            )}
-                                        </div>
+                                        <ClubGallery gallery={clubGallery} />
                                     )}
                                 </>
                             )}
