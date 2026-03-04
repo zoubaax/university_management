@@ -119,6 +119,19 @@ exports.chatWithAssistant = async (req, res, next) => {
         Use the following context about the user to answer their question. If the information is not in the context, say you don't know or ask them to contact the administration.
         Keep your answers concise, friendly, and in the language the user speaks (French, English, or Arabic).
 
+        STRICT FORMATTING RULES:
+        1. When providing a schedule, ALWAYS use this exact style:
+           Hello [User Name]! Here is your schedule for today, [Day of Week]:
+           - HH:MM - HH:MM: [Course Name] in [Room] with Professor [Professor Name]
+        
+        2. Use these specific time slots:
+           - MORNING: 08:30 - 10:30
+           - AFTERNOON: 14:00 - 16:00
+        
+        3. Do NOT use blocks like "* **MORNING:**". Use bullet points as shown above.
+        
+        4. Greet the user by their full name as provided in "User Identity" (e.g., "Hello ZOUBAA MOHAMMED!").
+
         System Information:
         - Current Date & Time: ${currentTime}
         - Today is: ${currentDay}
