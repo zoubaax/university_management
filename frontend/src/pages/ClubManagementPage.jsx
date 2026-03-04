@@ -44,12 +44,16 @@ const ClubManagementPage = () => {
     const navigate = useNavigate();
     const [club, setClub] = useState(null);
     const [members, setMembers] = useState([]);
+    const [broadcasts, setBroadcasts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
     const [menuOpen, setMenuOpen] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [memberToRemove, setMemberToRemove] = useState(null);
     const [isRemoving, setIsRemoving] = useState(false);
+    const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+    const [broadcastData, setBroadcastData] = useState({ subject: '', body: '' });
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -70,9 +74,13 @@ const ClubManagementPage = () => {
             if (clubRes.success) {
                 setClub(clubRes.data);
 
-                // Fetch members
-                const membersRes = await clubService.getClubMembers(clubRes.data.id);
+                // Fetch members and broadcasts
+                const [membersRes, broadcastsRes] = await Promise.all([
+                    clubService.getClubMembers(clubRes.data.id),
+                    clubService.getClubBroadcasts(clubRes.data.id)
+                ]);
                 setMembers(membersRes.data || []);
+                setBroadcasts(broadcastsRes.data || []);
             }
         } catch (err) {
             console.error('Error fetching club data:', err);
@@ -115,6 +123,27 @@ const ClubManagementPage = () => {
             toast.success(`Registration is now ${newStatus ? 'OPEN' : 'CLOSED'}`);
         } catch (err) {
             toast.error('Failed to update registration status');
+        }
+    };
+
+    const handleBroadcast = async (e) => {
+        e.preventDefault();
+        if (!broadcastData.subject || !broadcastData.body) {
+            toast.error('Please fill in all fields');
+            return;
+        }
+
+        setIsBroadcasting(true);
+        try {
+            await clubService.broadcastMessage(club.id, broadcastData.subject, broadcastData.body);
+            toast.success('Broadcast sent successfully!');
+            setIsBroadcastModalOpen(false);
+            setBroadcastData({ subject: '', body: '' });
+            fetchClubData(); // Refresh history
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to send broadcast');
+        } finally {
+            setIsBroadcasting(false);
         }
     };
 
@@ -257,8 +286,13 @@ const ClubManagementPage = () => {
                                 )}
                             </button>
                             <div className="h-6 w-px bg-gray-200 mx-1" />
-                            <Button variant="outline" icon={Mail} size="sm">
-                                Contact Members
+                            <Button
+                                variant="outline"
+                                icon={Mail}
+                                size="sm"
+                                onClick={() => setIsBroadcastModalOpen(true)}
+                            >
+                                Send Broadcast
                             </Button>
                         </div>
                     </div>
@@ -365,11 +399,43 @@ const ClubManagementPage = () => {
                             </div>
 
                             {/* About Section */}
-                            <div className="md:col-span-2 bg-white border border-gray-200 rounded-xl p-5">
+                            <div className="bg-white border border-gray-200 rounded-xl p-5">
                                 <h3 className="font-semibold text-gray-900 mb-3">About the Club</h3>
                                 <p className="text-sm text-gray-600 leading-relaxed">
                                     {club.description || 'No description provided.'}
                                 </p>
+                            </div>
+
+                            {/* Broadcast History */}
+                            <div className="bg-white border border-gray-200 rounded-xl p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                        <Mail size={16} className="text-gray-400" />
+                                        Recent Broadcasts
+                                    </h3>
+                                    <Badge className="bg-gray-100 text-gray-600 border-gray-200">
+                                        {broadcasts.length}
+                                    </Badge>
+                                </div>
+                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {broadcasts.length === 0 ? (
+                                        <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                                            <p className="text-xs text-gray-500">No broadcast history yet</p>
+                                        </div>
+                                    ) : (
+                                        broadcasts.map((b, i) => (
+                                            <div key={b.id} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{b.subject}</h4>
+                                                    <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                                                        {new Date(b.created_at).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 line-clamp-2">{b.body}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
 
                             {/* Quick Actions */}
@@ -590,6 +656,54 @@ const ClubManagementPage = () => {
                 variant="danger"
                 isLoading={isRemoving}
             />
+
+            {/* Broadcast Modal */}
+            <Modal
+                isOpen={isBroadcastModalOpen}
+                onClose={() => setIsBroadcastModalOpen(false)}
+                title="Send Broadcast Message"
+            >
+                <form onSubmit={handleBroadcast} className="space-y-4">
+                    <p className="text-sm text-gray-500">
+                        This message will be sent to all {members.filter(m => m.status === 'approved').length} approved members of your club.
+                    </p>
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700">Subject</label>
+                        <input
+                            type="text"
+                            required
+                            value={broadcastData.subject}
+                            onChange={(e) => setBroadcastData({ ...broadcastData, subject: e.target.value })}
+                            className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                            placeholder="e.g. Weekly Meeting Update"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700">Message Body</label>
+                        <textarea
+                            rows={6}
+                            required
+                            value={broadcastData.body}
+                            onChange={(e) => setBroadcastData({ ...broadcastData, body: e.target.value })}
+                            className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none resize-none"
+                            placeholder="Type your message here..."
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button variant="outline" type="button" onClick={() => setIsBroadcastModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="bg-gray-900 hover:bg-gray-800 text-white"
+                            isLoading={isBroadcasting}
+                            disabled={isBroadcasting}
+                        >
+                            Send to All Members
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

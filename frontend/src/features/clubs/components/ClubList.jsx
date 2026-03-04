@@ -16,13 +16,18 @@ import {
     Flag,
     Award,
     Heart,
-    MessageSquare
+    MessageSquare,
+    Eye,
+    FileText,
+    Image,
+    Layout
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import clubService from '../../../api/services/clubService';
 import CreateClubModal from './CreateClubModal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
+import Modal from '../../../components/ui/Modal';
 import { cn } from '../../../utils/cn';
 import { toast } from 'react-hot-toast';
 
@@ -34,15 +39,34 @@ const ClubList = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState('all');
     const [menuOpen, setMenuOpen] = useState(null);
+    const [viewingClub, setViewingClub] = useState(null);
+    const [clubBroadcasts, setClubBroadcasts] = useState([]);
+    const [loadingBroadcasts, setLoadingBroadcasts] = useState(false);
 
     const handleJoin = async (clubId) => {
         try {
             const res = await clubService.joinClub(clubId);
             if (res.success) {
                 toast.success('Application sent! Waiting for approval.');
+                // Refresh to show pending status
+                fetchClubs();
             }
         } catch (err) {
             toast.error(err.response?.data?.error || 'Failed to join club');
+        }
+    };
+
+    const handleViewClub = async (club) => {
+        setViewingClub(club);
+        setLoadingBroadcasts(true);
+        try {
+            const res = await clubService.getClubBroadcasts(club.id);
+            setClubBroadcasts(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch broadcasts:', err);
+            toast.error('Could not load announcements');
+        } finally {
+            setLoadingBroadcasts(false);
         }
     };
 
@@ -299,31 +323,47 @@ const ClubList = () => {
 
                                     {/* Action Buttons */}
                                     <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleJoin(club.id)}
-                                            disabled={!club.registration_open}
-                                            className={cn(
-                                                "flex-1 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1",
-                                                club.registration_open
-                                                    ? "bg-gray-900 text-white hover:bg-gray-800"
-                                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            )}
-                                        >
-                                            {club.registration_open ? (
-                                                <>
-                                                    <UserPlus size={14} />
-                                                    Join
-                                                </>
-                                            ) : (
-                                                'Closed'
-                                            )}
-                                        </button>
+                                        {club.membership_status === 'approved' ? (
+                                            <Button
+                                                onClick={() => handleViewClub(club)}
+                                                className="flex-1 bg-gray-900 border-gray-900 text-white hover:bg-gray-800"
+                                                icon={Eye}
+                                                size="sm"
+                                            >
+                                                View Announcements
+                                            </Button>
+                                        ) : club.membership_status === 'pending' ? (
+                                            <Button
+                                                disabled
+                                                className="flex-1 bg-amber-50 border-amber-200 text-amber-600 cursor-not-allowed"
+                                                icon={Clock}
+                                                size="sm"
+                                            >
+                                                Pending Approval
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                onClick={() => handleJoin(club.id)}
+                                                disabled={!club.registration_open}
+                                                className={cn(
+                                                    "flex-1",
+                                                    club.registration_open
+                                                        ? "bg-gray-900 text-white hover:bg-gray-800"
+                                                        : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                                                )}
+                                                icon={club.registration_open ? UserPlus : XCircle}
+                                                size="sm"
+                                            >
+                                                {club.registration_open ? 'Join Club' : 'Registration Closed'}
+                                            </Button>
+                                        )}
+
                                         <button
                                             onClick={() => window.location.href = `mailto:${club.contact_email}`}
-                                            className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                                            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-200"
+                                            title="Contact President"
                                         >
                                             <MessageSquare size={14} />
-                                            Contact
                                         </button>
                                     </div>
                                 </div>
@@ -342,6 +382,93 @@ const ClubList = () => {
                     setIsCreateModalOpen(false);
                 }}
             />
+
+            {/* Club Hub Modal (Student View) */}
+            <Modal
+                isOpen={!!viewingClub}
+                onClose={() => setViewingClub(null)}
+                title={viewingClub?.name}
+            >
+                {viewingClub && (
+                    <div className="space-y-6">
+                        {/* Club Header in Modal */}
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            {viewingClub.logo_url ? (
+                                <img src={viewingClub.logo_url} alt="" className="w-16 h-16 rounded-lg object-cover shadow-sm" />
+                            ) : (
+                                <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center font-bold text-gray-500">
+                                    {viewingClub.name.substring(0, 2).toUpperCase()}
+                                </div>
+                            )}
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">{viewingClub.name}</h3>
+                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                    <Badge className="bg-green-50 text-green-700 border-green-100">Member</Badge>
+                                    <span>•</span>
+                                    <span>{viewingClub.department_name}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tabs content (Mostly Announcements for now) */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                                <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                    <Mail size={16} className="text-blue-500" />
+                                    Latest Announcements
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">History</span>
+                            </div>
+
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                {loadingBroadcasts ? (
+                                    <div className="py-12 flex flex-col items-center justify-center">
+                                        <Loader2 className="w-6 h-6 text-gray-400 animate-spin mb-2" />
+                                        <p className="text-xs text-gray-400">Loading announcements...</p>
+                                    </div>
+                                ) : clubBroadcasts.length === 0 ? (
+                                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                        <Mail className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                        <p className="text-sm text-gray-500">No announcements yet</p>
+                                        <p className="text-xs text-gray-400 mt-1">Stay tuned for updates from the club!</p>
+                                    </div>
+                                ) : (
+                                    clubBroadcasts.map((broadcast) => (
+                                        <motion.div
+                                            key={broadcast.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            className="p-4 bg-white border border-gray-100 rounded-xl hover:border-blue-100 hover:shadow-sm transition-all shadow-sm"
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h5 className="text-sm font-bold text-gray-900">{broadcast.subject}</h5>
+                                                <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                                    {new Date(broadcast.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                                {broadcast.body}
+                                            </p>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Future Features Placeholders */}
+                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+                            <button className="flex flex-col items-center gap-2 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors opacity-50 cursor-not-allowed">
+                                <Image size={20} className="text-gray-400" />
+                                <span className="text-[10px] font-medium text-gray-500">Gallery (Coming)</span>
+                            </button>
+                            <button className="flex flex-col items-center gap-2 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors opacity-50 cursor-not-allowed">
+                                <FileText size={20} className="text-gray-400" />
+                                <span className="text-[10px] font-medium text-gray-500">Resources (Coming)</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };

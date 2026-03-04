@@ -53,6 +53,16 @@ class ClubService {
         return response.data;
     }
 
+    async broadcastMessage(clubId, subject, body) {
+        const response = await api.post(`/clubs/${clubId}/broadcast`, { subject, body });
+        return response.data;
+    }
+
+    async getClubBroadcasts(clubId) {
+        const response = await api.get(`/clubs/${clubId}/broadcasts`);
+        return response.data;
+    }
+
     // --- Events ---
     async getClubEvents(clubId) {
         const response = await api.get(`/clubs/${clubId}/events`);

@@ -45,6 +45,15 @@ class ClubMember {
         );
         return result.rows[0];
     }
+
+    static async findApprovedMembers(clubId) {
+        const result = await query(
+            `SELECT student_user_id FROM club_members 
+             WHERE club_id = $1 AND status = 'approved'`,
+            [clubId]
+        );
+        return result.rows;
+    }
 }
 
 module.exports = ClubMember;

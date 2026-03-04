@@ -1,6 +1,9 @@
 const Club = require('../models/Club');
 const ClubMember = require('../models/ClubMember');
 const ClubEvent = require('../models/ClubEvent');
+const ClubBroadcast = require('../models/ClubBroadcast');
+const Message = require('../models/Message');
+const Notification = require('../models/Notification');
 const AppError = require('../utils/ErrorResponse');
 const logger = require('../utils/logger');
 
@@ -9,7 +12,8 @@ const logger = require('../utils/logger');
 // @access  Public / Private
 exports.getClubs = async (req, res, next) => {
     try {
-        const clubs = await Club.findAll();
+        const userId = req.user ? req.user.id : null;
+        const clubs = await Club.findAll(userId);
 
         res.status(200).json({
             success: true,
@@ -226,6 +230,96 @@ exports.rsvpEvent = async (req, res, next) => {
     try {
         const rsvp = await ClubEvent.rsvp(req.params.id, req.user.id);
         res.status(201).json({ success: true, data: rsvp });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Broadcast message to all club members
+// @route   POST /api/v1/clubs/:id/broadcast
+// @access  Private (Club President only)
+exports.broadcastMessage = async (req, res, next) => {
+    try {
+        const { subject, body } = req.body;
+        const clubId = req.params.id;
+
+        if (!subject || !body) {
+            return next(new AppError('Please provide subject and body', 400));
+        }
+
+        const club = await Club.findById(clubId);
+        if (!club) {
+            return next(new AppError('Club not found', 404));
+        }
+
+        // Verify ownership
+        if (req.user.role_name !== 'SUPER_ADMIN' && req.user.id !== club.user_id) {
+            return next(new AppError('Not authorized to broadcast from this club', 403));
+        }
+
+        const members = await ClubMember.findApprovedMembers(clubId);
+
+        if (members.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No approved members to broadcast to'
+            });
+        }
+
+        // Send messages and notifications in parallel
+        const broadcastPromises = members.map(async (member) => {
+            // Create message
+            const message = await Message.create({
+                sender_id: club.user_id,
+                sender_type: 'user', // Club sender type
+                recipient_id: member.student_user_id,
+                recipient_type: 'user', // Fixed as 'user' for student-user-id routing in our messaging fix
+                subject: `[BROADCAST] ${subject}`,
+                body
+            });
+
+            // Create notification
+            await Notification.create({
+                user_id: member.student_user_id,
+                type: 'general',
+                title: `New Broadcast: ${club.name}`,
+                message: subject,
+                link: '/messages',
+                related_id: message.id
+            });
+        });
+
+        await Promise.all(broadcastPromises);
+
+        // --- NEW: Save the broadcast record for history ---
+        await ClubBroadcast.create({
+            club_id: clubId,
+            sender_id: req.user.id,
+            subject,
+            body
+        });
+
+        logger.info(`Broadcast sent from club ${club.name} (ID: ${club.id}) to ${members.length} members`);
+
+        res.status(200).json({
+            success: true,
+            message: `Message broadcasted to ${members.length} members`
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get club broadcasts
+// @route   GET /api/v1/clubs/:id/broadcasts
+exports.getClubBroadcasts = async (req, res, next) => {
+    try {
+        const broadcasts = await ClubBroadcast.findByClubId(req.params.id);
+        res.status(200).json({
+            success: true,
+            count: broadcasts.length,
+            data: broadcasts
+        });
     } catch (err) {
         next(err);
     }

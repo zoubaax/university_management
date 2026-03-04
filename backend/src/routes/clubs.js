@@ -15,11 +15,13 @@ const {
     joinClub,
     getClubEvents,
     createClubEvent,
-    rsvpEvent
+    rsvpEvent,
+    broadcastMessage,
+    getClubBroadcasts
 } = require('../controllers/clubs');
 
-// Public route to view all clubs
-router.get('/', getClubs);
+// Private route to view all clubs
+router.get('/', protect, getClubs);
 
 // Private route for Club President to see their own club profile
 // Defined before /:id to avoid conflict
@@ -44,5 +46,7 @@ router.post('/:id/join', protect, authorize('STUDENT'), joinClub);
 router.get('/:id/events', protect, getClubEvents);
 router.post('/:id/events', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), createClubEvent);
 router.post('/events/:id/rsvp', protect, authorize('STUDENT'), rsvpEvent);
+router.post('/:id/broadcast', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), broadcastMessage);
+router.get('/:id/broadcasts', protect, getClubBroadcasts);
 
 module.exports = router;

@@ -2,16 +2,21 @@ const { query, transaction } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 class Club {
-    // Get all clubs
-    static async findAll() {
+    // Get all clubs (optionally with membership status for a specific user)
+    static async findAll(currentUserId = null) {
         const result = await query(
             `SELECT c.*, d.name as department_name, u.email as contact_email,
                     (SELECT COUNT(*) FROM club_members WHERE club_id = c.id AND status = 'approved') as member_count,
-                    (SELECT COUNT(*) FROM club_events WHERE club_id = c.id) as event_count
+                    (SELECT COUNT(*) FROM club_events WHERE club_id = c.id) as event_count,
+                    COALESCE(
+                        (SELECT status FROM club_members WHERE club_id = c.id AND student_user_id = $1),
+                        'not_joined'
+                    ) as membership_status
              FROM clubs c
              LEFT JOIN departments d ON c.department_id = d.id
              LEFT JOIN users u ON c.user_id = u.id
-             ORDER BY c.created_at DESC`
+             ORDER BY c.created_at DESC`,
+            [currentUserId]
         );
         return result.rows;
     }
