@@ -29,6 +29,13 @@ class ClubMember {
     }
 
     static async addMember(clubId, studentUserId, role = 'member') {
+        // 1. Check if club is accepting new members
+        const clubRes = await query('SELECT registration_open FROM clubs WHERE id = $1', [clubId]);
+        if (clubRes.rows.length === 0) throw new Error('Club not found');
+        if (!clubRes.rows[0].registration_open) {
+            throw new Error('This club is currently not accepting new applications.');
+        }
+
         const result = await query(
             `INSERT INTO club_members (club_id, student_user_id, club_role, status)
              VALUES ($1, $2, $3, 'pending')

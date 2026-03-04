@@ -24,7 +24,9 @@ import {
     BookOpen,
     Link as LinkIcon,
     FileText,
-    Eye
+    Eye,
+    ToggleLeft,
+    ToggleRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clubService from '../api/services/clubService';
@@ -102,6 +104,17 @@ const ClubManagementPage = () => {
             toast.error('Failed to remove member');
         } finally {
             setIsRemoving(false);
+        }
+    };
+
+    const handleToggleRegistration = async () => {
+        try {
+            const newStatus = !club.registration_open;
+            await clubService.updateClub(club.id, { registration_open: newStatus });
+            setClub({ ...club, registration_open: newStatus });
+            toast.success(`Registration is now ${newStatus ? 'OPEN' : 'CLOSED'}`);
+        } catch (err) {
+            toast.error('Failed to update registration status');
         }
     };
 
@@ -211,14 +224,41 @@ const ClubManagementPage = () => {
                                     <Users size={14} />
                                     <span>{approvedMembers.length} members</span>
                                 </div>
+                                <Badge className={cn(
+                                    "border-2",
+                                    club.registration_open
+                                        ? "bg-green-50 text-green-700 border-green-200"
+                                        : "bg-red-50 text-red-700 border-red-200"
+                                )}>
+                                    {club.registration_open ? 'Registration Open' : 'Registration Closed'}
+                                </Badge>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleToggleRegistration}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                                    club.registration_open
+                                        ? "bg-white text-red-600 border-red-200 hover:bg-red-50"
+                                        : "bg-white text-green-600 border-green-200 hover:bg-green-50"
+                                )}
+                            >
+                                {club.registration_open ? (
+                                    <>
+                                        <ToggleRight size={16} />
+                                        Close Registration
+                                    </>
+                                ) : (
+                                    <>
+                                        <ToggleLeft size={16} />
+                                        Open Registration
+                                    </>
+                                )}
+                            </button>
+                            <div className="h-6 w-px bg-gray-200 mx-1" />
                             <Button variant="outline" icon={Mail} size="sm">
-                                Contact
-                            </Button>
-                            <Button icon={UserPlus} size="sm" className="bg-gray-900 hover:bg-gray-800 text-white">
-                                Join Club
+                                Contact Members
                             </Button>
                         </div>
                     </div>
@@ -401,8 +441,8 @@ const ClubManagementPage = () => {
                                                     <Badge className={cn(
                                                         "text-xs",
                                                         member.status === 'approved' ? "bg-green-100 text-green-700 border-green-200" :
-                                                        member.status === 'pending' ? "bg-amber-100 text-amber-700 border-amber-200" :
-                                                        "bg-red-100 text-red-700 border-red-200"
+                                                            member.status === 'pending' ? "bg-amber-100 text-amber-700 border-amber-200" :
+                                                                "bg-red-100 text-red-700 border-red-200"
                                                     )}>
                                                         {member.status}
                                                     </Badge>

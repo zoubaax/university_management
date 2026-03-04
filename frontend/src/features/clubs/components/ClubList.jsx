@@ -24,6 +24,7 @@ import CreateClubModal from './CreateClubModal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../utils/cn';
+import { toast } from 'react-hot-toast';
 
 const ClubList = () => {
     const { user } = useAuth();
@@ -33,6 +34,17 @@ const ClubList = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState('all');
     const [menuOpen, setMenuOpen] = useState(null);
+
+    const handleJoin = async (clubId) => {
+        try {
+            const res = await clubService.joinClub(clubId);
+            if (res.success) {
+                toast.success('Application sent! Waiting for approval.');
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to join club');
+        }
+    };
 
     // Can this user create new clubs?
     const canCreateClub = user?.role_name === 'SUPER_ADMIN' || user?.role_name === 'RESPONSABLE_DEPARTMENT';
@@ -190,9 +202,9 @@ const ClubList = () => {
                                 <div className="h-24 bg-gradient-to-r from-gray-900 to-gray-700 relative">
                                     {club.logo_url ? (
                                         <div className="absolute -bottom-8 left-5 w-16 h-16 rounded-lg border-2 border-white bg-white overflow-hidden shadow-md">
-                                            <img 
-                                                src={club.logo_url} 
-                                                alt={club.name} 
+                                            <img
+                                                src={club.logo_url}
+                                                alt={club.name}
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
@@ -261,15 +273,15 @@ const ClubList = () => {
                                     <div className="grid grid-cols-3 gap-2 mb-4 py-3 border-y border-gray-100">
                                         <div className="text-center">
                                             <p className="text-xs font-medium text-gray-500">Members</p>
-                                            <p className="text-sm font-semibold text-gray-900">24</p>
+                                            <p className="text-sm font-semibold text-gray-900">{club.member_count || 0}</p>
                                         </div>
                                         <div className="text-center">
                                             <p className="text-xs font-medium text-gray-500">Events</p>
-                                            <p className="text-sm font-semibold text-gray-900">8</p>
+                                            <p className="text-sm font-semibold text-gray-900">{club.event_count || 0}</p>
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-xs font-medium text-gray-500">Year</p>
-                                            <p className="text-sm font-semibold text-gray-900">2024</p>
+                                            <p className="text-xs font-medium text-gray-500">Since</p>
+                                            <p className="text-sm font-semibold text-gray-900">{new Date(club.created_at).getFullYear()}</p>
                                         </div>
                                     </div>
 
@@ -287,11 +299,29 @@ const ClubList = () => {
 
                                     {/* Action Buttons */}
                                     <div className="flex gap-2">
-                                        <button className="flex-1 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-1">
-                                            <UserPlus size={14} />
-                                            Join
+                                        <button
+                                            onClick={() => handleJoin(club.id)}
+                                            disabled={!club.registration_open}
+                                            className={cn(
+                                                "flex-1 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1",
+                                                club.registration_open
+                                                    ? "bg-gray-900 text-white hover:bg-gray-800"
+                                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            )}
+                                        >
+                                            {club.registration_open ? (
+                                                <>
+                                                    <UserPlus size={14} />
+                                                    Join
+                                                </>
+                                            ) : (
+                                                'Closed'
+                                            )}
                                         </button>
-                                        <button className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1">
+                                        <button
+                                            onClick={() => window.location.href = `mailto:${club.contact_email}`}
+                                            className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                                        >
                                             <MessageSquare size={14} />
                                             Contact
                                         </button>

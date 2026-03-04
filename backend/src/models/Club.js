@@ -5,7 +5,9 @@ class Club {
     // Get all clubs
     static async findAll() {
         const result = await query(
-            `SELECT c.*, d.name as department_name, u.email as contact_email
+            `SELECT c.*, d.name as department_name, u.email as contact_email,
+                    (SELECT COUNT(*) FROM club_members WHERE club_id = c.id AND status = 'approved') as member_count,
+                    (SELECT COUNT(*) FROM club_events WHERE club_id = c.id) as event_count
              FROM clubs c
              LEFT JOIN departments d ON c.department_id = d.id
              LEFT JOIN users u ON c.user_id = u.id
@@ -76,7 +78,7 @@ class Club {
     }
 
     // Update club details
-    static async update(id, { name, description, logo_url, status, category }) {
+    static async update(id, { name, description, logo_url, status, category, registration_open }) {
         const result = await query(
             `UPDATE clubs 
              SET name = COALESCE($1, name),
@@ -84,9 +86,10 @@ class Club {
                  logo_url = COALESCE($3, logo_url),
                  status = COALESCE($4, status),
                  category = COALESCE($5, category),
+                 registration_open = COALESCE($6, registration_open),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $6 RETURNING *`,
-            [name, description, logo_url, status, category, id]
+             WHERE id = $7 RETURNING *`,
+            [name, description, logo_url, status, category, registration_open, id]
         );
         return result.rows[0];
     }
