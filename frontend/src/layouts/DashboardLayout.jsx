@@ -87,6 +87,15 @@ const DashboardLayout = () => {
     // Navigation configuration
     const navItems = [
         {
+            category: 'Club Management',
+            items: [
+                { name: 'Dashboard', icon: LayoutDashboard, path: '/my-club', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Club Members', icon: Users, path: '/my-club?tab=members', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Club Events', icon: Calendar, path: '/my-club?tab=events', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Club Settings', icon: Settings, path: '/my-club?tab=settings', roles: ['CLUB_PRESIDENT'] },
+            ]
+        },
+        {
             category: 'Overview',
             items: [
                 { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['SUPER_ADMIN', 'RH', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'PROFESSOR', 'STUDENT', 'FINANCIER'] },
@@ -137,12 +146,6 @@ const DashboardLayout = () => {
                 { name: 'Clubs & Societies', icon: Users, path: '/clubs', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'] },
             ]
         },
-        {
-            category: 'Club Management',
-            items: [
-                { name: 'My Club Dashboard', icon: LayoutDashboard, path: '/my-club', roles: ['CLUB_PRESIDENT'] },
-            ]
-        }
     ];
 
     // Filter navigation items based on user role and permissions
