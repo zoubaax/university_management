@@ -188,6 +188,18 @@ exports.updateMemberStatus = async (req, res, next) => {
     }
 };
 
+// @desc    Update member role
+// @route   PATCH /api/v1/clubs/:id/members/:studentUserId/role
+exports.updateMemberRole = async (req, res, next) => {
+    try {
+        const { role } = req.body;
+        const member = await ClubMember.updateRole(req.params.id, req.params.studentUserId, role);
+        res.status(200).json({ success: true, data: member });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // @desc    Join a club
 // @route   POST /api/v1/clubs/:id/join
 exports.joinClub = async (req, res, next) => {

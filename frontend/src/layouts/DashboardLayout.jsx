@@ -87,12 +87,14 @@ const DashboardLayout = () => {
     // Navigation configuration
     const navItems = [
         {
-            category: 'Club Management',
+            category: 'My Club Dashboard',
             items: [
-                { name: 'Dashboard', icon: LayoutDashboard, path: '/my-club', roles: ['CLUB_PRESIDENT'] },
-                { name: 'Club Members', icon: Users, path: '/my-club?tab=members', roles: ['CLUB_PRESIDENT'] },
-                { name: 'Club Events', icon: Calendar, path: '/my-club?tab=events', roles: ['CLUB_PRESIDENT'] },
-                { name: 'Club Settings', icon: Settings, path: '/my-club?tab=settings', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Overview', icon: LayoutDashboard, path: '/my-club?tab=overview', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Members', icon: Users, path: '/my-club?tab=members', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Events', icon: Calendar, path: '/my-club?tab=events', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Gallery', icon: Rocket, path: '/my-club?tab=gallery', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Resources', icon: FolderOpen, path: '/my-club?tab=resources', roles: ['CLUB_PRESIDENT'] },
+                { name: 'Settings', icon: Settings, path: '/my-club?tab=settings', roles: ['CLUB_PRESIDENT'] },
             ]
         },
         {

@@ -17,7 +17,8 @@ const {
     createClubEvent,
     rsvpEvent,
     broadcastMessage,
-    getClubBroadcasts
+    getClubBroadcasts,
+    updateMemberRole
 } = require('../controllers/clubs');
 
 // Private route to view all clubs
@@ -40,6 +41,7 @@ router.delete('/:id', protect, authorize('SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT'
 // --- Member Management ---
 router.get('/:id/members', protect, getClubMembers);
 router.patch('/:id/members/:studentUserId', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), updateMemberStatus);
+router.patch('/:id/members/:studentUserId/role', protect, authorize('CLUB_PRESIDENT', 'SUPER_ADMIN'), updateMemberRole);
 router.post('/:id/join', protect, authorize('STUDENT'), joinClub);
 
 // --- Event Management ---

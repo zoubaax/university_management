@@ -48,6 +48,11 @@ class ClubService {
         return response.data;
     }
 
+    async updateMemberRole(clubId, studentUserId, role) {
+        const response = await api.patch(`/clubs/${clubId}/members/${studentUserId}/role`, { role });
+        return response.data;
+    }
+
     async joinClub(clubId) {
         const response = await api.post(`/clubs/${clubId}/join`);
         return response.data;

@@ -54,6 +54,18 @@ const ClubManagementPage = () => {
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
     const [broadcastData, setBroadcastData] = useState({ subject: '', body: '' });
     const [isBroadcasting, setIsBroadcasting] = useState(false);
+    const [updatingMemberRole, setUpdatingMemberRole] = useState(null);
+    const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+
+    const CLUB_ROLES = [
+        'Member',
+        'Vice President',
+        'Treasurer',
+        'Secretary',
+        'Technical Lead',
+        'Media Lead',
+        'Event Coordinator'
+    ];
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -144,6 +156,20 @@ const ClubManagementPage = () => {
             toast.error(err.response?.data?.error || 'Failed to send broadcast');
         } finally {
             setIsBroadcasting(false);
+        }
+    };
+
+    const handleUpdateRole = async (newRole) => {
+        setIsUpdatingRole(true);
+        try {
+            await clubService.updateMemberRole(club.id, updatingMemberRole.student_user_id, newRole);
+            toast.success(`${updatingMemberRole.student_name} promoted to ${newRole}`);
+            setUpdatingMemberRole(null);
+            fetchClubData();
+        } catch (err) {
+            toast.error('Failed to update member role');
+        } finally {
+            setIsUpdatingRole(false);
         }
     };
 
@@ -299,33 +325,12 @@ const ClubManagementPage = () => {
                 </div>
             </div>
 
-            {/* Navigation Tabs */}
+            {/* Navigation Tabs - Hidden because they are now in the sidebar */}
+            {/* 
             <div className="border-b border-gray-200">
-                <nav className="flex -mb-px space-x-8">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "py-4 px-1 border-b-2 font-medium text-sm transition-colors relative",
-                                activeTab === tab.id
-                                    ? "border-gray-900 text-gray-900"
-                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                            )}
-                        >
-                            <div className="flex items-center gap-2">
-                                <tab.icon size={18} />
-                                {tab.name}
-                                {tab.badge > 0 && (
-                                    <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px] px-1.5">
-                                        {tab.badge}
-                                    </Badge>
-                                )}
-                            </div>
-                        </button>
-                    ))}
-                </nav>
+                ... 
             </div>
+            */}
 
             {/* Tab Content */}
             <div className="mt-6">
@@ -499,9 +504,14 @@ const ClubManagementPage = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className="text-sm text-gray-700 capitalize">
+                                                    <Badge className={cn(
+                                                        "text-[10px] font-medium uppercase tracking-wider",
+                                                        member.club_role === 'President' ? "bg-purple-50 text-purple-700 border-purple-200" :
+                                                            member.club_role === 'member' ? "bg-gray-50 text-gray-600 border-gray-200" :
+                                                                "bg-blue-50 text-blue-700 border-blue-200"
+                                                    )}>
                                                         {member.club_role || 'Member'}
-                                                    </span>
+                                                    </Badge>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <Badge className={cn(
@@ -517,29 +527,43 @@ const ClubManagementPage = () => {
                                                     {new Date(member.joined_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    {member.status === 'pending' ? (
-                                                        <div className="flex justify-end gap-2">
-                                                            <button
-                                                                onClick={() => handleUpdateMemberStatus(member.student_user_id, 'approved')}
-                                                                className="p-1 text-green-600 hover:bg-green-50 rounded"
-                                                            >
-                                                                <CheckCircle size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleUpdateMemberStatus(member.student_user_id, 'rejected')}
-                                                                className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                                            >
-                                                                <XCircle size={16} />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => setMemberToRemove(member)}
-                                                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    )}
+                                                    <div className="flex justify-end gap-2">
+                                                        {member.status === 'pending' ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleUpdateMemberStatus(member.student_user_id, 'approved')}
+                                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                                    title="Approve"
+                                                                >
+                                                                    <CheckCircle size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleUpdateMemberStatus(member.student_user_id, 'rejected')}
+                                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Reject"
+                                                                >
+                                                                    <XCircle size={16} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => setUpdatingMemberRole(member)}
+                                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                    title="Manage Role"
+                                                                >
+                                                                    <Award size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setMemberToRemove(member)}
+                                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Remove Member"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </motion.tr>
                                         ))}
@@ -643,6 +667,40 @@ const ClubManagementPage = () => {
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Promote Member Modal */}
+            <Modal
+                isOpen={!!updatingMemberRole}
+                onClose={() => setUpdatingMemberRole(null)}
+                title="Manage Member Role"
+                subtitle={`Assign a new leadership role to ${updatingMemberRole?.student_name}`}
+            >
+                <div className="space-y-4">
+                    <p className="text-xs text-gray-500 mb-2">
+                        Leadership roles allow students to build their official university profile and CV.
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                        {CLUB_ROLES.map((role) => (
+                            <button
+                                key={role}
+                                onClick={() => handleUpdateRole(role)}
+                                disabled={isUpdatingRole}
+                                className={cn(
+                                    "flex items-center justify-between p-3 rounded-xl border text-sm transition-all text-left",
+                                    updatingMemberRole?.club_role?.toLowerCase() === role.toLowerCase()
+                                        ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
+                                        : "border-gray-100 hover:border-blue-200 hover:bg-gray-50 text-gray-700"
+                                )}
+                            >
+                                <span>{role}</span>
+                                {updatingMemberRole?.club_role?.toLowerCase() === role.toLowerCase() && (
+                                    <CheckCircle size={14} className="text-blue-500" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </Modal>
 
             {/* Remove Member Confirmation */}

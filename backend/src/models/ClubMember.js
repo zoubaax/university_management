@@ -28,6 +28,17 @@ class ClubMember {
         return result.rows[0];
     }
 
+    static async updateRole(clubId, studentUserId, role) {
+        const result = await query(
+            `UPDATE club_members 
+             SET club_role = $1 
+             WHERE club_id = $2 AND student_user_id = $3 
+             RETURNING *`,
+            [role, clubId, studentUserId]
+        );
+        return result.rows[0];
+    }
+
     static async addMember(clubId, studentUserId, role = 'member') {
         // 1. Check if club is accepting new members
         const clubRes = await query('SELECT registration_open FROM clubs WHERE id = $1', [clubId]);
