@@ -6,7 +6,7 @@ const Message = require('../models/Message');
 exports.getInbox = async (req, res) => {
     try {
         const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
 
         console.log('User info:', {
             role: req.user.role_name,
@@ -43,8 +43,8 @@ exports.getInbox = async (req, res) => {
 // @access  Private
 exports.getSent = async (req, res) => {
     try {
-        const userId = req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
         const { limit, offset } = req.query;
 
         const messages = await Message.getSent(userId, userType, {
@@ -69,7 +69,7 @@ exports.getSent = async (req, res) => {
 exports.getMessage = async (req, res) => {
     try {
         const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
         const { id } = req.params;
 
         const message = await Message.findById(id, userId, userType);
@@ -101,7 +101,7 @@ exports.getMessage = async (req, res) => {
 exports.sendMessage = async (req, res) => {
     try {
         const senderId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const senderType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const senderType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
         const { recipient_id, recipient_type, subject, body } = req.body;
 
         // Validation
@@ -112,10 +112,10 @@ exports.sendMessage = async (req, res) => {
             });
         }
 
-        if (!['employee', 'student'].includes(recipient_type)) {
+        if (!['employee', 'student', 'user'].includes(recipient_type)) {
             return res.status(400).json({
                 success: false,
-                error: 'Invalid recipient_type. Must be "employee" or "student"'
+                error: 'Invalid recipient_type. Must be "employee", "student", or "user"'
             });
         }
 
@@ -144,6 +144,8 @@ exports.sendMessage = async (req, res) => {
         } else if (recipient_type === 'employee') {
             const res = await query('SELECT user_id FROM employees WHERE id = $1', [recipient_id]);
             recipientUserId = res.rows[0]?.user_id;
+        } else if (recipient_type === 'user') {
+            recipientUserId = recipient_id;
         }
 
         if (recipientUserId) {
@@ -173,7 +175,7 @@ exports.sendMessage = async (req, res) => {
 exports.markAsRead = async (req, res) => {
     try {
         const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
         const { id } = req.params;
 
         const message = await Message.markAsRead(id, userId, userType);
@@ -198,7 +200,7 @@ exports.markAsRead = async (req, res) => {
 exports.toggleStar = async (req, res) => {
     try {
         const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
         const { id } = req.params;
 
         const message = await Message.toggleStar(id, userId, userType);
@@ -223,7 +225,7 @@ exports.toggleStar = async (req, res) => {
 exports.deleteMessage = async (req, res) => {
     try {
         const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
         const { id } = req.params;
 
         const message = await Message.delete(id, userId, userType);
@@ -248,7 +250,7 @@ exports.deleteMessage = async (req, res) => {
 exports.getUnreadCount = async (req, res) => {
     try {
         const userId = (req.user.role_name === 'STUDENT' ? req.user.student_id : req.user.employee_id) || req.user.id;
-        const userType = req.user.role_name === 'STUDENT' ? 'student' : 'employee';
+        const userType = req.user.role_name === 'STUDENT' ? 'student' : (req.user.role_name === 'CLUB_PRESIDENT' ? 'user' : 'employee');
 
         if (!userId) {
             return res.status(200).json({

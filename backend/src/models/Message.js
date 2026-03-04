@@ -8,18 +8,20 @@ class Message {
                    CASE 
                        WHEN m.sender_type = 'employee' THEN COALESCE(e.first_name || ' ' || e.last_name, u_gen.email)
                        WHEN m.sender_type = 'student' THEN COALESCE(s.first_name || ' ' || s.last_name, u_gen.email)
-                       ELSE u_gen.email
+                       ELSE COALESCE(cl.name, u_gen.email)
                    END as sender_name,
                    COALESCE(ue.email, us.email, u_gen.email) as sender_email,
                    CASE 
                        WHEN m.sender_type = 'employee' THEN COALESCE(r.name, 'Staff')
                        WHEN m.sender_type = 'student' THEN 'Student'
+                       WHEN cl.id IS NOT NULL THEN 'Club President'
                        ELSE 'User'
                    END as sender_role
             FROM messages m
             LEFT JOIN employees e ON m.sender_id = e.id AND m.sender_type = 'employee'
             LEFT JOIN students s ON m.sender_id = s.id AND m.sender_type = 'student'
             LEFT JOIN users u_gen ON m.sender_id = u_gen.id
+            LEFT JOIN clubs cl ON m.sender_id = cl.user_id
             LEFT JOIN users ue ON e.user_id = ue.id
             LEFT JOIN users us ON s.user_id = us.id
             LEFT JOIN roles r ON ue.role_id = r.id
@@ -49,13 +51,14 @@ class Message {
                    CASE 
                        WHEN m.recipient_type = 'employee' THEN COALESCE(e.first_name || ' ' || e.last_name, u_gen.email)
                        WHEN m.recipient_type = 'student' THEN COALESCE(s.first_name || ' ' || s.last_name, u_gen.email)
-                       ELSE u_gen.email
+                       ELSE COALESCE(cl.name, u_gen.email)
                    END as recipient_name,
                    COALESCE(ue.email, us.email, u_gen.email) as recipient_email
             FROM messages m
             LEFT JOIN employees e ON m.recipient_id = e.id AND m.recipient_type = 'employee'
             LEFT JOIN students s ON m.recipient_id = s.id AND m.recipient_type = 'student'
             LEFT JOIN users u_gen ON m.recipient_id = u_gen.id
+            LEFT JOIN clubs cl ON m.recipient_id = cl.user_id
             LEFT JOIN users ue ON e.user_id = ue.id
             LEFT JOIN users us ON s.user_id = us.id
             WHERE m.sender_id = $1 
@@ -76,13 +79,13 @@ class Message {
                    CASE 
                        WHEN m.sender_type = 'employee' THEN COALESCE(se.first_name || ' ' || se.last_name, use_gen.email)
                        WHEN m.sender_type = 'student' THEN COALESCE(ss.first_name || ' ' || ss.last_name, use_gen.email)
-                       ELSE use_gen.email
+                       ELSE COALESCE(cl_s.name, use_gen.email)
                    END as sender_name,
                    COALESCE(use.email, uss.email, use_gen.email) as sender_email,
                    CASE 
                        WHEN m.recipient_type = 'employee' THEN COALESCE(re.first_name || ' ' || re.last_name, ure_gen.email)
                        WHEN m.recipient_type = 'student' THEN COALESCE(rs.first_name || ' ' || rs.last_name, ure_gen.email)
-                       ELSE ure_gen.email
+                       ELSE COALESCE(cl_r.name, ure_gen.email)
                    END as recipient_name,
                    COALESCE(ure.email, urs.email, ure_gen.email) as recipient_email
             FROM messages m
@@ -92,6 +95,8 @@ class Message {
             LEFT JOIN students rs ON m.recipient_id = rs.id AND m.recipient_type = 'student'
             LEFT JOIN users use_gen ON m.sender_id = use_gen.id
             LEFT JOIN users ure_gen ON m.recipient_id = ure_gen.id
+            LEFT JOIN clubs cl_s ON m.sender_id = cl_s.user_id
+            LEFT JOIN clubs cl_r ON m.recipient_id = cl_r.user_id
             LEFT JOIN users use ON se.user_id = use.id
             LEFT JOIN users uss ON ss.user_id = uss.id
             LEFT JOIN users ure ON re.user_id = ure.id
@@ -187,7 +192,7 @@ class Message {
         return parseInt(result.rows[0].count);
     }
 
-    // Search users (employees and students) for recipient selection
+    // Search users (employees, students, and clubs) for recipient selection
     static async searchUsers(searchTerm, limit = 20) {
         const searchPattern = `%${searchTerm.toLowerCase()}%`;
 
@@ -220,6 +225,21 @@ class Message {
              WHERE LOWER(s.first_name || ' ' || s.last_name) LIKE $1
                 OR LOWER(u.email) LIKE $1
                 OR LOWER(s.registration_num) LIKE $1
+             LIMIT $2)
+            UNION ALL
+            (SELECT 
+                u.id,
+                'user' as user_type,
+                cl.name as name,
+                u.email,
+                'Club President' as role,
+                d.name as department
+             FROM users u
+             JOIN clubs cl ON u.id = cl.user_id
+             LEFT JOIN roles r ON u.role_id = r.id
+             LEFT JOIN departments d ON cl.department_id = d.id
+             WHERE LOWER(cl.name) LIKE $1
+                OR LOWER(u.email) LIKE $1
              LIMIT $2)
             ORDER BY name
             LIMIT $2
