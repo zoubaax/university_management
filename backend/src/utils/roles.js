@@ -7,6 +7,7 @@ const ROLES = {
     PROFESSOR: 'PROFESSOR',
     STUDENT: 'STUDENT',
     FINANCIER: 'FINANCIER',
+    CAFETERIA_STAFF: 'CAFETERIA_STAFF',
 };
 
 // Map of which role can create which other role/resource
@@ -35,6 +36,9 @@ const PERMISSIONS = {
     },
     [ROLES.FINANCIER]: {
         canManageResources: ['departments', 'specialities'],
+    },
+    [ROLES.CAFETERIA_STAFF]: {
+        canManageResources: ['cafeteria'],
     },
 };
 

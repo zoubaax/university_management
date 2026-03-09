@@ -12,6 +12,7 @@ const storage = multer.diskStorage({
         if (file.fieldname === 'resource') folder = 'public/uploads/resources';
         if (file.fieldname === 'club_logo') folder = 'public/uploads/clubs';
         if (file.fieldname === 'image') folder = 'public/uploads/gallery';
+        if (file.fieldname === 'meal_photo') folder = 'public/uploads/cafeteria';
 
         // Create folder if it doesn't exist
         if (!fs.existsSync(folder)) {

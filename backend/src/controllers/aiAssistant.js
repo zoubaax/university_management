@@ -6,6 +6,9 @@ const Grade = require('../models/Grade');
 const Certificate = require('../models/Certificate');
 const Task = require('../models/Task');
 const Department = require('../models/Department');
+const CafeteriaItem = require('../models/CafeteriaItem');
+const CafeteriaWallet = require('../models/CafeteriaWallet');
+const CafeteriaOrder = require('../models/CafeteriaOrder');
 const { query } = require('../config/db');
 
 // @desc    Chat with AI Assistant
@@ -106,6 +109,26 @@ exports.chatWithAssistant = async (req, res, next) => {
             }
         }
 
+        // 1b. Cafeteria Context (For all users)
+        try {
+            const [availableMeals, userWallet] = await Promise.all([
+                CafeteriaItem.findAll({ is_available: true }),
+                CafeteriaWallet.getByUserId(user.id)
+            ]);
+
+            context += `
+            Cafeteria Context:
+            - Current Balance: ${userWallet.balance} DH.
+            - Available Menu: ${JSON.stringify(availableMeals.map(m => ({ id: m.id, name: m.name, price: m.price, category: m.category })))}
+            
+            Cafeteria Policy:
+            - Users can order food via this chat if they have enough balance.
+            - If they want to order, confirm the item and quantity.
+            `;
+        } catch (cafErr) {
+            console.error('Cafeteria Context Error:', cafErr);
+        }
+
         // 2. Initialize Gemini
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -139,10 +162,13 @@ exports.chatWithAssistant = async (req, res, next) => {
         User Context:
         ${context}
 
-        Capabilities:
         - If the user asks you to remind them of something or create a task (e.g., "Remind me to study", "Add a task for my exam"), you can do it.
         - To create a task, add this EXACT line at the VERY END of your response: [ACTION:CREATE_TASK][TITLE:Task Title][DUE:YYYY-MM-DD]
         - Title should be short. Due date should be a valid date based on the system time. If no date is given, use tomorrow.
+
+        - If the user wants to order food from the cafeteria, and has enough balance, you can do it.
+        - To place an order, add this EXACT line at the VERY END of your response: [ACTION:ORDER_FOOD][ITEM_ID:ItemUUID][QTY:Number]
+        - Confirm the total price in your message. If balance is insufficient, tell them.
 
         Student/User Question:
         "${message}"
@@ -176,6 +202,39 @@ exports.chatWithAssistant = async (req, res, next) => {
                 responseText += `\n\n✅ Done! I've added "${title}" to your tasks list for ${dueDate}.`;
             } catch (taskErr) {
                 console.error('Task Action Error:', taskErr);
+            }
+        }
+
+        if (responseText.includes('[ACTION:ORDER_FOOD]')) {
+            try {
+                const idMatch = responseText.match(/\[ITEM_ID:(.*?)\]/);
+                const qtyMatch = responseText.match(/\[QTY:(.*?)\]/);
+
+                const itemId = idMatch ? idMatch[1] : null;
+                const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+
+                if (itemId) {
+                    const item = await CafeteriaItem.findById(itemId);
+                    if (item) {
+                        const total = parseFloat(item.price) * qty;
+
+                        // Deduct and Create Order
+                        await CafeteriaWallet.deduct(user.id, total);
+                        const order = await CafeteriaOrder.create({
+                            user_id: user.id,
+                            items: [{ item_id: item.id, quantity: qty, unit_price: item.price, subtotal: total }],
+                            total_amount: total,
+                            status: 'PENDING'
+                        });
+
+                        responseText = responseText.replace(/\[ACTION:.*?\]|\[ITEM_ID:.*?\]|\[QTY:.*?\]/g, '').trim();
+                        responseText += `\n\n✅ Order Placed! I've deducted ${total} DH from your cafeteria wallet. I'll notify you when it's ready.`;
+                    }
+                }
+            } catch (orderErr) {
+                console.error('AI Order Error:', orderErr);
+                responseText = responseText.replace(/\[ACTION:.*?\]|\[ITEM_ID:.*?\]|\[QTY:.*?\]/g, '').trim();
+                responseText += `\n\n❌ Sorry, I couldn't place your order: ${orderErr.message}`;
             }
         }
 

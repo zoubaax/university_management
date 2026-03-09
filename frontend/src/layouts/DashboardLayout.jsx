@@ -27,7 +27,10 @@ import {
     CheckCircle2,
     Rocket,
     Percent,
-    History
+    History,
+    Coffee,
+    Utensils,
+    Wallet
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -147,6 +150,13 @@ const DashboardLayout = () => {
             items: [
                 { name: 'Clubs & Societies', icon: Users, path: '/clubs', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER', 'CLUB_PRESIDENT'], permissions: ['manage_clubs'] },
                 { name: 'My Club', icon: ShieldCheck, path: '/my-club', roles: ['CLUB_PRESIDENT', 'SUPER_ADMIN'], permissions: ['manage_clubs'] },
+            ]
+        },
+        {
+            category: 'Smart Campus',
+            items: [
+                { name: 'Cafeteria', icon: Coffee, path: '/cafeteria', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER'] },
+                { name: 'Cafeteria Management', icon: Utensils, path: '/cafeteria-management', roles: ['SUPER_ADMIN', 'CAFETERIA_STAFF'], permissions: ['manage_cafeteria'] },
             ]
         },
     ];

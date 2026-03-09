@@ -30,6 +30,8 @@ import PayrollPage from './pages/PayrollPage';
 import StudyHistoryPage from './pages/StudyHistoryPage';
 import ClubsPage from './pages/ClubsPage';
 import ClubManagementPage from './pages/ClubManagementPage';
+import CafeteriaPage from './pages/CafeteriaPage';
+import CafeteriaManagementPage from './pages/CafeteriaManagementPage';
 
 const App = () => {
   return (
@@ -262,6 +264,28 @@ const App = () => {
                   allowedPermissions={['manage_clubs']}
                 >
                   <ClubManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Cafeteria Routes */}
+            <Route
+              path="cafeteria"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER']}
+                >
+                  <CafeteriaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="cafeteria-management"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['SUPER_ADMIN', 'CAFETERIA_STAFF', 'DIRECTOR_DEPARTMENT']}
+                  allowedPermissions={['manage_cafeteria']}
+                >
+                  <CafeteriaManagementPage />
                 </ProtectedRoute>
               }
             />

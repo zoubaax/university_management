@@ -26,7 +26,8 @@ exports.checkResourcePermission = (resource) => {
             'modules': 'manage_modules',
             'rooms': 'manage_rooms',
             'schedules': 'manage_schedules',
-            'grades': 'manage_grades'
+            'grades': 'manage_grades',
+            'cafeteria': 'manage_cafeteria'
         };
 
         const requiredPermission = resourceToPermission[resource];
