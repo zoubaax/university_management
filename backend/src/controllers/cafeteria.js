@@ -5,6 +5,9 @@ const CafeteriaWallet = require('../models/CafeteriaWallet');
 const CafeteriaOrder = require('../models/CafeteriaOrder');
 const Notification = require('../models/Notification');
 
+const User = require('../models/User');
+const { query } = require('../config/db');
+
 // Initialize tables in dev
 if (process.env.NODE_ENV === 'development') {
     CafeteriaItem.initTable();
@@ -133,6 +136,8 @@ exports.getOrders = asyncHandler(async (req, res, next) => {
     }
 
     if (req.query.status) filters.status = req.query.status;
+    if (req.query.limit) filters.limit = req.query.limit;
+    if (req.query.offset) filters.offset = req.query.offset;
 
     const orders = await CafeteriaOrder.findAll(filters);
     res.status(200).json({ success: true, data: orders });
@@ -153,7 +158,7 @@ exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
             user_id: order.user_id,
             title: '🍔 Order Ready!',
             message: `Your cafeteria order #${order.id.slice(-4)} is ready for pickup. Bon appétit!`,
-            type: 'CAFETERIA',
+            type: 'announcement',
             priority: 'HIGH'
         });
     }
@@ -161,11 +166,40 @@ exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
     res.status(200).json({ success: true, data: order });
 });
 
-// @desc    Recharge user wallet (Admin only)
+// @desc    Recharge user wallet (Staff/Financier/Admin)
 // @route   POST /api/v1/cafeteria/wallets/:userId/recharge
-// @access  Private/Admin
+// @access  Private/Staff
 exports.rechargeWallet = asyncHandler(async (req, res, next) => {
     const { amount } = req.body;
     const wallet = await CafeteriaWallet.recharge(req.params.userId, amount);
     res.status(200).json({ success: true, data: wallet });
+});
+
+// @desc    Search for users to recharge (Staff only)
+// @route   GET /api/v1/cafeteria/users/search
+// @access  Private/Staff
+exports.searchUsers = asyncHandler(async (req, res, next) => {
+    const { query: searchQuery } = req.query;
+    if (!searchQuery) return next(new ErrorResponse('Search query is required', 400));
+
+    const result = await query(`
+        SELECT u.id, u.email, 
+               COALESCE(e.first_name, s.first_name) as first_name,
+               COALESCE(e.last_name, s.last_name) as last_name,
+               r.name as role_name,
+               w.balance
+        FROM users u
+        LEFT JOIN employees e ON u.id = e.user_id
+        LEFT JOIN students s ON u.id = s.user_id
+        JOIN roles r ON u.role_id = r.id
+        LEFT JOIN cafeteria_wallets w ON u.id = w.user_id
+        WHERE u.email ILIKE $1 
+           OR COALESCE(e.first_name, '') ILIKE $1
+           OR COALESCE(s.first_name, '') ILIKE $1
+           OR COALESCE(e.last_name, '') ILIKE $1
+           OR COALESCE(s.last_name, '') ILIKE $1
+        LIMIT 10
+    `, [`%${searchQuery}%`]);
+
+    res.status(200).json({ success: true, data: result.rows });
 });

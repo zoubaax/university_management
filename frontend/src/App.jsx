@@ -279,15 +279,19 @@ const App = () => {
               }
             />
             <Route
-              path="cafeteria-management"
+              path="cafeteria-management/:view"
               element={
                 <ProtectedRoute
-                  allowedRoles={['SUPER_ADMIN', 'CAFETERIA_STAFF', 'DIRECTOR_DEPARTMENT']}
-                  allowedPermissions={['manage_cafeteria']}
+                  allowedRoles={['SUPER_ADMIN', 'CAFETERIA_STAFF']}
                 >
                   <CafeteriaManagementPage />
                 </ProtectedRoute>
               }
+            />
+            {/* Fallback for management */}
+            <Route
+              path="cafeteria-management"
+              element={<Navigate to="/cafeteria-management/orders" replace />}
             />
             <Route path="tasks" element={<TaskCenterPage />} />
             <Route path="messages" element={<MessagesPage />} />

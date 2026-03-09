@@ -30,7 +30,8 @@ import {
     History,
     Coffee,
     Utensils,
-    Wallet
+    Wallet,
+    Flame
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -156,7 +157,9 @@ const DashboardLayout = () => {
             category: 'Smart Campus',
             items: [
                 { name: 'Cafeteria', icon: Coffee, path: '/cafeteria', roles: ['STUDENT', 'PROFESSOR', 'RH', 'SUPER_ADMIN', 'RESPONSABLE_DEPARTMENT', 'DIRECTOR_DEPARTMENT', 'SECRETARY', 'FINANCIER'] },
-                { name: 'Cafeteria Management', icon: Utensils, path: '/cafeteria-management', roles: ['SUPER_ADMIN', 'CAFETERIA_STAFF'], permissions: ['manage_cafeteria'] },
+                { name: 'Live Orders', icon: Flame, path: '/cafeteria-management/orders', roles: ['SUPER_ADMIN', 'CAFETERIA_STAFF'] },
+                { name: 'Menu Editor', icon: Utensils, path: '/cafeteria-management/menu', roles: ['SUPER_ADMIN', 'CAFETERIA_STAFF'] },
+                { name: 'Student Wallets', icon: Wallet, path: '/cafeteria-management/wallets', roles: ['SUPER_ADMIN', 'CAFETERIA_STAFF'] },
             ]
         },
     ];

@@ -47,6 +47,16 @@ const cafeteriaService = {
     updateOrderStatus: async (id, status) => {
         const response = await api.patch(`/cafeteria/orders/${id}/status`, { status });
         return response.data;
+    },
+
+    rechargeWallet: async (userId, amount) => {
+        const response = await api.post(`/cafeteria/wallets/${userId}/recharge`, { amount });
+        return response.data;
+    },
+
+    searchUsers: async (query) => {
+        const response = await api.get('/cafeteria/users/search', { params: { query } });
+        return response.data;
     }
 };
 

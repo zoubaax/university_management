@@ -51,19 +51,29 @@ class CafeteriaOrder {
 
         if (status) {
             if (Array.isArray(status)) {
-                queryStr += ` AND status IN (${status.map((_, i) => `$${params.length + i + 1}`).join(', ')})`;
+                queryStr += ` AND o.status IN (${status.map((_, i) => `$${params.length + i + 1}`).join(', ')})`;
                 params.push(...status);
             } else {
                 params.push(status);
-                queryStr += ` AND status = $${params.length}`;
+                queryStr += ` AND o.status = $${params.length}`;
             }
         }
         if (user_id) {
             params.push(user_id);
-            queryStr += ` AND user_id = $${params.length}`;
+            queryStr += ` AND o.user_id = $${params.length}`;
         }
 
         queryStr += ' ORDER BY o.created_at DESC';
+
+        if (filters.limit) {
+            params.push(parseInt(filters.limit));
+            queryStr += ` LIMIT $${params.length}`;
+        }
+
+        if (filters.offset) {
+            params.push(parseInt(filters.offset));
+            queryStr += ` OFFSET $${params.length}`;
+        }
 
         const result = await query(queryStr, params);
         return result.rows;

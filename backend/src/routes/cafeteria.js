@@ -9,7 +9,9 @@ const {
     getWallet,
     placeOrder,
     getOrders,
-    updateOrderStatus
+    updateOrderStatus,
+    rechargeWallet,
+    searchUsers
 } = require('../controllers/cafeteria');
 
 const { protect, authorize } = require('../middlewares/auth');
@@ -27,7 +29,8 @@ router.delete('/items/:id', authorize('SUPER_ADMIN', 'CAFETERIA_STAFF'), deleteI
 
 // Wallet & Ordering
 router.get('/wallet', getWallet);
-router.post('/wallets/:userId/recharge', authorize('SUPER_ADMIN', 'FINANCIER'), require('../controllers/cafeteria').rechargeWallet);
+router.post('/wallets/:userId/recharge', authorize('SUPER_ADMIN', 'FINANCIER', 'CAFETERIA_STAFF'), rechargeWallet);
+router.get('/users/search', authorize('SUPER_ADMIN', 'CAFETERIA_STAFF'), searchUsers);
 router.post('/orders', placeOrder);
 router.get('/orders', getOrders);
 
