@@ -1,41 +1,58 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, RefreshControl, ScrollView } from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { Wallet, LogOut, User as UserIcon } from 'lucide-react-native';
 
 export default function HomeScreen() {
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        await refreshUser();
+        setRefreshing(false);
+    }, [refreshUser]);
+
+    useEffect(() => {
+        refreshUser();
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.greeting}>Hello,</Text>
-                    <Text style={styles.name}>{user?.first_name || 'Student'}</Text>
+            <ScrollView
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#111827" />
+                }
+            >
+                <View style={styles.header}>
+                    <View>
+                        <Text style={styles.greeting}>Hello,</Text>
+                        <Text style={styles.name}>{user?.first_name || 'Student'}</Text>
+                    </View>
+                    <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+                        <LogOut size={20} color="#EF4444" />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-                    <LogOut size={20} color="#EF4444" />
-                </TouchableOpacity>
-            </View>
 
-            <View style={styles.walletCard}>
-                <View style={styles.walletHeader}>
-                    <Wallet size={24} color="#FFFFFF" />
-                    <Text style={styles.walletTitle}>Cafeteria Wallet</Text>
+                <View style={styles.walletCard}>
+                    <View style={styles.walletHeader}>
+                        <Wallet size={24} color="#FFFFFF" />
+                        <Text style={styles.walletTitle}>Cafeteria Wallet</Text>
+                    </View>
+                    <Text style={styles.balance}>
+                        {parseFloat(user?.balance || 0).toFixed(2)} <Text style={styles.currency}>DH</Text>
+                    </Text>
+                    <Text style={styles.infoText}>Ready to use at the cafeteria</Text>
                 </View>
-                <Text style={styles.balance}>
-                    {parseFloat(user?.balance || 0).toFixed(2)} <Text style={styles.currency}>DH</Text>
-                </Text>
-                <Text style={styles.infoText}>Ready to use at the cafeteria</Text>
-            </View>
 
-            <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                    <UserIcon size={24} color="#6B7280" />
-                    <Text style={styles.statLabel}>Role</Text>
-                    <Text style={styles.statValue}>{user?.role_name}</Text>
+                <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                        <UserIcon size={24} color="#6B7280" />
+                        <Text style={styles.statLabel}>Role</Text>
+                        <Text style={styles.statValue}>{user?.role_name}</Text>
+                    </View>
                 </View>
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }

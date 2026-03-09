@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Utensils, User } from 'lucide-react-native';
+import { Home, Utensils, ShoppingBag } from 'lucide-react-native';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export default function TabLayout() {
@@ -28,6 +28,13 @@ export default function TabLayout() {
                 options={{
                     title: 'Menu',
                     tabBarIcon: ({ color }) => <Utensils size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="orders"
+                options={{
+                    title: 'Orders',
+                    tabBarIcon: ({ color }) => <ShoppingBag size={24} color={color} />,
                 }}
             />
         </Tabs>

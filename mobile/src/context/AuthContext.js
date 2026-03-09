@@ -20,12 +20,28 @@ export const AuthProvider = ({ children }) => {
 
             if (authDataSerialized && userDataSerialized) {
                 setUser(JSON.parse(userDataSerialized));
+                // Refresh user data (balance, etc.) in background
+                refreshUser();
             }
         } catch (error) {
         } finally {
             setLoading(false);
         }
     }
+
+    const refreshUser = async () => {
+        try {
+            const response = await api.get('/auth/me');
+            const userData = response.data.data;
+            await SecureStore.setItemAsync('userData', JSON.stringify(userData));
+            setUser(userData);
+        } catch (error) {
+            console.error('Failed to refresh user data:', error);
+            if (error.response?.status === 401) {
+                logout();
+            }
+        }
+    };
 
     const login = async (email, password) => {
         try {
@@ -52,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

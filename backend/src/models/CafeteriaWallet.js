@@ -17,11 +17,12 @@ class CafeteriaWallet {
 
     static async recharge(userId, amount) {
         const result = await query(
-            `UPDATE cafeteria_wallets 
-             SET balance = balance + $1, 
-                 last_recharge_at = CURRENT_TIMESTAMP,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE user_id = $2
+            `INSERT INTO cafeteria_wallets (user_id, balance, last_recharge_at, updated_at)
+             VALUES ($2, $1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             ON CONFLICT (user_id) DO UPDATE SET 
+                balance = cafeteria_wallets.balance + $1,
+                last_recharge_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
              RETURNING *`,
             [amount, userId]
         );
