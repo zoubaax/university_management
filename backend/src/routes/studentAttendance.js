@@ -2,7 +2,8 @@ const express = require('express');
 const {
     getSessionAttendance,
     recordSessionAttendance,
-    getStudentAttendance, // Not used but keep if needed
+    getStudentAttendance,
+    getMyAttendance,
     getClassWeeklyReport,
     getAttendanceList
 } = require('../controllers/studentAttendance');
@@ -12,6 +13,7 @@ const router = express.Router();
 const { protect, authorize } = require('../middlewares/auth');
 
 router.use(protect);
+router.get('/my-absences', authorize('STUDENT'), getMyAttendance);
 
 router
     .route('/')

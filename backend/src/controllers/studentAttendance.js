@@ -224,3 +224,23 @@ exports.getAttendanceList = async (req, res) => {
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
+
+// @desc    Get attendance history for the logged-in student
+// @route   GET /api/v1/student-attendance/my-absences
+// @access  Private (Student)
+exports.getMyAttendance = async (req, res) => {
+    try {
+        if (!req.user.student_id) {
+            return res.status(400).json({ success: false, error: 'Only students can check their personal attendance' });
+        }
+        const attendances = await StudentAttendance.findByStudent(req.user.student_id);
+        res.status(200).json({
+            success: true,
+            count: attendances.length,
+            data: attendances
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};

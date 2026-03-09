@@ -1,21 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import {
-    StyleSheet,
-    View,
-    Text,
-    FlatList,
-    TouchableOpacity,
-    Image,
-    SafeAreaView,
-    ActivityIndicator,
-    TextInput,
-    ScrollView,
-    Modal,
-    Alert
-} from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Image, SafeAreaView, ActivityIndicator, TextInput, ScrollView, Modal, Alert } from 'react-native';
 import { Search, ShoppingBag, Plus, Minus, Coffee, Flame, Star, Utensils, X, Wallet, CheckCircle2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import api from '../../src/api/api';
+import { useMenu, useOrders } from '../../src/hooks/useCafeteria';
 import { useAuth } from '../../src/context/AuthContext';
 
 const CATEGORIES = [
@@ -27,32 +14,16 @@ const CATEGORIES = [
 ];
 
 export default function ExploreScreen() {
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [cart, setCart] = useState({});
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
     const { user, refreshUser } = useAuth();
+    const { items, filteredItems, loading } = useMenu(activeCategory);
+    const { placeOrder } = useOrders();
     const router = useRouter();
-
-    useEffect(() => {
-        fetchItems();
-        refreshUser();
-    }, []);
-
-    const fetchItems = async () => {
-        try {
-            setLoading(true);
-            const response = await api.get('/cafeteria/items?is_available=true');
-            setItems(response.data.data);
-        } catch (error) {
-            console.error('Failed to fetch items:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleCheckout = async () => {
         if (totalPrice > parseFloat(user?.balance || 0)) {
@@ -72,7 +43,7 @@ export default function ExploreScreen() {
                 };
             });
 
-            await api.post('/cafeteria/orders', {
+            await placeOrder({
                 items: orderItems,
                 total_amount: totalPrice,
                 notes: ''
@@ -80,7 +51,7 @@ export default function ExploreScreen() {
 
             Alert.alert(
                 'Order Success!',
-                'Your order has been placed successfully. You can track its status in the Orders tab.',
+                'Your order has been placed successfully.',
                 [{
                     text: 'Great!', onPress: () => {
                         setCart({});
@@ -116,11 +87,9 @@ export default function ExploreScreen() {
         return `${baseUrl}${url}`;
     };
 
-    const filteredItems = items.filter(item => {
-        const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
+    const finalFilteredItems = filteredItems.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const cartCount = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
     const totalPrice = Object.entries(cart).reduce((sum, [id, qty]) => {
@@ -142,19 +111,13 @@ export default function ExploreScreen() {
                     <View style={styles.quantityControls}>
                         {cart[item.id] > 0 && (
                             <>
-                                <TouchableOpacity
-                                    onPress={() => updateCart(item.id, -1)}
-                                    style={styles.qtyBtn}
-                                >
+                                <TouchableOpacity onPress={() => updateCart(item.id, -1)} style={styles.qtyBtn}>
                                     <Minus size={16} color="#4B5563" />
                                 </TouchableOpacity>
                                 <Text style={styles.qtyText}>{cart[item.id]}</Text>
                             </>
                         )}
-                        <TouchableOpacity
-                            onPress={() => updateCart(item.id, 1)}
-                            style={styles.qtyBtnPrimary}
-                        >
+                        <TouchableOpacity onPress={() => updateCart(item.id, 1)} style={styles.qtyBtnPrimary}>
                             <Plus size={16} color="#FFFFFF" />
                         </TouchableOpacity>
                     </View>
@@ -192,29 +155,20 @@ export default function ExploreScreen() {
                             onPress={() => setActiveCategory(cat.id)}
                         >
                             <cat.icon size={16} color={activeCategory === cat.id ? '#FFFFFF' : '#6B7280'} />
-                            <Text style={[styles.categoryText, activeCategory === cat.id && styles.categoryTextActive]}>
-                                {cat.label}
-                            </Text>
+                            <Text style={[styles.categoryText, activeCategory === cat.id && styles.categoryTextActive]}>{cat.label}</Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
             </View>
 
             {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#111827" />
-                </View>
+                <View style={styles.center}><ActivityIndicator size="large" color="#111827" /></View>
             ) : (
                 <FlatList
-                    data={filteredItems}
+                    data={finalFilteredItems}
                     renderItem={renderItem}
                     keyExtractor={item => item.id}
                     contentContainerStyle={styles.listContainer}
-                    ListEmptyComponent={
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyText}>No items found in this category.</Text>
-                        </View>
-                    }
                 />
             )}
 
@@ -224,22 +178,13 @@ export default function ExploreScreen() {
                         <Text style={styles.checkoutTotalLabel}>Total Amount</Text>
                         <Text style={styles.checkoutTotalPrice}>{totalPrice.toFixed(2)} DH</Text>
                     </View>
-                    <TouchableOpacity
-                        style={styles.checkoutButton}
-                        onPress={() => setIsCheckoutModalOpen(true)}
-                    >
+                    <TouchableOpacity style={styles.checkoutButton} onPress={() => setIsCheckoutModalOpen(true)}>
                         <Text style={styles.checkoutButtonText}>View Order</Text>
                     </TouchableOpacity>
                 </View>
             )}
 
-            {/* Checkout Confirmation Modal */}
-            <Modal
-                visible={isCheckoutModalOpen}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setIsCheckoutModalOpen(false)}
-            >
+            <Modal visible={isCheckoutModalOpen} animationType="slide" transparent={true}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
@@ -268,28 +213,18 @@ export default function ExploreScreen() {
                         <View style={styles.modalFooter}>
                             <View style={styles.walletStatus}>
                                 <Wallet size={16} color="#6B7280" />
-                                <Text style={styles.walletText}>
-                                    Your Balance: {parseFloat(user?.balance || 0).toFixed(2)} DH
-                                </Text>
+                                <Text style={styles.walletText}>Your Balance: {parseFloat(user?.balance || 0).toFixed(2)} DH</Text>
                             </View>
-
                             <View style={styles.modalTotalRow}>
                                 <Text style={styles.modalTotalLabel}>Total Amount</Text>
                                 <Text style={styles.modalTotalPrice}>{totalPrice.toFixed(2)} DH</Text>
                             </View>
-
                             <TouchableOpacity
-                                style={[
-                                    styles.confirmButton,
-                                    isPlacingOrder && styles.confirmButtonDisabled,
-                                    totalPrice > parseFloat(user?.balance || 0) && styles.confirmButtonError
-                                ]}
+                                style={[styles.confirmButton, totalPrice > parseFloat(user?.balance || 0) && styles.confirmButtonError]}
                                 onPress={handleCheckout}
                                 disabled={isPlacingOrder}
                             >
-                                {isPlacingOrder ? (
-                                    <ActivityIndicator color="#FFFFFF" />
-                                ) : (
+                                {isPlacingOrder ? <ActivityIndicator color="#FFFFFF" /> : (
                                     <>
                                         <CheckCircle2 size={20} color="#FFFFFF" />
                                         <Text style={styles.confirmButtonText}>
@@ -307,322 +242,54 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F9FAFB',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 24,
-        paddingTop: 40,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: '#111827',
-    },
-    cartButton: {
-        padding: 8,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        position: 'relative',
-    },
-    cartBadge: {
-        position: 'absolute',
-        top: -5,
-        right: -5,
-        backgroundColor: '#EF4444',
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cartBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 24,
-        paddingHorizontal: 16,
-        height: 48,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        marginBottom: 16,
-    },
-    searchInput: {
-        flex: 1,
-        marginLeft: 10,
-        fontSize: 14,
-        color: '#111827',
-    },
-    categoryScroll: {
-        paddingHorizontal: 24,
-        gap: 8,
-        alignItems: 'center',
-    },
-    categoryBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    categoryBtnActive: {
-        backgroundColor: '#111827',
-        borderColor: '#111827',
-    },
-    categoryText: {
-        fontSize: 14,
-        color: '#6B7280',
-        fontWeight: '600',
-    },
-    categoryTextActive: {
-        color: '#FFFFFF',
-    },
-    listContainer: {
-        paddingHorizontal: 24,
-        paddingBottom: 100,
-    },
-    itemCard: {
-        flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 12,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    itemImage: {
-        width: 90,
-        height: 90,
-        borderRadius: 16,
-        backgroundColor: '#F3F4F6',
-    },
-    itemInfo: {
-        flex: 1,
-        marginLeft: 16,
-        justifyContent: 'space-between',
-    },
-    itemName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    itemDescription: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginTop: 2,
-    },
-    priceRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 8,
-    },
-    itemPrice: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#111827',
-    },
-    quantityControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    qtyBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-    },
-    qtyBtnPrimary: {
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#111827',
-    },
-    qtyText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    checkoutBar: {
-        position: 'absolute',
-        bottom: 24,
-        left: 24,
-        right: 24,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 16,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 8,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    checkoutTotalLabel: {
-        fontSize: 12,
-        color: '#6B7280',
-    },
-    checkoutTotalPrice: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#111827',
-    },
-    checkoutButton: {
-        backgroundColor: '#111827',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 12,
-    },
-    checkoutButtonText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyState: {
-        marginTop: 40,
-        alignItems: 'center',
-    },
-    emptyText: {
-        color: '#9CA3AF',
-        fontSize: 14,
-    },
-    // Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        padding: 24,
-        maxHeight: '80%',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: '#111827',
-    },
-    modalOrderList: {
-        marginBottom: 24,
-    },
-    modalOrderItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-    },
-    modalItemInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    modalItemName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-    },
-    modalItemQty: {
-        fontSize: 14,
-        color: '#6B7280',
-        fontWeight: '700',
-    },
-    modalItemPrice: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    modalFooter: {
-        gap: 16,
-    },
-    walletStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#F9FAFB',
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    walletText: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '600',
-    },
-    modalTotalRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    modalTotalLabel: {
-        fontSize: 16,
-        color: '#6B7280',
-        fontWeight: '600',
-    },
-    modalTotalPrice: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#111827',
-    },
-    confirmButton: {
-        backgroundColor: '#111827',
-        height: 60,
-        borderRadius: 16,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 10,
-    },
-    confirmButtonDisabled: {
-        opacity: 0.7,
-    },
-    confirmButtonError: {
-        backgroundColor: '#EF4444',
-    },
-    confirmButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: '800',
-    },
+    container: { flex: 1, backgroundColor: '#F9FAFB' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, paddingTop: 40 },
+    headerTitle: { fontSize: 24, fontWeight: '800', color: '#111827' },
+    cartButton: { padding: 8, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', position: 'relative' },
+    cartBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#EF4444', width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+    cartBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', marginHorizontal: 24, paddingHorizontal: 16, height: 48, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 16 },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#111827' },
+    categoryScroll: { paddingHorizontal: 24, gap: 8, alignItems: 'center' },
+    categoryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+    categoryBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
+    categoryText: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
+    categoryTextActive: { color: '#FFFFFF' },
+    listContainer: { paddingHorizontal: 24, paddingBottom: 100 },
+    itemCard: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+    itemImage: { width: 90, height: 90, borderRadius: 16, backgroundColor: '#F3F4F6' },
+    itemInfo: { flex: 1, marginLeft: 16, justifyContent: 'space-between' },
+    itemName: { fontSize: 16, fontWeight: '700', color: '#111827' },
+    itemDescription: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+    priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+    itemPrice: { fontSize: 16, fontWeight: '800', color: '#111827' },
+    quantityControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    qtyBtn: { width: 32, height: 32, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
+    qtyBtnPrimary: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111827' },
+    qtyText: { fontSize: 16, fontWeight: '700', color: '#111827' },
+    checkoutBar: { position: 'absolute', bottom: 24, left: 24, right: 24, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 8, borderWidth: 1, borderColor: '#E5E7EB' },
+    checkoutTotalLabel: { fontSize: 12, color: '#6B7280' },
+    checkoutTotalPrice: { fontSize: 18, fontWeight: '800', color: '#111827' },
+    checkoutButton: { backgroundColor: '#111827', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+    checkoutButtonText: { color: '#FFFFFF', fontWeight: '700' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+    modalOrderList: { marginBottom: 24 },
+    modalOrderItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+    modalItemInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    modalItemName: { fontSize: 16, fontWeight: '600', color: '#111827' },
+    modalItemQty: { fontSize: 14, color: '#6B7280', fontWeight: '700' },
+    modalItemPrice: { fontSize: 16, fontWeight: '700', color: '#111827' },
+    modalFooter: { gap: 16 },
+    walletStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F9FAFB', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' },
+    walletText: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+    modalTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    modalTotalLabel: { fontSize: 16, color: '#6B7280', fontWeight: '600' },
+    modalTotalPrice: { fontSize: 24, fontWeight: '900', color: '#111827' },
+    confirmButton: { backgroundColor: '#111827', height: 60, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+    confirmButtonError: { backgroundColor: '#EF4444' },
+    confirmButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
 });
