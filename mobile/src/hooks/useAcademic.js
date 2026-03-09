@@ -28,9 +28,23 @@ export const useSchedules = () => {
     }, [user?.class_id]);
 
     const getDailySchedule = (dayIndex) => {
-        const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const dayName = days[dayIndex];
-        return schedules.filter(s => s.day_of_week === dayName).sort((a, b) => a.start_time.localeCompare(b.start_time));
+        return schedules
+            .filter(s => s.day_of_week === dayName)
+            .map(s => ({
+                ...s,
+                professor_name: s.professor_name || (s.professor_first_name ? `${s.professor_first_name} ${s.professor_last_name}` : 'Professor')
+            }))
+            .sort((a, b) => {
+                // If specific times exist, use them
+                if (a.start_time && b.start_time) {
+                    return a.start_time.localeCompare(b.start_time);
+                }
+                // Otherwise sort by slot_type (MORNING < AFTERNOON)
+                const slotOrder = { 'MORNING': 1, 'AFTERNOON': 2 };
+                return (slotOrder[a.slot_type] || 3) - (slotOrder[b.slot_type] || 3);
+            });
     };
 
     return { schedules, loading, getDailySchedule, refresh: fetchSchedules };

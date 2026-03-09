@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView } from 'react-native';
 import { useSchedules } from '../../src/hooks/useAcademic';
-import { Clock, Book, User as UserIcon, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Clock, Book, User as UserIcon, MapPin, ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
 
 const DAYS = [
     { label: 'Mon', full: 'MONDAY' },
@@ -22,7 +22,10 @@ export default function ScheduleScreen() {
         <View style={styles.scheduleCard}>
             <View style={styles.timeSection}>
                 <Clock size={16} color="#6B7280" />
-                <Text style={styles.timeText}>{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</Text>
+                <Text style={styles.timeText}>
+                    {item.start_time ? `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}` :
+                        item.slot_type === 'MORNING' ? '08:30 - 12:00' : '14:30 - 18:00'}
+                </Text>
             </View>
             <View style={styles.courseInfo}>
                 <Text style={styles.courseName}>{item.module_name}</Text>
