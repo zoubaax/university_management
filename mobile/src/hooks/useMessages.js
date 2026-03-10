@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/api';
+import { useAuth } from '../context/AuthContext';
 
 export const useMessages = () => {
     const [inbox, setInbox] = useState([]);
@@ -7,6 +8,7 @@ export const useMessages = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { user } = useAuth();
 
     const fetchMessages = useCallback(async () => {
         try {
@@ -29,8 +31,10 @@ export const useMessages = () => {
     }, []);
 
     useEffect(() => {
-        fetchMessages();
-    }, [fetchMessages]);
+        if (user) {
+            fetchMessages();
+        }
+    }, [user, fetchMessages]);
 
     const sendMessage = async (messageData) => {
         try {
