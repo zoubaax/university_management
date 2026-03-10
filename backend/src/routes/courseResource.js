@@ -1,6 +1,7 @@
 const express = require('express');
 const {
     getClassResources,
+    getMyResources,
     getProfessorResources,
     createResource,
     updateResource,
@@ -13,6 +14,8 @@ const { protect, authorize } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
 
 router.use(protect);
+
+router.get('/my-resources', authorize('STUDENT'), getMyResources);
 
 router
     .route('/')

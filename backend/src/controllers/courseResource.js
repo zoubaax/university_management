@@ -16,6 +16,32 @@ exports.getClassResources = async (req, res, next) => {
     }
 };
 
+// @desc    Get resources for current student's class
+// @route   GET /api/v1/course-resources/my-resources
+exports.getMyResources = async (req, res, next) => {
+    try {
+        if (!req.user.student_id) {
+            return next(new ErrorResponse('This route is only for students', 403));
+        }
+
+        const { query } = require('../config/db');
+        const studentResult = await query('SELECT class_id FROM students WHERE user_id = $1', [req.user.id]);
+
+        if (studentResult.rows.length === 0 || !studentResult.rows[0].class_id) {
+            return next(new ErrorResponse('Student not enrolled in a class', 404));
+        }
+
+        const resources = await CourseResource.findByClass(studentResult.rows[0].class_id);
+        res.status(200).json({
+            success: true,
+            count: resources.length,
+            data: resources
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // @desc    Get resources uploaded by professor
 // @route   GET /api/v1/course-resources/professor/:professorId
 exports.getProfessorResources = async (req, res, next) => {

@@ -96,3 +96,39 @@ export const useGrades = () => {
 
     return { grades, groupedGrades, loading, refresh: fetchGrades };
 };
+
+/**
+ * Hook to manage course materials (PDF, Slides, etc)
+ */
+export const useCourseMaterials = () => {
+    const [materials, setMaterials] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
+
+    const fetchMaterials = async () => {
+        if (!user) return;
+        try {
+            setLoading(true);
+            const response = await api.get('/course-resources/my-resources');
+            setMaterials(response.data.data || []);
+        } catch (error) {
+            console.error('Failed to fetch materials:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMaterials();
+    }, [user]);
+
+    // Group materials by category or module
+    const groupedMaterials = materials.reduce((acc, resource) => {
+        const category = resource.type || 'COURSE';
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(resource);
+        return acc;
+    }, {});
+
+    return { materials, groupedMaterials, loading, refresh: fetchMaterials };
+};
