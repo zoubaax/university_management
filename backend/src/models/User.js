@@ -6,11 +6,14 @@ class User {
     static async findByEmail(email) {
         const result = await query(
             `SELECT u.id, u.email, u.role_id, u.department_id, u.is_active, u.created_at, r.name as role_name, r.permissions,
-                    e.id as employee_id, s.id as student_id, s.class_id, COALESCE(w.balance, 0.00) as balance
+                    e.id as employee_id, s.id as student_id, s.class_id, COALESCE(w.balance, 0.00) as balance,
+                    d.name as department_name, c.name as class_name
         FROM users u 
         JOIN roles r ON u.role_id = r.id 
+        LEFT JOIN departments d ON u.department_id = d.id
         LEFT JOIN employees e ON u.id = e.user_id
         LEFT JOIN students s ON u.id = s.user_id
+        LEFT JOIN classes c ON s.class_id = c.id
         LEFT JOIN cafeteria_wallets w ON u.id = w.user_id
         WHERE u.email = $1 AND u.deleted_at IS NULL`,
             [email]
@@ -21,11 +24,14 @@ class User {
     static async findWithPassword(email) {
         const result = await query(
             `SELECT u.id, u.email, u.department_id, u.is_active, u.password_hash, r.name as role_name, r.permissions,
-                    e.id as employee_id, s.id as student_id, s.class_id, COALESCE(w.balance, 0.00) as balance
+                    e.id as employee_id, s.id as student_id, s.class_id, COALESCE(w.balance, 0.00) as balance,
+                    d.name as department_name, c.name as class_name
         FROM users u 
         JOIN roles r ON u.role_id = r.id 
+        LEFT JOIN departments d ON u.department_id = d.id
         LEFT JOIN employees e ON u.id = e.user_id
         LEFT JOIN students s ON u.id = s.user_id
+        LEFT JOIN classes c ON s.class_id = c.id
         LEFT JOIN cafeteria_wallets w ON u.id = w.user_id
         WHERE u.email = $1 AND u.deleted_at IS NULL`,
             [email]
@@ -38,11 +44,14 @@ class User {
             `SELECT u.id, u.email, u.role_id, u.department_id, u.is_active, u.created_at, r.name as role_name, r.permissions,
                     e.id as employee_id, s.id as student_id, s.class_id, COALESCE(w.balance, 0.00) as balance,
                     COALESCE(e.first_name, s.first_name) as first_name,
-                    COALESCE(e.last_name, s.last_name) as last_name
+                    COALESCE(e.last_name, s.last_name) as last_name,
+                    d.name as department_name, c.name as class_name
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
+       LEFT JOIN departments d ON u.department_id = d.id
        LEFT JOIN employees e ON u.id = e.user_id
        LEFT JOIN students s ON u.id = s.user_id
+       LEFT JOIN classes c ON s.class_id = c.id
        LEFT JOIN cafeteria_wallets w ON u.id = w.user_id
        WHERE u.id = $1 AND u.deleted_at IS NULL`,
             [id]

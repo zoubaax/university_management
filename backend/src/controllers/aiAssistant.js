@@ -178,6 +178,8 @@ exports.chatWithAssistant = async (req, res, next) => {
         let responseText = result.response.text();
 
         // 3. Handle Actions (Function Calling)
+        let balanceUpdated = false;
+
         if (responseText.includes('[ACTION:CREATE_TASK]')) {
             try {
                 const titleMatch = responseText.match(/\[TITLE:(.*?)\]/);
@@ -208,9 +210,9 @@ exports.chatWithAssistant = async (req, res, next) => {
         if (responseText.includes('[ACTION:ORDER_FOOD]')) {
             try {
                 const idMatch = responseText.match(/\[ITEM_ID:(.*?)\]/);
-                const qtyMatch = responseText.match(/\[QTY:(.*?)\]/);
+                const qtyMatch = responseText.match(/\[QTY:(\d+)\]/); // Improved regex to catch numbers only
 
-                const itemId = idMatch ? idMatch[1] : null;
+                const itemId = idMatch ? idMatch[1].trim() : null;
                 const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
 
                 if (itemId) {
@@ -218,29 +220,47 @@ exports.chatWithAssistant = async (req, res, next) => {
                     if (item) {
                         const total = parseFloat(item.price) * qty;
 
+                        // Ensure wallet exists before deduction
+                        await CafeteriaWallet.getByUserId(user.id);
+
                         // Deduct and Create Order
                         await CafeteriaWallet.deduct(user.id, total);
+                        balanceUpdated = true;
+
                         const order = await CafeteriaOrder.create({
                             user_id: user.id,
-                            items: [{ item_id: item.id, quantity: qty, unit_price: item.price, subtotal: total }],
+                            items: [{
+                                item_id: item.id,
+                                quantity: qty,
+                                unit_price: item.price,
+                                subtotal: total
+                            }],
                             total_amount: total,
                             status: 'PENDING'
                         });
 
+                        // Clean up response
                         responseText = responseText.replace(/\[ACTION:.*?\]|\[ITEM_ID:.*?\]|\[QTY:.*?\]/g, '').trim();
-                        responseText += `\n\n✅ Order Placed! I've deducted ${total} DH from your cafeteria wallet. I'll notify you when it's ready.`;
+
+                        // If Gemini got the price/qty wrong in its text, we correct it based on real logic
+                        if (!responseText.includes(total.toString())) {
+                            responseText += `\n\n✅ Order Placed! I've deducted ${total.toFixed(2)} DH from your cafeteria wallet for ${qty} ${item.name}(s).`;
+                        } else {
+                            responseText += `\n\n✅ Order Confirmed! I'll notify you when it's ready.`;
+                        }
                     }
                 }
             } catch (orderErr) {
                 console.error('AI Order Error:', orderErr);
                 responseText = responseText.replace(/\[ACTION:.*?\]|\[ITEM_ID:.*?\]|\[QTY:.*?\]/g, '').trim();
-                responseText += `\n\n❌ Sorry, I couldn't place your order: ${orderErr.message}`;
+                responseText += `\n\n❌ Error placing order: ${orderErr.message}`;
             }
         }
 
         res.status(200).json({
             success: true,
-            data: responseText
+            data: responseText,
+            balance_updated: balanceUpdated
         });
 
     } catch (err) {

@@ -14,7 +14,7 @@ import { BarChart } from 'react-native-gifted-charts';
 import {
     Wallet, LogOut, Bell, BellOff, CheckSquare, GraduationCap,
     AlertTriangle, Users, PlusCircle, MessageSquare, ListTodo,
-    TrendingUp, BookOpen, Award, ChevronRight
+    TrendingUp, BookOpen, Award, ChevronRight, CheckCircle2, Clock
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
@@ -305,19 +305,45 @@ export default function HomeScreen() {
                             onPress={() => router.push('/clubs')}
                         />
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.clubScroll}>
-                            {clubs.map(club => (
-                                <View key={club.id} style={styles.clubCard}>
-                                    <View style={styles.clubIconBox}>
-                                        <Users size={22} color="#1a237e" />
+                            {clubs.map(club => {
+                                const isJoined = club.membership_status === 'approved';
+                                const isPending = club.membership_status === 'pending';
+
+                                return (
+                                    <View key={club.id} style={styles.clubCard}>
+                                        <View style={styles.clubIconBox}>
+                                            <Users size={22} color="#1a237e" />
+                                        </View>
+                                        <Text style={styles.clubName} numberOfLines={2}>{club.name}</Text>
+                                        <Text style={styles.clubMembers}>{club.member_count || 0} members</Text>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.joinBtn,
+                                                (isJoined || isPending) && styles.joinedBtn
+                                            ]}
+                                            onPress={() => !isJoined && !isPending && joinClub(club.id)}
+                                            disabled={isJoined || isPending}
+                                        >
+                                            {isJoined ? (
+                                                <>
+                                                    <CheckCircle2 size={14} color="#10B981" />
+                                                    <Text style={[styles.joinText, { color: '#10B981' }]}>Member</Text>
+                                                </>
+                                            ) : isPending ? (
+                                                <>
+                                                    <Clock size={14} color="#F59E0B" />
+                                                    <Text style={[styles.joinText, { color: '#F59E0B' }]}>Pending</Text>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <PlusCircle size={14} color="#FFFFFF" />
+                                                    <Text style={styles.joinText}>Join</Text>
+                                                </>
+                                            )}
+                                        </TouchableOpacity>
                                     </View>
-                                    <Text style={styles.clubName} numberOfLines={2}>{club.name}</Text>
-                                    <Text style={styles.clubMembers}>{club.member_count || 0} members</Text>
-                                    <TouchableOpacity style={styles.joinBtn} onPress={() => handleJoinClub(club.id)}>
-                                        <PlusCircle size={14} color="#FFFFFF" />
-                                        <Text style={styles.joinText}>Join</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
+                                );
+                            })}
                         </ScrollView>
                     </View>
                 )}
@@ -420,6 +446,7 @@ const styles = StyleSheet.create({
     clubName: { fontSize: 13, fontWeight: '700', color: '#1e293b', textAlign: 'center', marginBottom: 4 },
     clubMembers: { fontSize: 11, color: '#94a3b8', marginBottom: 14 },
     joinBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#1a237e', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
+    joinedBtn: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' },
     joinText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
 
     // Profile

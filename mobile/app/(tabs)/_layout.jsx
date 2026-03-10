@@ -1,8 +1,8 @@
 import React from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import { Home, Utensils, ShoppingBag, Calendar, GraduationCap, LogOut, User, ListTodo, Mail, Bell, Users, Archive } from 'lucide-react-native';
+import { Home, Utensils, ShoppingBag, Calendar, GraduationCap, LogOut, User, ListTodo, Mail, Bell, Users, Archive, Sparkles } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,35 +10,41 @@ function CustomDrawerContent(props) {
     const { user, logout } = useAuth();
 
     return (
-        <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
-            {/* Drawer Header with Student Profile */}
-            <View style={styles.drawerHeader}>
-                <View style={styles.profileContainer}>
-                    <View style={styles.avatarContainer}>
-                        <User size={32} color="#FFFFFF" />
+        <View style={{ flex: 1 }}>
+            <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
+                {/* Drawer Header with Student Profile */}
+                <View style={styles.drawerHeader}>
+                    <View style={styles.profileContainer}>
+                        <View style={styles.avatarContainer}>
+                            <User size={30} color="#FFFFFF" />
+                        </View>
+                        <View style={styles.profileText}>
+                            <Text style={styles.userName} numberOfLines={1}>{user?.first_name} {user?.last_name}</Text>
+                            <Text style={styles.userEmail} numberOfLines={1}>{user?.email}</Text>
+                        </View>
                     </View>
-                    <View style={styles.profileText}>
-                        <Text style={styles.userName}>{user?.first_name} {user?.last_name}</Text>
-                        <Text style={styles.userEmail}>{user?.email}</Text>
+                    <View style={styles.headerFooter}>
                         <View style={styles.roleBadge}>
                             <Text style={styles.roleText}>{user?.role_name?.replace('_', ' ')}</Text>
                         </View>
                     </View>
                 </View>
-            </View>
 
-            <View style={styles.drawerList}>
-                <DrawerItemList {...props} />
-            </View>
+                <View style={styles.drawerList}>
+                    <DrawerItemList {...props} />
+                </View>
+            </DrawerContentScrollView>
 
-            {/* Logout Section at Footer */}
+            {/* Logout Section at Footer (Sticky) */}
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-                    <LogOut size={20} color="#EF4444" />
-                    <Text style={styles.logoutText}>Log Out</Text>
+                    <View style={styles.logoutIconBox}>
+                        <LogOut size={20} color="#EF4444" />
+                    </View>
+                    <Text style={styles.logoutText}>Log Out Account</Text>
                 </TouchableOpacity>
             </View>
-        </DrawerContentScrollView>
+        </View>
     );
 }
 
@@ -62,6 +68,14 @@ export default function TabLayout() {
                     drawerLabel: 'Dashboard',
                     title: 'University Hub',
                     drawerIcon: ({ color }) => <Home size={22} color={color} />,
+                }}
+            />
+                        <Drawer.Screen
+                name="ai"
+                options={{
+                    drawerLabel: 'AI Assistant',
+                    title: 'Smart Assistant',
+                    drawerIcon: ({ color }) => <Sparkles size={22} color={color} />,
                 }}
             />
             <Drawer.Screen
@@ -136,31 +150,38 @@ export default function TabLayout() {
                     drawerIcon: ({ color }) => <Archive size={22} color={color} />,
                 }}
             />
+
         </Drawer>
     );
 }
 
 const styles = StyleSheet.create({
     drawerHeader: {
-        padding: 24,
-        paddingTop: 40,
-        backgroundColor: '#111827',
-        marginBottom: 8,
+        padding: 20,
+        paddingTop: 60,
+        backgroundColor: '#1a237e',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        marginBottom: 10,
+        shadowColor: '#1a237e',
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 10
     },
     profileContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: 14,
     },
     avatarContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        width: 54,
+        height: 54,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
     },
     profileText: {
         flex: 1,
@@ -168,46 +189,66 @@ const styles = StyleSheet.create({
     userName: {
         color: '#FFFFFF',
         fontSize: 18,
-        fontWeight: '800',
+        fontWeight: '900',
     },
     userEmail: {
-        color: '#9CA3AF',
+        color: 'rgba(255,255,255,0.6)',
         fontSize: 12,
         marginTop: 2,
     },
+    headerFooter: {
+        marginTop: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+    },
     roleBadge: {
-        backgroundColor: '#059669',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
+        backgroundColor: '#10B981',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
         alignSelf: 'flex-start',
-        marginTop: 6,
     },
     roleText: {
         color: '#FFFFFF',
-        fontSize: 8,
-        fontWeight: '800',
+        fontSize: 9,
+        fontWeight: '900',
         textTransform: 'uppercase',
     },
     drawerList: {
-        flex: 1,
-        paddingTop: 8,
+        paddingTop: 10,
+        paddingHorizontal: 8
     },
     footer: {
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         paddingTop: 20,
-        paddingBottom: 40,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
+        backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        borderTopColor: '#F1F5F9',
     },
     logoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 14,
+        backgroundColor: '#FEF2F2',
+        padding: 14,
+        borderRadius: 16,
+    },
+    logoutIconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#EF4444',
+        shadowOpacity: 0.1,
+        shadowRadius: 5
     },
     logoutText: {
         fontSize: 15,
-        fontWeight: '700',
+        fontWeight: '800',
         color: '#EF4444',
     }
 });
