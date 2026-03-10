@@ -56,6 +56,7 @@ export const useSchedules = () => {
 export const useGrades = () => {
     const [grades, setGrades] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
     const fetchGrades = async () => {
         try {
@@ -70,8 +71,10 @@ export const useGrades = () => {
     };
 
     useEffect(() => {
-        fetchGrades();
-    }, []);
+        if (user) {
+            fetchGrades();
+        }
+    }, [user]);
 
     // Group grades by module
     const groupedGrades = grades.reduce((acc, row) => {

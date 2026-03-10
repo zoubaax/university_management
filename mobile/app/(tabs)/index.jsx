@@ -1,214 +1,427 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, RefreshControl, ScrollView, Modal, FlatList, ActivityIndicator, Image } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+    StyleSheet, View, Text, TouchableOpacity, SafeAreaView,
+    RefreshControl, ScrollView, Dimensions, Platform
+} from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
-import { useNotifications, useAbsences } from '../../src/hooks/useStudent';
+import { useAbsences } from '../../src/hooks/useStudent';
 import { useGrades } from '../../src/hooks/useAcademic';
 import { useClubs } from '../../src/hooks/useClubs';
-import { Wallet, LogOut, Bell, BellOff, X, CheckSquare, GraduationCap, AlertTriangle, Users, PlusCircle } from 'lucide-react-native';
+import { useNotifications } from '../../src/hooks/useNotifications';
+import { useMessages } from '../../src/hooks/useMessages';
+import { useTasks } from '../../src/hooks/useTasks';
+import { BarChart } from 'react-native-gifted-charts';
+import {
+    Wallet, LogOut, Bell, BellOff, CheckSquare, GraduationCap,
+    AlertTriangle, Users, PlusCircle, MessageSquare, ListTodo,
+    TrendingUp, BookOpen, Award, ChevronRight
+} from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
-const StatItem = ({ icon, val, lab, bg }) => (
-    <View style={styles.statCard}>
-        <View style={[styles.statIconContainer, { backgroundColor: bg }]}>{icon}</View>
-        <Text style={styles.statVal}>{val}</Text>
-        <Text style={styles.statLab}>{lab}</Text>
-    </View>
-);
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const DetailRow = ({ label, value, last }) => (
-    <View style={[styles.detailRow, !last && styles.borderBottom]}>
-        <Text style={styles.detailLabel}>{label}</Text>
-        <Text style={styles.detailValue}>{value}</Text>
-    </View>
-);
+// ─── Small helpers ─────────────────────────────
+function greetingText() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning ☀️';
+    if (h < 18) return 'Good afternoon 🌤';
+    return 'Good evening 🌙';
+}
 
+function getGradeColor(g) {
+    if (g >= 16) return '#10B981';
+    if (g >= 12) return '#3B82F6';
+    if (g >= 10) return '#F59E0B';
+    return '#EF4444';
+}
+
+function gradesAverage(grades) {
+    if (!grades.length) return null;
+    const withExam = grades.filter(g => g.exam != null);
+    if (!withExam.length) return null;
+    const avg = withExam.reduce((s, g) => {
+        const cc1 = parseFloat(g.cc1) || 0;
+        const cc2 = parseFloat(g.cc2) || 0;
+        const exam = parseFloat(g.exam) || 0;
+        const cc = (cc1 + cc2) / 2;
+        return s + (cc * 0.4 + exam * 0.6);
+    }, 0) / withExam.length;
+    if (isNaN(avg)) return null;
+    return avg.toFixed(1);
+}
+
+// ─── Sub-components ────────────────────────────
+function QuickCard({ icon, label, value, bg, onPress }) {
+    return (
+        <TouchableOpacity style={[styles.quickCard, { backgroundColor: bg }]} onPress={onPress} activeOpacity={0.85}>
+            <View style={styles.quickIcon}>{icon}</View>
+            <Text style={styles.quickValue}>{value}</Text>
+            <Text style={styles.quickLabel}>{label}</Text>
+        </TouchableOpacity>
+    );
+}
+
+function SectionHeader({ title, icon, onPress, linkLabel = 'See all' }) {
+    return (
+        <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+                {icon}
+                <Text style={styles.sectionTitle}>{title}</Text>
+            </View>
+            {onPress && (
+                <TouchableOpacity style={styles.seeAllBtn} onPress={onPress}>
+                    <Text style={styles.seeAllText}>{linkLabel}</Text>
+                    <ChevronRight size={14} color="#1a237e" />
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
+
+// ─── Main Screen ───────────────────────────────
 export default function HomeScreen() {
     const { user, logout, refreshUser } = useAuth();
-    const { notifications, unreadCount, markAsRead, refresh: refreshNotify } = useNotifications();
     const { stats: absenceStats, refresh: refreshAbsence } = useAbsences();
     const { grades, refresh: refreshGrades } = useGrades();
     const { clubs, joinClub, refresh: refreshClubs } = useClubs();
+    const { unreadCount: notifCount, refreshNotifications } = useNotifications();
+    const { unreadCount: msgCount, refreshMessages } = useMessages();
+    const { tasks, stats: taskStats, refresh: refreshTasks } = useTasks();
+    const router = useRouter();
 
     const [refreshing, setRefreshing] = useState(false);
-    const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
 
-    const onRefresh = React.useCallback(async () => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
         await Promise.all([
-            refreshUser(),
-            refreshNotify(),
-            refreshAbsence(),
-            refreshGrades(),
-            refreshClubs()
+            refreshUser(), refreshAbsence(), refreshGrades(),
+            refreshClubs(), refreshNotifications(), refreshMessages(), refreshTasks()
         ]);
         setRefreshing(false);
-    }, [refreshUser, refreshNotify, refreshAbsence, refreshGrades, refreshClubs]);
+    }, [refreshUser, refreshAbsence, refreshGrades, refreshClubs, refreshNotifications, refreshMessages, refreshTasks]);
 
-    useEffect(() => {
-        onRefresh();
-    }, []);
+    useEffect(() => { onRefresh(); }, []);
 
     const handleJoinClub = async (clubId) => {
-        try {
-            await joinClub(clubId);
-            alert('Request sent to join club!');
-        } catch (error) {
-            alert(error.response?.data?.message || 'Failed to join');
-        }
+        try { await joinClub(clubId); alert('Request sent!'); }
+        catch (e) { alert(e.response?.data?.message || 'Failed to join'); }
     };
 
-    const renderNotification = ({ item }) => (
-        <TouchableOpacity
-            style={[styles.notifyItem, !item.is_read && styles.notifyUnread]}
-            onPress={() => markAsRead(item.id)}
-        >
-            <View style={styles.notifyIcon}><Bell size={16} color={item.is_read ? '#9CA3AF' : '#2563EB'} /></View>
-            <View style={styles.notifyContent}>
-                <Text style={styles.notifyTitle}>{item.title}</Text>
-                <Text style={styles.notifyText}>{item.message}</Text>
-                <Text style={styles.notifyTime}>{new Date(item.created_at).toLocaleDateString()}</Text>
-            </View>
-            {!item.is_read && <View style={styles.unreadDot} />}
-        </TouchableOpacity>
-    );
+    // Build bar chart data from grades
+    const barData = grades
+        .filter(g => g.exam != null)
+        .map(g => {
+            const cc1 = parseFloat(g.cc1) || 0;
+            const cc2 = parseFloat(g.cc2) || 0;
+            const exam = parseFloat(g.exam) || 0;
+            const avg = (cc1 + cc2) / 2 * 0.4 + exam * 0.6;
+            if (isNaN(avg)) return null;
+            return {
+                value: parseFloat(avg.toFixed(1)),
+                label: (g.module_name || 'Mod').substring(0, 5),
+                frontColor: getGradeColor(avg),
+                topLabelComponent: () => (
+                    <Text style={{ color: '#1e293b', fontSize: 9, fontWeight: '700', marginBottom: 2 }}>
+                        {avg.toFixed(0)}
+                    </Text>
+                )
+            };
+        }).filter(Boolean);
+
+    const avg = gradesAverage(grades);
+    const todoCount = taskStats?.todo_count || 0;
+    const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED');
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#111827" />}
-                contentContainerStyle={{ paddingBottom: 40 }}
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a237e" colors={['#1a237e']} />}
+                contentContainerStyle={{ paddingBottom: 50 }}
             >
+                {/* ── HEADER ── */}
                 <View style={styles.header}>
                     <View>
-                        <Text style={styles.greeting}>Student Dashboard</Text>
-                        <Text style={styles.name}>{user?.first_name || 'Student'}</Text>
+                        <Text style={styles.greeting}>{greetingText()}</Text>
+                        <Text style={styles.name}>{user?.first_name || 'Student'} {user?.last_name || ''}</Text>
+                        <Text style={styles.roleBadge}>{user?.role_name?.replace(/_/g, ' ')}</Text>
                     </View>
                     <View style={styles.headerActions}>
-                        <TouchableOpacity onPress={() => setIsNotifyModalOpen(true)} style={styles.actionBtn}>
-                            <Bell size={22} color="#111827" />
-                            {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount}</Text></View>}
+                        <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/notifications')}>
+                            <Bell size={22} color="#1a237e" />
+                            {notifCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{notifCount > 9 ? '9+' : notifCount}</Text></View>}
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={logout} style={[styles.actionBtn, styles.logoutBtn]}>
+                        <TouchableOpacity style={[styles.headerBtn, styles.logoutBtn]} onPress={logout}>
                             <LogOut size={20} color="#EF4444" />
                         </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* Wallet Overview */}
+                {/* ── WALLET CARD ── */}
                 <View style={styles.walletCard}>
-                    <View style={styles.walletHeader}>
-                        <Wallet size={20} color="#FFFFFF" />
-                        <Text style={styles.walletLabel}>University Wallet</Text>
-                        <View style={styles.activePill}><Text style={styles.pillText}>ACTIVE</Text></View>
+                    <View style={styles.walletGlow} />
+                    <View style={styles.walletTop}>
+                        <View>
+                            <Text style={styles.walletLabel}>University Wallet</Text>
+                            <View style={styles.balanceRow}>
+                                <Text style={styles.balance}>{parseFloat(user?.balance || 0).toFixed(2)}</Text>
+                                <Text style={styles.currency}>DH</Text>
+                            </View>
+                        </View>
+                        <View style={styles.walletIconBox}>
+                            <Wallet size={28} color="#FFFFFF" />
+                        </View>
                     </View>
-                    <View style={styles.balanceRow}>
-                        <Text style={styles.balance}>{parseFloat(user?.balance || 0).toFixed(2)}</Text>
-                        <Text style={styles.currency}>DH</Text>
+                    <View style={styles.walletBottom}>
+                        <View style={styles.walletPill}>
+                            <View style={styles.dot} /><Text style={styles.pillText}>ACTIVE</Text>
+                        </View>
+                        <Text style={styles.walletDept}>{user?.department_name || '—'}</Text>
                     </View>
                 </View>
 
-                {/* Quick Stats */}
-                <View style={styles.statsGrid}>
-                    <StatItem icon={<AlertTriangle size={20} color="#EF4444" />} val={absenceStats.total} lab="Absences" bg="#FEE2E2" />
-                    <StatItem icon={<GraduationCap size={20} color="#2563EB" />} val={grades.length} lab="Grades" bg="#DBEAFE" />
-                    <StatItem icon={<CheckSquare size={20} color="#10B981" />} val={user?.class_id ? 'OK' : 'ERR'} lab="Enrollment" bg="#D1FAE5" />
+                {/* ── QUICK STATS ── */}
+                <View style={styles.quickGrid}>
+                    <QuickCard
+                        icon={<AlertTriangle size={20} color="#EF4444" />}
+                        label="Absences" value={absenceStats.total}
+                        bg="#FEF2F2"
+                        onPress={() => { }}
+                    />
+                    <QuickCard
+                        icon={<GraduationCap size={20} color="#3B82F6" />}
+                        label="Avg Grade" value={avg ? `${avg}/20` : '—'}
+                        bg="#EFF6FF"
+                        onPress={() => router.push('/grades')}
+                    />
+                    <QuickCard
+                        icon={<MessageSquare size={20} color="#10B981" />}
+                        label="Messages" value={msgCount > 0 ? msgCount : '✓'}
+                        bg="#F0FDF4"
+                        onPress={() => router.push('/messages')}
+                    />
+                    <QuickCard
+                        icon={<ListTodo size={20} color="#8B5CF6" />}
+                        label="Tasks Due" value={todoCount}
+                        bg="#FAF5FF"
+                        onPress={() => router.push('/tasks')}
+                    />
                 </View>
 
-                {/* Clubs Section */}
+                {/* ── GRADES BAR CHART ── */}
+                {barData.length > 0 && (
+                    <View style={styles.section}>
+                        <SectionHeader
+                            title="Grade Overview"
+                            icon={<TrendingUp size={18} color="#1a237e" />}
+                            onPress={() => router.push('/grades')}
+                        />
+                        <View style={styles.chartCard}>
+                            <View style={styles.chartLegend}>
+                                {[{ c: '#10B981', l: '≥16 Excellent' }, { c: '#3B82F6', l: '≥12 Good' }, { c: '#F59E0B', l: '≥10 Pass' }, { c: '#EF4444', l: '<10 Fail' }].map(item => (
+                                    <View key={item.l} style={styles.legendItem}>
+                                        <View style={[styles.legendDot, { backgroundColor: item.c }]} />
+                                        <Text style={styles.legendText}>{item.l}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                            <BarChart
+                                data={barData}
+                                barWidth={28}
+                                spacing={16}
+                                roundedTop
+                                roundedBottom
+                                hideRules
+                                xAxisThickness={1}
+                                yAxisThickness={0}
+                                xAxisColor="#E2E8F0"
+                                yAxisTextStyle={{ color: '#94a3b8', fontSize: 10 }}
+                                noOfSections={4}
+                                maxValue={20}
+                                width={SCREEN_WIDTH - 100}
+                                height={160}
+                                isAnimated
+                            />
+                        </View>
+                    </View>
+                )}
+
+                {/* ── ABSENCE SUMMARY ── */}
                 <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>University Clubs</Text>
-                        <Users size={20} color="#111827" />
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.clubScroll}>
-                        {clubs.map(club => (
-                            <View key={club.id} style={styles.clubCard}>
-                                <View style={styles.clubIcon}><Users size={24} color="#111827" /></View>
-                                <Text style={styles.clubName} numberOfLines={1}>{club.name}</Text>
-                                <Text style={styles.clubMembers}>{club.member_count || 0} Members</Text>
-                                <TouchableOpacity style={styles.joinBtn} onPress={() => handleJoinClub(club.id)}>
-                                    <PlusCircle size={16} color="#FFFFFF" />
-                                    <Text style={styles.joinText}>Join</Text>
-                                </TouchableOpacity>
+                    <SectionHeader title="Absence Summary" icon={<AlertTriangle size={18} color="#EF4444" />} />
+                    <View style={styles.absenceRow}>
+                        {[
+                            { label: 'Total', value: absenceStats.total, color: '#1e293b', bg: '#F8FAFC', border: '#E2E8F0' },
+                            { label: 'Justified', value: absenceStats.justified, color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0' },
+                            { label: 'Unjustified', value: absenceStats.unjustified, color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' },
+                        ].map(item => (
+                            <View key={item.label} style={[styles.absenceCard, { backgroundColor: item.bg, borderColor: item.border }]}>
+                                <Text style={[styles.absenceVal, { color: item.color }]}>{item.value}</Text>
+                                <Text style={styles.absenceLab}>{item.label}</Text>
                             </View>
                         ))}
-                    </ScrollView>
-                </View>
-
-                {/* Profile Details */}
-                <View style={styles.infoSection}>
-                    <Text style={styles.sectionTitle}>Profile Details</Text>
-                    <View style={styles.detailsCard}>
-                        <DetailRow label="Department" value={user?.department_name || 'N/A'} />
-                        <DetailRow label="Role" value={user?.role_name} last />
                     </View>
                 </View>
-            </ScrollView>
 
-            <Modal visible={isNotifyModalOpen} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Notifications</Text>
-                            <TouchableOpacity onPress={() => setIsNotifyModalOpen(false)}><X size={24} color="#111827" /></TouchableOpacity>
+                {/* ── PENDING TASKS ── */}
+                {pendingTasks.length > 0 && (
+                    <View style={styles.section}>
+                        <SectionHeader
+                            title="Upcoming Tasks"
+                            icon={<ListTodo size={18} color="#8B5CF6" />}
+                            onPress={() => router.push('/tasks')}
+                        />
+                        <View style={styles.tasksContainer}>
+                            {pendingTasks.slice(0, 3).map(task => {
+                                const priorityColors = { HIGH: '#EF4444', MEDIUM: '#F59E0B', LOW: '#10B981' };
+                                const pc = priorityColors[task.priority] || '#64748b';
+                                return (
+                                    <View key={task.id} style={styles.taskRow}>
+                                        <View style={[styles.taskPriorityDot, { backgroundColor: pc }]} />
+                                        <View style={styles.taskInfo}>
+                                            <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
+                                            {task.due_date && (
+                                                <Text style={styles.taskDue}>
+                                                    Due {new Date(task.due_date).toLocaleDateString()}
+                                                </Text>
+                                            )}
+                                        </View>
+                                        <View style={[styles.taskBadge, { backgroundColor: pc + '20', borderColor: pc }]}>
+                                            <Text style={[styles.taskBadgeText, { color: pc }]}>{task.priority}</Text>
+                                        </View>
+                                    </View>
+                                );
+                            })}
                         </View>
-                        <FlatList data={notifications} renderItem={renderNotification} keyExtractor={item => item.id} ListEmptyComponent={<View style={styles.emptyState}><BellOff size={48} color="#E5E7EB" /><Text style={styles.emptyText}>Empty Inbox</Text></View>} />
+                    </View>
+                )}
+
+                {/* ── CLUBS ── */}
+                {clubs.length > 0 && (
+                    <View style={styles.section}>
+                        <SectionHeader title="University Clubs" icon={<Users size={18} color="#F59E0B" />} />
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.clubScroll}>
+                            {clubs.map(club => (
+                                <View key={club.id} style={styles.clubCard}>
+                                    <View style={styles.clubIconBox}>
+                                        <Users size={22} color="#1a237e" />
+                                    </View>
+                                    <Text style={styles.clubName} numberOfLines={2}>{club.name}</Text>
+                                    <Text style={styles.clubMembers}>{club.member_count || 0} members</Text>
+                                    <TouchableOpacity style={styles.joinBtn} onPress={() => handleJoinClub(club.id)}>
+                                        <PlusCircle size={14} color="#FFFFFF" />
+                                        <Text style={styles.joinText}>Join</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* ── PROFILE CARD ── */}
+                <View style={styles.section}>
+                    <SectionHeader title="My Profile" icon={<Award size={18} color="#64748b" />} />
+                    <View style={styles.profileCard}>
+                        {[
+                            { label: 'Email', value: user?.email },
+                            { label: 'Role', value: user?.role_name?.replace(/_/g, ' ') },
+                            { label: 'Department', value: user?.department_name || '—' },
+                            { label: 'Class', value: user?.class_name || '—' },
+                        ].map((row, i, arr) => (
+                            <View key={row.label} style={[styles.profileRow, i < arr.length - 1 && styles.profileBorder]}>
+                                <Text style={styles.profileLabel}>{row.label}</Text>
+                                <Text style={styles.profileValue} numberOfLines={1}>{row.value || '—'}</Text>
+                            </View>
+                        ))}
                     </View>
                 </View>
-            </Modal>
+
+            </ScrollView>
         </SafeAreaView>
     );
 }
 
+// ─── Styles ────────────────────────────────────
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F9FAFB' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, paddingTop: 40 },
-    greeting: { fontSize: 13, color: '#6B7280', fontWeight: '600', textTransform: 'uppercase' },
-    name: { fontSize: 26, fontWeight: '800', color: '#111827' },
-    headerActions: { flexDirection: 'row', gap: 12 },
-    actionBtn: { width: 44, height: 44, backgroundColor: '#FFFFFF', borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-    logoutBtn: { backgroundColor: '#FEE2E2', borderColor: '#FECACA' },
-    badge: { position: 'absolute', top: 5, right: 5, backgroundColor: '#EF4444', width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center' },
-    badgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: 'bold' },
-    walletCard: { margin: 24, backgroundColor: '#111827', borderRadius: 24, padding: 24 },
-    walletHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-    walletLabel: { color: '#9CA3AF', fontSize: 14 },
-    activePill: { backgroundColor: '#059669', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    pillText: { color: '#FFFFFF', fontSize: 8, fontWeight: '800' },
-    balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    balance: { color: '#FFFFFF', fontSize: 32, fontWeight: '800' },
-    currency: { color: '#6B7280', fontSize: 16 },
-    statsGrid: { paddingHorizontal: 24, flexDirection: 'row', gap: 12 },
-    statCard: { flex: 1, backgroundColor: '#FFFFFF', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center' },
-    statIconContainer: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-    statVal: { fontSize: 16, fontWeight: '800', color: '#111827' },
-    statLab: { fontSize: 10, color: '#6B7280' },
-    section: { marginTop: 24 },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
-    clubScroll: { paddingHorizontal: 24, gap: 16 },
-    clubCard: { width: 140, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center' },
-    clubIcon: { width: 48, height: 48, backgroundColor: '#F3F4F6', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-    clubName: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 4 },
-    clubMembers: { fontSize: 10, color: '#6B7280', marginBottom: 12 },
-    joinBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#111827', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+    container: { flex: 1, backgroundColor: '#F8FAFC' },
+
+    // Header
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 16 },
+    greeting: { fontSize: 13, color: '#64748b', fontWeight: '600', marginBottom: 4 },
+    name: { fontSize: 24, fontWeight: '800', color: '#1e293b' },
+    roleBadge: { fontSize: 11, color: '#1a237e', fontWeight: '700', marginTop: 4, textTransform: 'uppercase', backgroundColor: '#EEF2FF', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
+    headerActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    headerBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#EEF2FF', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#C7D2FE' },
+    logoutBtn: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+    badge: { position: 'absolute', top: 4, right: 4, backgroundColor: '#EF4444', minWidth: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3 },
+    badgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
+
+    // Wallet
+    walletCard: { marginHorizontal: 24, marginBottom: 24, backgroundColor: '#1a237e', borderRadius: 28, padding: 24, overflow: 'hidden' },
+    walletGlow: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: '#3949ab', top: -80, right: -60, opacity: 0.4 },
+    walletTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+    walletLabel: { color: '#9FA8DA', fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    balanceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+    balance: { color: '#FFFFFF', fontSize: 38, fontWeight: '800' },
+    currency: { color: '#9FA8DA', fontSize: 18, fontWeight: '600' },
+    walletIconBox: { width: 52, height: 52, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+    walletBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    walletPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
+    pillText: { color: '#10B981', fontSize: 11, fontWeight: '800' },
+    walletDept: { color: '#9FA8DA', fontSize: 12 },
+
+    // Quick stats grid
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 8 },
+    quickCard: { width: (SCREEN_WIDTH - 60) / 2, padding: 18, borderRadius: 20, alignItems: 'center' },
+    quickIcon: { width: 42, height: 42, backgroundColor: '#FFFFFF', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+    quickValue: { fontSize: 20, fontWeight: '800', color: '#1e293b' },
+    quickLabel: { fontSize: 12, color: '#64748b', fontWeight: '600', marginTop: 2 },
+
+    // Sections
+    section: { marginTop: 8, marginBottom: 4 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 14, marginTop: 16 },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1e293b' },
+    seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    seeAllText: { fontSize: 13, color: '#1a237e', fontWeight: '600' },
+
+    // Chart
+    chartCard: { marginHorizontal: 24, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, paddingTop: 20, shadowColor: '#64748b', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+    chartLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    legendDot: { width: 8, height: 8, borderRadius: 4 },
+    legendText: { fontSize: 10, color: '#64748b' },
+
+    // Absence
+    absenceRow: { flexDirection: 'row', paddingHorizontal: 24, gap: 12 },
+    absenceCard: { flex: 1, borderRadius: 18, padding: 16, alignItems: 'center', borderWidth: 1.5 },
+    absenceVal: { fontSize: 28, fontWeight: '800' },
+    absenceLab: { fontSize: 11, color: '#64748b', marginTop: 4, fontWeight: '600' },
+
+    // Tasks
+    tasksContainer: { marginHorizontal: 24, backgroundColor: '#FFFFFF', borderRadius: 20, overflow: 'hidden', shadowColor: '#64748b', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+    taskRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    taskPriorityDot: { width: 10, height: 10, borderRadius: 5 },
+    taskInfo: { flex: 1 },
+    taskTitle: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
+    taskDue: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    taskBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+    taskBadgeText: { fontSize: 10, fontWeight: '700' },
+
+    // Clubs
+    clubScroll: { paddingHorizontal: 24, gap: 14 },
+    clubCard: { width: 140, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, alignItems: 'center', shadowColor: '#64748b', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+    clubIconBox: { width: 48, height: 48, backgroundColor: '#EEF2FF', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+    clubName: { fontSize: 13, fontWeight: '700', color: '#1e293b', textAlign: 'center', marginBottom: 4 },
+    clubMembers: { fontSize: 11, color: '#94a3b8', marginBottom: 14 },
+    joinBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#1a237e', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
     joinText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-    infoSection: { padding: 24 },
-    detailsCard: { backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', paddingHorizontal: 16 },
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16 },
-    borderBottom: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-    detailLabel: { color: '#6B7280', fontSize: 14 },
-    detailValue: { color: '#111827', fontSize: 14, fontWeight: '600' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    modalTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
-    notifyItem: { flexDirection: 'row', padding: 16, borderRadius: 20, marginBottom: 12, gap: 12 },
-    notifyUnread: { backgroundColor: '#F0F7FF' },
-    notifyIcon: { width: 32, height: 32, backgroundColor: '#FFFFFF', borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    notifyContent: { flex: 1 },
-    notifyTitle: { fontSize: 14, fontWeight: '700', color: '#111827' },
-    notifyText: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-    notifyTime: { fontSize: 10, color: '#9CA3AF', marginTop: 4 },
-    emptyState: { padding: 40, alignItems: 'center' },
-    emptyText: { color: '#9CA3AF', marginTop: 12 },
+
+    // Profile
+    profileCard: { marginHorizontal: 24, backgroundColor: '#FFFFFF', borderRadius: 20, shadowColor: '#64748b', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+    profileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 15 },
+    profileBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    profileLabel: { fontSize: 14, color: '#64748b', fontWeight: '500' },
+    profileValue: { fontSize: 14, color: '#1e293b', fontWeight: '700', maxWidth: '60%', textAlign: 'right' },
 });
