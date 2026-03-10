@@ -299,7 +299,11 @@ export default function HomeScreen() {
                 {/* ── CLUBS ── */}
                 {clubs.length > 0 && (
                     <View style={styles.section}>
-                        <SectionHeader title="University Clubs" icon={<Users size={18} color="#F59E0B" />} />
+                        <SectionHeader
+                            title="University Clubs"
+                            icon={<Users size={18} color="#F59E0B" />}
+                            onPress={() => router.push('/clubs')}
+                        />
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.clubScroll}>
                             {clubs.map(club => (
                                 <View key={club.id} style={styles.clubCard}>
