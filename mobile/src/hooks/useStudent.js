@@ -69,3 +69,46 @@ export const useAbsences = () => {
 
     return { absences, stats, loading, refresh: fetchAbsences };
 };
+
+/**
+ * Hook to manage student certificates
+ */
+export const useCertificates = () => {
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchRequests = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await api.get('/certificates/my-requests');
+            setRequests(response.data.data);
+        } catch (error) {
+            console.error('Failed to fetch certificates:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchRequests();
+    }, [fetchRequests]);
+
+    const requestCertificate = async (type) => {
+        try {
+            const response = await api.post('/certificates/request', { type });
+            await fetchRequests();
+            return response.data;
+        } catch (error) {
+            console.error('Failed to request certificate:', error);
+            throw error;
+        }
+    };
+
+    const downloadCertificate = (id) => {
+        // Since we are using an absolute API URL, we can just open the link or use blob download
+        const url = `${api.defaults.baseURL}/certificates/download/${id}`;
+        return url;
+    };
+
+    return { requests, loading, requestCertificate, downloadCertificate, refresh: fetchRequests };
+};

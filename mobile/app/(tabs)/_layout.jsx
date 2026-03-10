@@ -2,7 +2,7 @@ import React from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import { Home, Utensils, ShoppingBag, Calendar, GraduationCap, LogOut, User, ListTodo, Mail, Bell, Users, Archive, Sparkles } from 'lucide-react-native';
+import { Home, Utensils, ShoppingBag, Calendar, GraduationCap, LogOut, User, ListTodo, Mail, Bell, Users, Archive, Sparkles, FileText } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -70,7 +70,7 @@ export default function TabLayout() {
                     drawerIcon: ({ color }) => <Home size={22} color={color} />,
                 }}
             />
-                        <Drawer.Screen
+            <Drawer.Screen
                 name="ai"
                 options={{
                     drawerLabel: 'AI Assistant',
@@ -142,6 +142,7 @@ export default function TabLayout() {
                     drawerIcon: ({ color }) => <Users size={22} color={color} />,
                 }}
             />
+
             <Drawer.Screen
                 name="materials"
                 options={{
@@ -150,7 +151,14 @@ export default function TabLayout() {
                     drawerIcon: ({ color }) => <Archive size={22} color={color} />,
                 }}
             />
-
+            <Drawer.Screen
+                name="certificates"
+                options={{
+                    drawerLabel: 'Certificates',
+                    title: 'Documents & Certificates',
+                    drawerIcon: ({ color }) => <FileText size={22} color={color} />,
+                }}
+            />
         </Drawer>
     );
 }
