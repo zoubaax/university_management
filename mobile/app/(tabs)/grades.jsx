@@ -6,7 +6,7 @@ import { GraduationCap, Award, FileText, ChevronRight } from 'lucide-react-nativ
 export default function GradesScreen() {
     const { groupedGrades, loading, refresh } = useGrades();
 
-    const renderModuleGrades = ([moduleName, grades]) => (
+    const renderModuleGrades = ({ item: [moduleName, grades] }) => (
         <View key={moduleName} style={styles.moduleSection}>
             <View style={styles.moduleHeader}>
                 <Book size={20} color="#111827" />
@@ -16,15 +16,15 @@ export default function GradesScreen() {
                 {grades.map((grade, index) => (
                     <View key={index} style={styles.gradeItem}>
                         <View style={styles.gradeHeader}>
-                            <Text style={styles.gradeType}>{grade.type.replace('_', ' ')}</Text>
+                            <Text style={styles.gradeType}>{grade.type ? String(grade.type).replace('_', ' ') : 'Unknown'}</Text>
                             <Text style={[
                                 styles.gradeValue,
                                 { color: parseFloat(grade.value) >= 10 ? '#059669' : '#DC2626' }
                             ]}>
-                                {parseFloat(grade.value).toFixed(2)}
+                                {grade.value ? parseFloat(grade.value).toFixed(2) : '-'}
                             </Text>
                         </View>
-                        <Text style={styles.gradeWeight}>Weight: {Math.round(grade.weight * 100)}%</Text>
+                        <Text style={styles.gradeWeight}>Weight: {grade.weight ? Math.round(grade.weight * 100) : 0}%</Text>
                     </View>
                 ))}
             </View>

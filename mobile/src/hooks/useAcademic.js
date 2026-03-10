@@ -61,7 +61,7 @@ export const useGrades = () => {
         try {
             setLoading(true);
             const response = await api.get('/grades/my-grades');
-            setGrades(response.data.data);
+            setGrades(response.data.data || []);
         } catch (error) {
             console.error('Failed to fetch grades:', error);
         } finally {
@@ -74,10 +74,20 @@ export const useGrades = () => {
     }, []);
 
     // Group grades by module
-    const groupedGrades = grades.reduce((acc, grade) => {
-        const moduleName = grade.module_name || 'Unknown Module';
+    const groupedGrades = grades.reduce((acc, row) => {
+        const moduleName = row.module_name || 'Unknown Module';
         if (!acc[moduleName]) acc[moduleName] = [];
-        acc[moduleName].push(grade);
+
+        if (row.cc1 !== null && row.cc1 !== undefined) {
+            acc[moduleName].push({ type: 'Continuous Assessment 1', value: row.cc1, weight: 0.2 });
+        }
+        if (row.cc2 !== null && row.cc2 !== undefined) {
+            acc[moduleName].push({ type: 'Continuous Assessment 2', value: row.cc2, weight: 0.2 });
+        }
+        if (row.exam !== null && row.exam !== undefined) {
+            acc[moduleName].push({ type: 'Final Exam', value: row.exam, weight: 0.6 });
+        }
+
         return acc;
     }, {});
 

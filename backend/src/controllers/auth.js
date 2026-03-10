@@ -1,4 +1,5 @@
 const AuthService = require('../services/authService');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 exports.login = async (req, res, next) => {
     try {
@@ -15,7 +16,10 @@ exports.login = async (req, res, next) => {
 // @access  Public
 exports.refreshToken = async (req, res, next) => {
     try {
-        const token = req.cookies.refreshToken;
+        const token = req.cookies.refreshToken || req.body.refreshToken;
+        if (!token) {
+            return next(new ErrorResponse('No refresh token provided', 401));
+        }
         const { accessToken } = await AuthService.refreshToken(token);
         res.status(200).json({ success: true, accessToken });
     } catch (err) {

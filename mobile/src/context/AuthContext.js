@@ -46,9 +46,12 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             const response = await api.post('/auth/login', { email, password });
-            const { user, accessToken } = response.data;
+            const { user, accessToken, refreshToken } = response.data;
 
             await SecureStore.setItemAsync('userToken', accessToken);
+            if (refreshToken) {
+                await SecureStore.setItemAsync('refreshToken', refreshToken);
+            }
             await SecureStore.setItemAsync('userData', JSON.stringify(user));
 
             setUser(user);
@@ -63,6 +66,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         await SecureStore.deleteItemAsync('userToken');
+        await SecureStore.deleteItemAsync('refreshToken');
         await SecureStore.deleteItemAsync('userData');
         setUser(null);
     };
