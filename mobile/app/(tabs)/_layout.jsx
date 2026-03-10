@@ -2,7 +2,7 @@ import React from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import { Home, Utensils, ShoppingBag, Calendar, GraduationCap, LogOut, User, ListTodo } from 'lucide-react-native';
+import { Home, Utensils, ShoppingBag, Calendar, GraduationCap, LogOut, User, ListTodo, Mail } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -102,6 +102,14 @@ export default function TabLayout() {
                     drawerLabel: 'My Tasks',
                     title: 'Task Manager',
                     drawerIcon: ({ color }) => <ListTodo size={22} color={color} />,
+                }}
+            />
+            <Drawer.Screen
+                name="messages"
+                options={{
+                    drawerLabel: 'Messages',
+                    title: 'Communications',
+                    drawerIcon: ({ color }) => <Mail size={22} color={color} />,
                 }}
             />
         </Drawer>
