@@ -137,52 +137,71 @@ const RoleForm = ({ onSubmit, onCancel, initialValues, isEditing }) => {
                     </div>
                 </div>
 
-                {/* Permissions */}
+                {/* Permissions Grid */}
                 <div>
-                    <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-                        <Lock size={16} className="text-gray-500" />
-                        Permissions
-                    </h3>
-                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-4 h-64 overflow-y-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <Lock size={20} className="text-indigo-600" />
+                            Role Permissions
+                        </h3>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
+                            <input
+                                type="checkbox"
+                                id="select-all"
+                                className="w-4 h-4 rounded-full border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                onChange={(e) => {
+                                    if (e.target.checked) {
+                                        const allIds = PERMISSIONS_LIST.flatMap(c => c.items.map(i => i.id));
+                                        setFormData(prev => ({ ...prev, permissions: allIds }));
+                                    } else {
+                                        setFormData(prev => ({ ...prev, permissions: [] }));
+                                    }
+                                }}
+                                checked={formData.permissions.length === PERMISSIONS_LIST.flatMap(c => c.items.map(i => i.id)).length}
+                            />
+                            <label htmlFor="select-all" className="text-sm font-medium text-gray-600 cursor-pointer">
+                                Select All Permissions
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         {PERMISSIONS_LIST.map((category) => (
-                            <div key={category.category}>
-                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                    {category.category}
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {category.items.map((permission) => (
-                                        <label
-                                            key={permission.id}
-                                            className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all ${formData.permissions.includes(permission.id)
-                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                                                }`}
-                                        >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${formData.permissions.includes(permission.id)
-                                                ? 'bg-blue-600 border-blue-600'
-                                                : 'border-gray-300 bg-white'
-                                                }`}>
-                                                {formData.permissions.includes(permission.id) && (
-                                                    <Check size={10} className="text-white" />
-                                                )}
+                            <div key={category.category} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                                        {category.category}
+                                    </h4>
+                                </div>
+                                <div className="p-5 space-y-4">
+                                    {category.items.map((permission) => {
+                                        const isSelected = formData.permissions.includes(permission.id);
+                                        return (
+                                            <div
+                                                key={permission.id}
+                                                onClick={() => togglePermission(permission.id)}
+                                                className="flex items-center gap-3 group cursor-pointer"
+                                            >
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                                                    ? 'bg-indigo-600 border-indigo-600 shadow-sm shadow-indigo-100'
+                                                    : 'border-gray-300 bg-white group-hover:border-indigo-300'
+                                                    }`}>
+                                                    {isSelected && (
+                                                        <div className="w-2 h-2 rounded-full bg-white" />
+                                                    )}
+                                                </div>
+                                                <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'
+                                                    }`}>
+                                                    {permission.label}
+                                                </span>
                                             </div>
-                                            <input
-                                                type="checkbox"
-                                                className="hidden"
-                                                checked={formData.permissions.includes(permission.id)}
-                                                onChange={() => togglePermission(permission.id)}
-                                                disabled={isEditing && formData.name === 'SUPER_ADMIN' && permission.id === 'manage_roles'} // Prevent locking out
-                                            />
-                                            <span className="text-sm font-medium">{permission.label}</span>
-                                        </label>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                        Select the permissions this role needs to access specific features.
-                    </p>
                 </div>
             </div>
 
@@ -199,9 +218,10 @@ const RoleForm = ({ onSubmit, onCancel, initialValues, isEditing }) => {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-6 py-2.5 text-sm font-bold text-white bg-gray-900 rounded-xl hover:bg-gray-800 shadow-lg shadow-gray-200 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                    {loading ? 'Saving...' : (isEditing ? 'Update Role' : 'Create Role')}
+                    <Check size={18} />
+                    {loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Role')}
                 </button>
             </div>
         </form>

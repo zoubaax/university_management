@@ -92,10 +92,10 @@ const RolesPage = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Role Management</h1>
-                    <p className="text-sm text-gray-500 mt-1">Manage system roles and permissions</p>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Role Management</h1>
+                    <p className="text-sm text-gray-500 mt-1 font-medium italic">Assign and oversee access levels across the university ecosystem.</p>
                 </div>
                 <Button
                     onClick={() => {
@@ -103,9 +103,9 @@ const RolesPage = () => {
                         setModalOpen(true);
                     }}
                     icon={Plus}
-                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                    className="bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-slate-100 px-6 py-6 rounded-2xl"
                 >
-                    Create Role
+                    Create System Role
                 </Button>
             </div>
 
@@ -165,19 +165,24 @@ const RolesPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${role.name === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-600' :
-                                        role.name === 'PROFESSOR' ? 'bg-blue-100 text-blue-600' :
-                                            role.name === 'STUDENT' ? 'bg-green-100 text-green-600' :
-                                                'bg-gray-100 text-gray-600'
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${role.name === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-500' :
+                                        role.name === 'PROFESSOR' ? 'bg-blue-50 text-blue-500' :
+                                            role.name === 'STUDENT' ? 'bg-green-50 text-green-500' :
+                                                'bg-slate-50 text-slate-500'
                                         }`}>
-                                        <Shield size={20} />
+                                        <Shield size={24} />
                                     </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">{role.name}</h3>
-                                        <p className="text-xs text-gray-500">
-                                            {role.name === 'SUPER_ADMIN' ? 'Full Access' :
-                                                role.permissions ? `${(role.permissions.length || 0)} Permissions` : 'Restricted Access'}
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-gray-900 text-lg leading-none">{role.name}</h3>
+                                            {(role.name === 'SUPER_ADMIN' || role.name === 'STUDENT') && (
+                                                <span className="text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full border border-gray-200">System</span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1 font-semibold">
+                                            {role.name === 'SUPER_ADMIN' ? 'Unrestricted System Access' :
+                                                role.permissions ? `${(role.permissions.length || 0)} permissions activated` : 'Limited view access'}
                                         </p>
                                     </div>
                                 </div>
@@ -208,9 +213,9 @@ const RolesPage = () => {
                     setModalOpen(false);
                     setEditingRole(null);
                 }}
-                title={editingRole ? 'Edit Role' : 'Create New Role'}
-                subtitle="Define role name, description and permissions."
-                size="lg"
+                title={editingRole ? editingRole.name : 'Create New Role'}
+                subtitle={editingRole ? (editingRole.description || "Modify permissions for this system role.") : "Define role name, description and permissions."}
+                size="full"
             >
                 <RoleForm
                     onSubmit={handleSubmit}

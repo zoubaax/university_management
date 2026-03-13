@@ -129,14 +129,14 @@ const DepartmentForm = ({ initialValues, onSubmit, onCancel }) => {
             {/* Department Yearly Price */}
             <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                    <Banknote className="w-4 h-4 text-gray-500" />
+                    <DollarSign className="w-4 h-4 text-gray-500" />
                     Base Yearly Tuition (MAD)
                     <span className="text-xs text-red-500 ml-1">*</span>
                 </label>
                 <Input
                     type="number"
                     placeholder="0.00"
-                    leftIcon={<Banknote className="w-4 h-4 text-gray-400" />}
+                    leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
                     {...register('yearly_price')}
                     error={errors.yearly_price?.message}
                 />
