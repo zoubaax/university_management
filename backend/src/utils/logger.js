@@ -8,10 +8,11 @@ const logFormat = winston.format.combine(
     winston.format.json()
 );
 
-const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-    format: logFormat,
-    transports: [
+const transports = [];
+
+// Use File transports only in non-production or if explicitly allowed (though not recommended for Serverless)
+if (process.env.NODE_ENV !== 'production') {
+    transports.push(
         new winston.transports.DailyRotateFile({
             filename: 'logs/error-%DATE%.log',
             datePattern: 'YYYY-MM-DD',
@@ -23,11 +24,6 @@ const logger = winston.createLogger({
             datePattern: 'YYYY-MM-DD',
             maxFiles: '14d',
         }),
-    ],
-});
-
-if (process.env.NODE_ENV !== 'production') {
-    logger.add(
         new winston.transports.Console({
             format: winston.format.combine(
                 winston.format.colorize(),
@@ -35,6 +31,22 @@ if (process.env.NODE_ENV !== 'production') {
             ),
         })
     );
+} else {
+    // In production (Vercel/Serverless), use Console transport
+    transports.push(
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.timestamp(),
+                winston.format.json()
+            ),
+        })
+    );
 }
+
+const logger = winston.createLogger({
+    level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+    format: logFormat,
+    transports: transports,
+});
 
 module.exports = logger;
