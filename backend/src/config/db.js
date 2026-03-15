@@ -1,13 +1,30 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-});
+const isProduction = process.env.NODE_ENV === 'production';
+
+let poolConfig;
+
+if (isProduction) {
+    // Production (Vercel) uses the connection string with SSL
+    poolConfig = {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    };
+} else {
+    // Local Development uses individual variables from .env
+    poolConfig = {
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASSWORD,
+        port: process.env.DB_PORT,
+    };
+}
+
+const pool = new Pool(poolConfig);
 
 pool.on('connect', () => {
     console.log('Connected to the PostgreSQL database');
