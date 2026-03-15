@@ -37,7 +37,7 @@ import StudentForm from '../features/students/components/StudentForm';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import ConfirmModal from '../components/ui/ConfirmModal';
-import Badge from '../components/ui/Badge';
+import { getAssetUrl } from '../utils/assets';
 
 const StudentsPage = () => {
     const { user } = useAuth();
@@ -400,7 +400,7 @@ const StudentsPage = () => {
                                             <div className="flex gap-2">
                                                 {student.bac_document_url && (
                                                     <a
-                                                        href={`${import.meta.env.VITE_STORAGE_URL}${student.bac_document_url}`}
+                                                        href={getAssetUrl(student.bac_document_url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-colors"
@@ -411,7 +411,7 @@ const StudentsPage = () => {
                                                 )}
                                                 {student.cin_document_url && (
                                                     <a
-                                                        href={`${import.meta.env.VITE_STORAGE_URL}${student.cin_document_url}`}
+                                                        href={getAssetUrl(student.cin_document_url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors"

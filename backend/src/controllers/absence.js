@@ -41,7 +41,7 @@ exports.createAbsence = async (req, res, next) => {
         req.body.recorded_by = req.user.id;
 
         if (req.file) {
-            req.body.attachment_url = `/uploads/absences/${req.file.filename}`;
+            req.body.attachment_url = req.file.path;
         }
 
         const absence = await AbsenceService.createAbsence(req.body);
@@ -87,7 +87,7 @@ exports.createAbsence = async (req, res, next) => {
 exports.updateAbsence = async (req, res, next) => {
     try {
         if (req.file) {
-            req.body.attachment_url = `/uploads/absences/${req.file.filename}`;
+            req.body.attachment_url = req.file.path;
         }
         const absence = await AbsenceService.updateAbsence(req.params.id, req.body);
         res.status(200).json({

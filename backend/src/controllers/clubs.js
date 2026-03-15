@@ -88,7 +88,7 @@ exports.createClub = async (req, res, next) => {
         // Build the logo URL from the uploaded file (if any)
         let logo_url = null;
         if (req.file) {
-            logo_url = `/uploads/clubs/${req.file.filename}`;
+            logo_url = req.file.path;
         }
 
         const newClub = await Club.create({
@@ -394,7 +394,7 @@ exports.addClubGalleryItem = async (req, res, next) => {
 
         const photo = await ClubGallery.create({
             club_id: req.params.id,
-            image_url: `/uploads/gallery/${req.file.filename}`,
+            image_url: req.file.path,
             caption: req.body.caption
         });
 

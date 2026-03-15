@@ -37,6 +37,7 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 import { cn } from '../utils/cn';
 import { toast } from 'react-hot-toast';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getAssetUrl } from '../utils/assets';
 
 const ClubManagementPage = () => {
     const { user } = useAuth();
@@ -326,7 +327,7 @@ const ClubManagementPage = () => {
                     <div className="absolute -bottom-12 left-6 flex items-end gap-4">
                         {club.logo_url ? (
                             <img
-                                src={`${import.meta.env.VITE_API_URL}${club.logo_url}`}
+                                src={getAssetUrl(club.logo_url)}
                                 alt={club.name}
                                 className="w-20 h-20 rounded-lg border-2 border-white bg-white shadow-md object-cover"
                             />

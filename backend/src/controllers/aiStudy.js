@@ -5,6 +5,14 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const CourseResource = require('../models/CourseResource');
 const StudyQuiz = require('../models/StudyQuiz');
 const ErrorResponse = require('../utils/ErrorResponse');
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary for direct access
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Initialize table
 StudyQuiz.initTable().catch(err => console.error('Failed to init study_quizzes table:', err));
@@ -18,7 +26,7 @@ exports.generateQuizFromResource = async (req, res, next) => {
         const resource = await CourseResource.findById(resourceId);
 
         if (!resource) {
-            return next(new ErrorResponse('Course resource not found', 404));
+            return next(new ErrorResponse('Course resource data not found in system', 404));
         }
 
         // Check if it's a PDF
@@ -26,34 +34,75 @@ exports.generateQuizFromResource = async (req, res, next) => {
             return next(new ErrorResponse('Only PDF resources are supported for AI Quiz generation', 400));
         }
 
-        // Construct absolute path
-        console.log('Current __dirname:', __dirname);
+        // 1. Get PDF Buffer (Handle Local vs Cloudinary)
+        let dataBuffer;
 
-        let cleanPath = resource.file_path;
-        // Remove leading slash if exists
-        if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
-        // On Windows, sometimes paths use forward slashes, path.join handles this, 
-        // but let's be sure we are looking in the right place
-        let filePath = path.join(__dirname, '..', '..', 'public', cleanPath);
+        if (resource.file_path.startsWith('http')) {
+            try {
+                // Extract the public_id from the Cloudinary URL
+                const urlParts = resource.file_path.split('/');
+                const uploadIndex = urlParts.indexOf('upload');
+                if (uploadIndex === -1) throw new Error('Could not parse Cloudinary URL');
 
-        console.log('Resolved Path:', filePath);
+                const resourceType = urlParts[uploadIndex - 1]; // 'image' or 'raw'
 
-        if (!fs.existsSync(filePath)) {
-            console.error('CRITICAL: File does not exist at:', filePath);
-            // Try one more fallback: look for 'uploads' directly in root
-            const fallbackPath = path.join(__dirname, '..', '..', cleanPath);
-            console.log('Trying Fallback Path:', fallbackPath);
+                // Skip version segment if present
+                const afterUpload = /^v\d+$/.test(urlParts[uploadIndex + 1])
+                    ? urlParts.slice(uploadIndex + 2)
+                    : urlParts.slice(uploadIndex + 1);
 
-            if (fs.existsSync(fallbackPath)) {
-                console.log('Using Fallback Path:', fallbackPath);
-                filePath = fallbackPath; // Use fallback path
-            } else {
-                return next(new ErrorResponse(`File not found at ${filePath}`, 404));
+                const pathWithExt = afterUpload.join('/');
+                const publicId = pathWithExt.substring(0, pathWithExt.lastIndexOf('.'));
+                const extension = pathWithExt.substring(pathWithExt.lastIndexOf('.') + 1);
+
+                // Use the Cloudinary Download API with Basic Auth (works with Strict Transformations)
+                const downloadApiUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/download`;
+                const basicAuth = Buffer.from(
+                    `${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}`
+                ).toString('base64');
+
+                const params = new URLSearchParams({
+                    public_id: publicId,
+                    format: extension,
+                    resource_type: resourceType,
+                    type: 'upload'
+                });
+
+                const response = await fetch(`${downloadApiUrl}?${params.toString()}`, {
+                    headers: { 'Authorization': 'Basic ' + basicAuth }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Cloudinary download failed: ${response.statusText} (${response.status})`);
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                dataBuffer = Buffer.from(arrayBuffer);
+            } catch (fetchErr) {
+                console.error('Remote fetch error:', fetchErr);
+                return next(new ErrorResponse(`Failed to download resource from cloud storage: ${fetchErr.message}`, 500));
             }
+        } else {
+            // Construct absolute path for local file
+            console.log('Reading local PDF:', resource.file_path);
+            let cleanPath = resource.file_path;
+            if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+            
+            let filePath = path.join(__dirname, '..', '..', 'public', cleanPath);
+            
+            if (!fs.existsSync(filePath)) {
+                // Try fallback
+                const fallbackPath = path.join(__dirname, '..', '..', cleanPath);
+                if (fs.existsSync(fallbackPath)) {
+                    filePath = fallbackPath;
+                } else {
+                    return next(new ErrorResponse('Physical resource file not found on server', 404));
+                }
+            }
+            dataBuffer = fs.readFileSync(filePath);
         }
 
-        // 1. Extract Text from PDF
-        const dataBuffer = fs.readFileSync(filePath);
+        // 2. Extract Text from PDF
         const data = await pdf(dataBuffer);
         const extractedText = data.text;
 

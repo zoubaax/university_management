@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera } from 'lucide-react';
+import { getAssetUrl } from '../../../utils/assets';
 
 const ClubGallery = ({ gallery }) => {
     return (
@@ -20,7 +21,7 @@ const ClubGallery = ({ gallery }) => {
                         className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200"
                     >
                         <img
-                            src={`${import.meta.env.VITE_API_URL}${photo.image_url}`}
+                            src={getAssetUrl(photo.image_url)}
                             alt={photo.caption}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                         />

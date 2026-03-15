@@ -43,9 +43,10 @@ import Input from '../components/ui/Input';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import AIQuizModal from '../components/ui/AIQuizModal';
 import { cn } from '../utils/cn';
+import { getAssetUrl } from '../utils/assets';
 import { Brain, Sparkles } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Removed API_BASE_URL in favor of getAssetUrl utility
 
 const CourseResourcesPage = () => {
     const { user } = useAuth();
@@ -547,7 +548,7 @@ const CourseResourcesPage = () => {
                                                         </button>
                                                     )}
                                                     <a
-                                                        href={`${API_BASE_URL}${res.file_path}`}
+                                                        href={getAssetUrl(res.file_path)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="w-full px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -610,7 +611,7 @@ const CourseResourcesPage = () => {
                                             {new Date(res.created_at).toLocaleDateString()}
                                         </div>
                                         <a
-                                            href={`${API_BASE_URL}${res.file_path}`}
+                                            href={getAssetUrl(res.file_path)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-colors"
@@ -684,7 +685,7 @@ const CourseResourcesPage = () => {
                                                         </button>
                                                     )}
                                                     <a
-                                                        href={`${API_BASE_URL}${res.file_path}`}
+                                                        href={getAssetUrl(res.file_path)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"

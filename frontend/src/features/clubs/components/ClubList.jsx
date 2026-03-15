@@ -44,6 +44,7 @@ import Badge from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
 import { cn } from '../../../utils/cn';
 import { toast } from 'react-hot-toast';
+import { getAssetUrl } from '../../../utils/assets';
 
 const ClubList = () => {
     const { user } = useAuth();
@@ -261,7 +262,7 @@ const ClubList = () => {
                                         {club.logo_url ? (
                                             <div className="absolute -bottom-8 left-5 w-16 h-16 rounded-lg border-2 border-white bg-white overflow-hidden shadow-md">
                                                 <img
-                                                    src={`${import.meta.env.VITE_API_URL}${club.logo_url}`}
+                                                    src={getAssetUrl(club.logo_url)}
                                                     alt={club.name}
                                                     className="w-full h-full object-cover"
                                                 />
@@ -459,7 +460,7 @@ const ClubList = () => {
                         <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             {viewingClub.logo_url ? (
                                 <img
-                                    src={`${import.meta.env.VITE_API_URL}${viewingClub.logo_url}`}
+                                    src={getAssetUrl(viewingClub.logo_url)}
                                     alt=""
                                     className="w-16 h-16 rounded-lg object-cover shadow-sm border border-gray-200"
                                 />

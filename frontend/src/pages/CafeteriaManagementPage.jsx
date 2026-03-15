@@ -38,6 +38,7 @@ import Textarea from '../components/ui/Textarea';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
+import { getAssetUrl } from '../utils/assets';
 
 const CafeteriaManagementPage = () => {
     const [items, setItems] = useState([]);
@@ -177,12 +178,7 @@ const CafeteriaManagementPage = () => {
         ready: orders.filter(o => o.status === 'READY').length
     };
 
-    const getImageUrl = (url) => {
-        if (!url) return null;
-        if (url.startsWith('http')) return url;
-        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.split('/api/v1')[0] : 'http://localhost:5000';
-        return `${baseUrl}${url}`;
-    };
+    const getImageUrl = (url) => getAssetUrl(url);
 
     const getStatusColor = (status) => {
         switch (status) {

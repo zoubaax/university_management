@@ -115,6 +115,10 @@ app.get('/health', (req, res) => {
     res.status(200).json({ success: true, message: 'Server is healthy' });
 });
 
+app.get('/api/v1/ping', (req, res) => {
+    res.status(200).json({ success: true, message: 'pong' });
+});
+
 // 11. Error handler
 app.use(errorHandler);
 

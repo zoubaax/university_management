@@ -38,7 +38,7 @@ exports.getItem = asyncHandler(async (req, res, next) => {
 exports.createItem = asyncHandler(async (req, res, next) => {
     const data = { ...req.body };
     if (req.file) {
-        data.image_url = `/api/v1/uploads/cafeteria/${req.file.filename}`;
+        data.image_url = req.file.path;
     }
     const item = await CafeteriaItem.create(data);
     res.status(201).json({ success: true, data: item });
@@ -50,7 +50,7 @@ exports.createItem = asyncHandler(async (req, res, next) => {
 exports.updateItem = asyncHandler(async (req, res, next) => {
     const data = { ...req.body };
     if (req.file) {
-        data.image_url = `/api/v1/uploads/cafeteria/${req.file.filename}`;
+        data.image_url = req.file.path;
     }
     const item = await CafeteriaItem.update(req.params.id, data);
     if (!item) return next(new ErrorResponse('Item not found', 404));

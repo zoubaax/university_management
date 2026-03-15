@@ -30,6 +30,7 @@ import Input from '../components/ui/Input';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
+import { getAssetUrl } from '../utils/assets';
 
 const CafeteriaPage = () => {
     const [items, setItems] = useState([]);
@@ -127,12 +128,7 @@ const CafeteriaPage = () => {
         return matchesCategory && matchesSearch && item.is_available;
     });
 
-    const getImageUrl = (url) => {
-        if (!url) return null;
-        if (url.startsWith('http')) return url;
-        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.split('/api/v1')[0] : 'http://localhost:5000';
-        return `${baseUrl}${url}`;
-    };
+    const getImageUrl = (url) => getAssetUrl(url);
 
     const getStatusColor = (status) => {
         switch (status) {

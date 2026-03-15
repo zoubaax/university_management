@@ -39,10 +39,10 @@ exports.createStudent = async (req, res, next) => {
         // Handle file uploads
         if (req.files) {
             if (req.files.bac_document) {
-                studentData.bac_document_url = `/uploads/students/${req.files.bac_document[0].filename}`;
+                studentData.bac_document_url = req.files.bac_document[0].path;
             }
             if (req.files.cin_document) {
-                studentData.cin_document_url = `/uploads/students/${req.files.cin_document[0].filename}`;
+                studentData.cin_document_url = req.files.cin_document[0].path;
             }
         }
 
@@ -63,10 +63,10 @@ exports.updateStudent = async (req, res, next) => {
         // Handle file uploads
         if (req.files) {
             if (req.files.bac_document) {
-                studentData.bac_document_url = `/uploads/students/${req.files.bac_document[0].filename}`;
+                studentData.bac_document_url = req.files.bac_document[0].path;
             }
             if (req.files.cin_document) {
-                studentData.cin_document_url = `/uploads/students/${req.files.cin_document[0].filename}`;
+                studentData.cin_document_url = req.files.cin_document[0].path;
             }
         }
 

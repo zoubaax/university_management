@@ -68,7 +68,7 @@ exports.createResource = async (req, res, next) => {
         const resourceData = {
             ...req.body,
             professor_id: req.user.employee_id, // Linked to the logged-in professor
-            file_path: `/uploads/resources/${req.file.filename}`,
+            file_path: req.file.path,
             file_name: req.file.originalname,
             file_size: req.file.size
         };

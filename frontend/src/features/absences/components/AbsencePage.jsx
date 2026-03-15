@@ -23,8 +23,9 @@ import Modal from '../../../components/ui/Modal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
+import { getAssetUrl } from '../../../utils/assets';
 
-const API_BASE_URL = 'http://localhost:5000'; // Adjust based on your environment
+// API_BASE_URL removed in favor of getAssetUrl utility
 
 const AbsencePage = () => {
     const {
@@ -237,7 +238,7 @@ const AbsencePage = () => {
                                                     </p>
                                                     {record.attachment_url && (
                                                         <a
-                                                            href={`${API_BASE_URL}${record.attachment_url}`}
+                                                            href={getAssetUrl(record.attachment_url)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors w-fit bg-blue-50 px-2 py-0.5 rounded-md"
