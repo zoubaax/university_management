@@ -215,10 +215,21 @@ const LoginPage = () => {
 
                 {/* Footer */}
                 <div className="border-t border-gray-100 p-6 bg-gray-50">
-                    <div className="text-center">
+                    <div className="text-center space-y-3">
+                        <p className="text-sm text-gray-600">
+                            Want to test the platform?{' '}
+                            <a 
+                                href="https://zoubaa.dev/projects/a7c795f2-d1b8-488f-8f86-e6b9a5704a13" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                            >
+                                Click here to get a demo account
+                            </a>
+                        </p>
                         <p className="text-sm text-gray-600">
                             Need help accessing your account?{' '}
-                            <button className="font-medium text-gray-900 hover:text-gray-700 transition-colors">
+                            <button type="button" className="font-medium text-gray-900 hover:text-gray-700 transition-colors">
                                 Contact IT Support
                             </button>
                         </p>
