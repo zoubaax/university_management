@@ -37,6 +37,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 import NotificationBell from '../components/NotificationBell';
 import ChatWidget from '../components/ui/ChatWidget';
+import upfLogo from '../assets/upf-logo.png';
 
 const DashboardLayout = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -357,16 +358,23 @@ const DashboardLayout = () => {
                         )}
 
                         {/* Page title */}
-                        <div className="hidden md:block">
-                            <h1 className="text-lg font-semibold text-gray-900">
-                                {filteredNavItems.flatMap(c => c.items).find(item =>
-                                    location.pathname === item.path ||
-                                    location.pathname.startsWith(item.path + '/')
-                                )?.name || 'Dashboard'}
-                            </h1>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                                {roleName} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                            </p>
+                        <div className="hidden md:flex items-center gap-4">
+                            <img 
+                                src={upfLogo} 
+                                alt="UPF Logo" 
+                                className="h-10 w-auto object-contain flex-shrink-0" 
+                            />
+                            <div>
+                                <h1 className="text-lg font-semibold text-gray-900">
+                                    {filteredNavItems.flatMap(c => c.items).find(item =>
+                                        location.pathname === item.path ||
+                                        location.pathname.startsWith(item.path + '/')
+                                    )?.name || 'Dashboard'}
+                                </h1>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    {roleName} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                            </div>
                         </div>
 
                         {/* Search - Desktop */}

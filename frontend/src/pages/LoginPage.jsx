@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { LogIn, Mail, Lock, AlertCircle, Loader2, Eye, EyeOff, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
+import upfLogo from '../assets/upf-logo.png';
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email address'),
@@ -55,20 +56,18 @@ const LoginPage = () => {
             >
                 {/* Header Section */}
                 <div className="p-8 pb-6">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                        <div className="p-3 bg-gray-900 rounded-lg">
-                            <Shield className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
+                    <div className="flex flex-col items-center justify-center gap-4 mb-6">
+                        <img src={upfLogo} alt="UPF Logo" className="h-20 w-auto object-contain drop-shadow-sm" />
+                        <div className="text-center">
                             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">University Portal</h1>
                             <p className="text-sm text-gray-500">Secure Administration System</p>
                         </div>
                     </div>
 
-                    <div className="text-center mb-2">
+                    {/* <div className="text-center mb-2">
                         <h2 className="text-lg font-semibold text-gray-900">Sign in to your account</h2>
                         <p className="text-sm text-gray-500 mt-1">Enter your credentials to continue</p>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Error Message */}
