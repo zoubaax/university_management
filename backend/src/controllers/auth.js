@@ -37,14 +37,16 @@ exports.getMe = async (req, res, next) => {
 };
 
 exports.logout = (req, res, next) => {
-    res.cookie('token', 'none', {
+    const options = {
         expires: new Date(Date.now() + 10 * 1000),
         httpOnly: true,
-    });
-    res.cookie('refreshToken', 'none', {
-        expires: new Date(Date.now() + 10 * 1000),
-        httpOnly: true,
-    });
+    };
+    if (process.env.NODE_ENV === 'production') {
+        options.secure = true;
+        options.sameSite = 'none';
+    }
+    res.cookie('token', 'none', options);
+    res.cookie('refreshToken', 'none', options);
     res.status(200).json({ success: true, data: {} });
 };
 
@@ -53,7 +55,11 @@ const sendTokenResponse = (user, accessToken, refreshToken, statusCode, res) => 
         expires: new Date(Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
         httpOnly: true,
     };
-    if (process.env.NODE_ENV === 'production') options.secure = true;
+    
+    if (process.env.NODE_ENV === 'production') {
+        options.secure = true;
+        options.sameSite = 'none';
+    }
 
     res
         .status(statusCode)
