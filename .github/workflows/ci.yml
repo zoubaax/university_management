@@ -1,0 +1,55 @@
+name: Smart UPF CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Spin up Backend and Database Services
+        run: |
+          docker compose up -d postgres backend
+        env:
+          JWT_SECRET: super_secret_test_key_for_jwt
+          JWT_REFRESH_SECRET: super_secret_test_key_for_refresh_jwt
+
+      - name: Wait for Backend Health Check
+        run: |
+          echo "Waiting for Node.js API to be ready..."
+          timeout 60s bash -c '
+            until curl -s http://localhost:5000/health | grep -q "status"; do
+              echo "Still waiting for http://localhost:5000/health..."
+              sleep 2
+            done
+          '
+          echo "Backend is ready and running!"
+
+      - name: Run E2E Tests with Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ./frontend
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          # Set headless E2E run
+          browser: chrome
+          headless: true
+
+      - name: Teardown Services
+        if: always()
+        run: |
+          docker compose down -v
