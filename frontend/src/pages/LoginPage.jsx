@@ -83,7 +83,7 @@ const LoginPage = () => {
                 )}
 
                 {/* Login Form */}
-                <form onSubmit={handleSubmit(onSubmit)} className="px-8 pb-8 space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="px-8 pb-8 space-y-4" noValidate>
                     {/* Email Field */}
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
