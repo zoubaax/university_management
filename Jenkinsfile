@@ -15,6 +15,13 @@ pipeline {
             }
         }
 
+        stage('Cleanup Previous Run') {
+            steps {
+                echo 'Removing any leftover containers from previous runs...'
+                sh 'docker-compose down -v --remove-orphans || true'
+            }
+        }
+
         stage('Spin up Application Stack') {
             steps {
                 echo 'Building and starting all services (postgres, backend, frontend) via Docker Compose...'
