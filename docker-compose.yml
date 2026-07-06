@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    build:
+      context: ./database
+      dockerfile: Dockerfile
     container_name: smart-upf-db
     environment:
       POSTGRES_USER: postgres
@@ -9,14 +11,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Mount the database custom-format dump to a temp location
-      - ./database/db.sql:/tmp/db.dump
-      # Mount shell script to run pg_restore automatically on first start
-      - ./database/restore.sh:/docker-entrypoint-initdb.d/restore.sh
       # Persist DB data locally
       - pgdata:/var/lib/postgresql/data
-    entrypoint: >
-      sh -c "chmod +x /docker-entrypoint-initdb.d/restore.sh && docker-entrypoint.sh postgres"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d smart_upf && psql -U postgres -d smart_upf -c 'SELECT 1 FROM users LIMIT 1;'"]
       interval: 10s
