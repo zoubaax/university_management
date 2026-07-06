@@ -18,14 +18,14 @@ pipeline {
         stage('Cleanup Previous Run') {
             steps {
                 echo 'Removing any leftover containers from previous runs...'
-                sh 'docker-compose down -v --remove-orphans || true'
+                sh 'docker-compose -p university_management down -v --remove-orphans || true'
             }
         }
 
         stage('Spin up Application Stack') {
             steps {
                 echo 'Building and starting all services (postgres, backend, frontend) via Docker Compose...'
-                sh 'docker-compose up --build -d'
+                sh 'docker-compose -p university_management up --build -d'
             }
         }
 
@@ -63,7 +63,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up resources and docker containers...'
-            sh 'docker-compose down -v || true'
+            sh 'docker-compose -p university_management down -v || true'
         }
     }
 }
