@@ -35,7 +35,7 @@ pipeline {
                 echo 'Waiting for backend server to respond to health check...'
                 sh '''
                     timeout 120s bash -c '
-                        until docker exec ${COMPOSE_PROJECT_NAME}-backend-1 wget -qO- http://localhost:5000/health > /dev/null 2>&1; do
+                        until docker exec smart-upf-backend wget -qO- http://localhost:5000/health > /dev/null 2>&1; do
                             echo "Waiting for backend to be ready..."
                             sleep 3
                         done
@@ -48,12 +48,12 @@ pipeline {
         stage('Run E2E Tests (Cypress)') {
             steps {
                 echo 'Running Cypress E2E tests in a container...'
-                // Mount repo root where cypress.config.js lives, not just frontend/
+                // Run Cypress using its official Docker image on the same network as the compose stack
                 sh '''
                     docker run --rm \
                         --network="${COMPOSE_PROJECT_NAME}_default" \
-                        -e CYPRESS_baseUrl="http://${COMPOSE_PROJECT_NAME}-frontend-1" \
-                        -v "${WORKSPACE}:/e2e" \
+                        -e CYPRESS_baseUrl="http://smart-upf-frontend" \
+                        -v "${WORKSPACE}/frontend:/e2e" \
                         -w /e2e \
                         cypress/included:15.18.0
                 '''
