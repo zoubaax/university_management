@@ -1,35 +1,37 @@
-describe('Login Page E2E Tests', () => {
+import { loginPage } from '../support/pages/LoginPage';
+
+describe('Login Page E2E Tests (POM)', () => {
   beforeEach(() => {
-    // Visit the login page
-    cy.visit('/login');
+    // Visit the login page using the Page Object method
+    loginPage.visit();
   });
 
   it('should display the login form and its elements', () => {
-    cy.get('form').should('exist');
-    cy.get('input[type="email"]').should('exist');
-    cy.get('input[type="password"]').should('exist');
-    cy.get('button[type="submit"]').should('contain', 'Sign In');
+    loginPage.form.should('exist');
+    loginPage.emailInput.should('exist');
+    loginPage.passwordInput.should('exist');
+    loginPage.submitButton.should('contain', 'Sign In');
   });
 
   it('should show validation errors for empty fields', () => {
-    // Submit empty form
-    cy.get('button[type="submit"]').click();
+    // Submit empty form using Page Object method
+    loginPage.submit();
     
     // Check validation error messages (React Hook Form / Zod)
-    cy.get('form').should('contain', 'Please enter a valid email address');
+    loginPage.form.should('contain', 'Please enter a valid email address');
   });
 
   it('should show validation error for invalid email format', () => {
-    cy.get('input[type="email"]').type('notanemail');
-    cy.get('button[type="submit"]').click();
-    cy.get('form').should('contain', 'Please enter a valid email address');
+    loginPage.fillEmail('notanemail');
+    loginPage.submit();
+    loginPage.form.should('contain', 'Please enter a valid email address');
   });
 
   it('should show validation error for short password', () => {
-    cy.get('input[type="email"]').type('test@university.edu');
-    cy.get('input[type="password"]').type('123');
-    cy.get('button[type="submit"]').click();
-    cy.get('form').should('contain', 'Password must be at least 6 characters');
+    loginPage.fillEmail('test@university.edu');
+    loginPage.fillPassword('123');
+    loginPage.submit();
+    loginPage.form.should('contain', 'Password must be at least 6 characters');
   });
 
   it('should show error banner when authentication fails (API Error)', () => {
@@ -39,14 +41,12 @@ describe('Login Page E2E Tests', () => {
       body: { error: 'Invalid email or password' },
     }).as('loginFail');
 
-    cy.get('input[type="email"]').type('wrong@university.edu');
-    cy.get('input[type="password"]').type('wrongpassword');
-    cy.get('button[type="submit"]').click();
+    loginPage.login('wrong@university.edu', 'wrongpassword');
 
     cy.wait('@loginFail');
     
     // Verify error banner is displayed
-    cy.get('form').parent().should('contain', 'Invalid email or password');
+    loginPage.errorContainer.should('contain', 'Invalid email or password');
   });
 
   it('should disable submit button and show loading state during request', () => {
@@ -57,13 +57,11 @@ describe('Login Page E2E Tests', () => {
       body: { accessToken: 'token', user: { role: 'ADMIN' } }
     }).as('loginDelay');
 
-    cy.get('input[type="email"]').type('test@university.edu');
-    cy.get('input[type="password"]').type('password123');
-    cy.get('button[type="submit"]').click();
+    loginPage.login('test@university.edu', 'password123');
 
     // Verify loading state is shown
-    cy.get('button[type="submit"]').should('be.disabled');
-    cy.get('button[type="submit"]').should('contain', 'Signing in...');
+    loginPage.submitButton.should('be.disabled');
+    loginPage.submitButton.should('contain', 'Signing in...');
 
     cy.wait('@loginDelay');
   });
@@ -82,10 +80,7 @@ describe('Login Page E2E Tests', () => {
       },
     }).as('loginRequest');
 
-    // Fill form and submit
-    cy.get('input[type="email"]').type('test@university.edu');
-    cy.get('input[type="password"]').type('password123');
-    cy.get('button[type="submit"]').click();
+    loginPage.login('test@university.edu', 'password123');
 
     // Verify it intercepted the API request
     cy.wait('@loginRequest');
