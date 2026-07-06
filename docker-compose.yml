@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: smart-upf-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: smart_upf
+    ports:
+      - "5432:5432"
+    volumes:
+      # Mount the database custom-format dump to a temp location
+      - ./database/db.sql:/tmp/db.dump
+      # Mount shell script to run pg_restore automatically on first start
+      - ./database/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+      # Persist DB data locally
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_upf"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart-upf-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - DB_USER=postgres
+      - DB_PASSWORD=your_secure_password
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=smart_upf
+      - JWT_SECRET=replace_with_long_random_string_for_testing
+      - JWT_EXPIRE=15m
+      - JWT_REFRESH_SECRET=replace_with_another_long_random_string_for_testing
+      - JWT_REFRESH_EXPIRE=7d
+      - COOKIE_EXPIRE=7
+      - CLIENT_URL=http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:5000/api/v1
+        - VITE_STORAGE_URL=http://localhost:5000
+    container_name: smart-upf-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
