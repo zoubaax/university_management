@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:17-alpine
@@ -18,10 +16,11 @@ services:
       # Persist DB data locally
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_upf"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_upf && psql -U postgres -d smart_upf -c 'SELECT 1 FROM users LIMIT 1;'"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
 
   backend:
     build:
