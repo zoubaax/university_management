@@ -11,14 +11,14 @@ pipeline {
             steps {
                 echo 'Checking Docker environment...'
                 sh 'docker --version'
-                sh 'docker compose version'
+                sh 'docker-compose --version'
             }
         }
 
         stage('Spin up Application Stack') {
             steps {
                 echo 'Building and starting all services (postgres, backend, frontend) via Docker Compose...'
-                sh 'docker compose up --build -d'
+                sh 'docker-compose up --build -d'
             }
         }
 
@@ -56,7 +56,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up resources and docker containers...'
-            sh 'docker compose down -v || true'
+            sh 'docker-compose down -v || true'
         }
     }
 }
