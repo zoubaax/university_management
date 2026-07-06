@@ -48,14 +48,29 @@ pipeline {
         stage('Run E2E Tests (Cypress)') {
             steps {
                 echo 'Running Cypress E2E tests in a container...'
-                // Run Cypress using its official Docker image on the same network as the compose stack
                 sh '''
+                    # Create a named volume and copy test files into it
+                    # (bind mounts from Jenkins workspace don't work because Docker
+                    #  resolves paths on the Mac host, not inside the Jenkins container)
+                    docker volume create cypress-tests
+
+                    # Use a temp container to copy files into the volume
+                    docker create --name cypress-copy -v cypress-tests:/e2e alpine:latest
+                    docker cp ${WORKSPACE}/frontend/cypress.config.js cypress-copy:/e2e/
+                    docker cp ${WORKSPACE}/frontend/cypress cypress-copy:/e2e/
+                    docker cp ${WORKSPACE}/frontend/package.json cypress-copy:/e2e/
+                    docker rm cypress-copy
+
+                    # Run Cypress against the volume
                     docker run --rm \
                         --network="${COMPOSE_PROJECT_NAME}_default" \
                         -e CYPRESS_baseUrl="http://smart-upf-frontend" \
-                        -v "${WORKSPACE}/frontend:/e2e" \
+                        -v cypress-tests:/e2e \
                         -w /e2e \
                         cypress/included:15.18.0
+
+                    # Cleanup the volume
+                    docker volume rm cypress-tests || true
                 '''
             }
         }
