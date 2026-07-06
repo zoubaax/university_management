@@ -34,8 +34,8 @@ pipeline {
                 echo 'Waiting for backend server to respond to health check...'
                 sh '''
                     timeout 120s bash -c '
-                        until curl -sf http://localhost:5000/health > /dev/null 2>&1; do
-                            echo "Waiting for http://localhost:5000/health..."
+                        until docker exec smart-upf-backend curl -sf http://localhost:5000/health > /dev/null 2>&1; do
+                            echo "Waiting for backend to be ready..."
                             sleep 3
                         done
                     '
