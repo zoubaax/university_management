@@ -4,6 +4,7 @@ pipeline {
     environment {
         JWT_SECRET = 'jenkins_test_secret_key'
         JWT_REFRESH_SECRET = 'jenkins_test_refresh_secret_key'
+        COMPOSE_PROJECT_NAME = 'university_management'
     }
 
     stages {
@@ -18,14 +19,14 @@ pipeline {
         stage('Cleanup Previous Run') {
             steps {
                 echo 'Removing any leftover containers from previous runs...'
-                sh 'docker-compose -p university_management down -v --remove-orphans || true'
+                sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true'
             }
         }
 
         stage('Spin up Application Stack') {
             steps {
                 echo 'Building and starting all services (postgres, backend, frontend) via Docker Compose...'
-                sh 'docker-compose -p university_management up --build -d'
+                sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} up --build -d'
             }
         }
 
@@ -34,7 +35,7 @@ pipeline {
                 echo 'Waiting for backend server to respond to health check...'
                 sh '''
                     timeout 120s bash -c '
-                        until docker exec smart-upf-backend wget -qO- http://localhost:5000/health > /dev/null 2>&1; do
+                        until docker exec ${COMPOSE_PROJECT_NAME}-backend-1 wget -qO- http://localhost:5000/health > /dev/null 2>&1; do
                             echo "Waiting for backend to be ready..."
                             sleep 3
                         done
@@ -47,12 +48,12 @@ pipeline {
         stage('Run E2E Tests (Cypress)') {
             steps {
                 echo 'Running Cypress E2E tests in a container...'
-                // Run Cypress using its official Docker image on the same network as the compose stack
+                // Mount repo root where cypress.config.js lives, not just frontend/
                 sh '''
                     docker run --rm \
-                        --network="university_management_default" \
-                        -e CYPRESS_baseUrl="http://smart-upf-frontend" \
-                        -v "${WORKSPACE}/frontend:/e2e" \
+                        --network="${COMPOSE_PROJECT_NAME}_default" \
+                        -e CYPRESS_baseUrl="http://${COMPOSE_PROJECT_NAME}-frontend-1" \
+                        -v "${WORKSPACE}:/e2e" \
                         -w /e2e \
                         cypress/included:15.18.0
                 '''
@@ -63,7 +64,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up resources and docker containers...'
-            sh 'docker-compose -p university_management down -v || true'
+            sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} down -v || true'
         }
     }
 }
