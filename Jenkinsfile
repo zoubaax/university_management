@@ -5,6 +5,7 @@ pipeline {
         JWT_SECRET = 'jenkins_test_secret_key'
         JWT_REFRESH_SECRET = 'jenkins_test_refresh_secret_key'
         COMPOSE_PROJECT_NAME = 'university_management'
+        DOCKER_DEFAULT_PLATFORM = 'linux/amd64'
     }
 
     stages {
