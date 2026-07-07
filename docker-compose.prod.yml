@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: zoubaa/smart-upf-postgres:latest
+    container_name: smart-upf-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: smart_upf
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_upf && psql -U postgres -d smart_upf -c 'SELECT 1 FROM users LIMIT 1;'"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+
+  backend:
+    image: zoubaa/smart-upf-backend:latest
+    container_name: smart-upf-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - DB_USER=postgres
+      - DB_PASSWORD=your_secure_password
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=smart_upf
+      - JWT_SECRET=replace_with_long_random_string_for_testing
+      - JWT_EXPIRE=15m
+      - JWT_REFRESH_SECRET=replace_with_another_long_random_string_for_testing
+      - JWT_REFRESH_EXPIRE=7d
+      - COOKIE_EXPIRE=7
+      - CLIENT_URL=http://54.162.205.151
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: zoubaa/smart-upf-frontend:latest
+    container_name: smart-upf-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

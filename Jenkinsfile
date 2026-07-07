@@ -74,6 +74,52 @@ pipeline {
                 '''
             }
         }
+
+        stage('Push Images to Docker Hub') {
+            when { branch 'main' }
+            steps {
+                echo 'Pushing Docker images to Docker Hub...'
+                withCredentials([
+                    string(credentialsId: 'dockerhub-username', variable: 'DOCKERHUB_USER'),
+                    string(credentialsId: 'dockerhub-token', variable: 'DOCKERHUB_TOKEN')
+                ]) {
+                    sh '''
+                        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        
+                        # Tag & Push Postgres
+                        docker tag university_management-postgres:latest $DOCKERHUB_USER/smart-upf-postgres:latest
+                        docker tag university_management-postgres:latest $DOCKERHUB_USER/smart-upf-postgres:$BUILD_NUMBER
+                        docker push $DOCKERHUB_USER/smart-upf-postgres:latest
+                        docker push $DOCKERHUB_USER/smart-upf-postgres:$BUILD_NUMBER
+
+                        # Tag & Push Backend
+                        docker tag university_management-backend:latest $DOCKERHUB_USER/smart-upf-backend:latest
+                        docker tag university_management-backend:latest $DOCKERHUB_USER/smart-upf-backend:$BUILD_NUMBER
+                        docker push $DOCKERHUB_USER/smart-upf-backend:latest
+                        docker push $DOCKERHUB_USER/smart-upf-backend:$BUILD_NUMBER
+
+                        # Tag & Push Frontend
+                        docker tag university_management-frontend:latest $DOCKERHUB_USER/smart-upf-frontend:latest
+                        docker tag university_management-frontend:latest $DOCKERHUB_USER/smart-upf-frontend:$BUILD_NUMBER
+                        docker push $DOCKERHUB_USER/smart-upf-frontend:latest
+                        docker push $DOCKERHUB_USER/smart-upf-frontend:$BUILD_NUMBER
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to AWS EC2') {
+            when { branch 'main' }
+            steps {
+                echo 'Deploying to AWS EC2...'
+                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ec2-ssh', keyFileVariable: 'IDENTITY_KEY', usernameVariable: 'SSH_USER')]) {
+                    sh '''
+                        scp -i "$IDENTITY_KEY" -o StrictHostKeyChecking=no docker-compose.prod.yml $SSH_USER@54.162.205.151:/home/ubuntu/smart-upf/docker-compose.prod.yml
+                        ssh -i "$IDENTITY_KEY" -o StrictHostKeyChecking=no $SSH_USER@54.162.205.151 'cd /home/ubuntu/smart-upf && docker-compose -f docker-compose.prod.yml pull && docker-compose -f docker-compose.prod.yml up -d --remove-orphans && docker image prune -f'
+                    '''
+                }
+            }
+        }
     }
 
     post {
