@@ -113,7 +113,7 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ec2-ssh', keyFileVariable: 'IDENTITY_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
                         scp -i "$IDENTITY_KEY" -o StrictHostKeyChecking=no docker-compose.prod.yml $SSH_USER@54.162.205.151:/home/ubuntu/smart-upf/docker-compose.prod.yml
-                        ssh -i "$IDENTITY_KEY" -o StrictHostKeyChecking=no $SSH_USER@54.162.205.151 'cd /home/ubuntu/smart-upf && docker-compose -f docker-compose.prod.yml pull && docker-compose -f docker-compose.prod.yml up -d --remove-orphans && docker image prune -f'
+                        ssh -i "$IDENTITY_KEY" -o StrictHostKeyChecking=no $SSH_USER@54.162.205.151 'cd /home/ubuntu/smart-upf && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans && docker image prune -f'
                     '''
                 }
             }
