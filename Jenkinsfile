@@ -76,7 +76,6 @@ pipeline {
         }
 
         stage('Push Images to Docker Hub') {
-            when { branch 'main' }
             steps {
                 echo 'Pushing Docker images to Docker Hub...'
                 withCredentials([
@@ -109,7 +108,6 @@ pipeline {
         }
 
         stage('Deploy to AWS EC2') {
-            when { branch 'main' }
             steps {
                 echo 'Deploying to AWS EC2...'
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ec2-ssh', keyFileVariable: 'IDENTITY_KEY', usernameVariable: 'SSH_USER')]) {
