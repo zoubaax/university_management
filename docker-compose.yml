@@ -50,8 +50,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:5000/api/v1
-        - VITE_STORAGE_URL=http://localhost:5000
+        - VITE_API_URL=/api/v1
+        - VITE_STORAGE_URL=
     container_name: smart-upf-frontend
     ports:
       - "8080:80"
